@@ -110,7 +110,7 @@ namespace Microsoft.Build.Tasks
                 if (String.Equals(filename, ItemSpecToFind, comparison))
                 {
                     ItemFound = item;
-                    Log.LogMessageFromResources(MessageImportance.Low, "FindInList.Found", path);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.FindInList_Found, path);
                     return true;
                 }
             }
@@ -118,7 +118,7 @@ namespace Microsoft.Build.Tasks
             {
                 // Just log this: presumably this item spec is not intended to be
                 // a file path
-                Log.LogMessageFromResources(MessageImportance.Low, "FindInList.InvalidPath", item.ItemSpec, ex.Message);
+                Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.FindInList_InvalidPath, item.ItemSpec, ex.Message);
             }
             return false;
         }

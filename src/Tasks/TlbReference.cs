@@ -281,7 +281,7 @@ namespace Microsoft.Build.Tasks
                 {
                     if (!Silent)
                     {
-                        Log.LogWarningWithCodeFromResources("ResolveComReference.ErrorCreatingWrapperAssembly", ItemName, ex.Message);
+                        Log.LogWarningWithCodeFromResource(TaskStrings.ResolveComReference_ErrorCreatingWrapperAssembly, ItemName, ex.Message);
                     }
 
                     throw new ComReferenceResolutionException(ex);
@@ -370,7 +370,7 @@ namespace Microsoft.Build.Tasks
             {
                 if (!Silent)
                 {
-                    Log.LogWarningWithCodeFromResources("ResolveComReference.ErrorCreatingWrapperAssembly", ItemName, e.Message);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.ResolveComReference_ErrorCreatingWrapperAssembly, ItemName, e.Message);
                 }
 
                 throw new ComReferenceResolutionException(e);
@@ -409,7 +409,7 @@ namespace Microsoft.Build.Tasks
             {
                 if (!Silent)
                 {
-                    Log.LogWarningWithCodeFromResources("ResolveComReference.FailedToResolveDependentComReference", attr.guid, attr.wMajorVerNum, attr.wMinorVerNum);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.ResolveComReference_FailedToResolveDependentComReference, attr.guid, attr.wMajorVerNum, attr.wMinorVerNum);
                 }
 
                 throw new ComReferenceResolutionException();
@@ -423,7 +423,7 @@ namespace Microsoft.Build.Tasks
 
             if (!Silent)
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "ResolveComReference.ResolvedDependentComReference",
+                Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveComReference_ResolvedDependentComReference,
                     attr.guid, attr.wMajorVerNum, attr.wMinorVerNum, wrapperInfo.path);
             }
 
@@ -443,20 +443,20 @@ namespace Microsoft.Build.Tasks
             {
                 if (eventKind == ImporterEventKind.ERROR_REFTOINVALIDTYPELIB)
                 {
-                    Log.LogWarningWithCodeFromResources("ResolveComReference.ResolutionWarning", ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.ResolveComReference_ResolutionWarning, ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
                 }
                 else if (eventKind == ImporterEventKind.NOTIF_CONVERTWARNING)
                 {
-                    Log.LogWarningWithCodeFromResources("ResolveComReference.ResolutionWarning", ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.ResolveComReference_ResolutionWarning, ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
                 }
                 else if (eventKind == ImporterEventKind.NOTIF_TYPECONVERTED)
                 {
-                    Log.LogMessageFromResources(MessageImportance.Low, "ResolveComReference.ResolutionMessage", ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveComReference_ResolutionMessage, ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
                 }
                 else
                 {
                     Debug.Assert(false, "Unknown ImporterEventKind value");
-                    Log.LogMessageFromResources(MessageImportance.Low, "ResolveComReference.ResolutionMessage", ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveComReference_ResolutionMessage, ReferenceInfo.SourceItemSpec, ReferenceInfo.strippedTypeLibPath, eventMsg);
                 }
             }
             else

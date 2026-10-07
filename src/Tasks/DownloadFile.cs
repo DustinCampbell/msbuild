@@ -1,4 +1,4 @@
-﻿﻿﻿// Licensed to the .NET Foundation under one or more agreements.
+﻿﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
@@ -91,7 +91,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!Uri.TryCreate(SourceUrl, UriKind.Absolute, out Uri uri))
             {
-                Log.LogErrorWithCodeFromResources("DownloadFile.ErrorInvalidUrl", SourceUrl);
+                Log.LogErrorWithCodeFromResource(TaskStrings.DownloadFile_ErrorInvalidUrl, SourceUrl);
                 return false;
             }
 
@@ -117,7 +117,7 @@ namespace Microsoft.Build.Tasks
 
                     if (canRetry)
                     {
-                        Log.LogWarningWithCodeFromResources("DownloadFile.Retrying", SourceUrl, retryAttemptCount + 1, RetryDelayMilliseconds, actualException.Message);
+                        Log.LogWarningWithCodeFromResource(TaskStrings.DownloadFile_Retrying, SourceUrl, retryAttemptCount + 1, RetryDelayMilliseconds, actualException.Message);
 
                         try
                         {
@@ -132,7 +132,7 @@ namespace Microsoft.Build.Tasks
                     else
                     {
                         string flattenedMessage = TaskLoggingHelper.GetInnerExceptionMessageString(e);
-                        Log.LogErrorWithCodeFromResources("DownloadFile.ErrorDownloading", SourceUrl, flattenedMessage);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.DownloadFile_ErrorDownloading, SourceUrl, flattenedMessage);
                         Log.LogMessage(MessageImportance.Low, actualException.ToString());
                         break;
                     }
@@ -175,7 +175,7 @@ namespace Microsoft.Build.Tasks
 
                     if (!TryGetFileName(uri, out string filename))
                     {
-                        Log.LogErrorWithCodeFromResources("DownloadFile.ErrorUnknownFileName", SourceUrl, nameof(DestinationFileName));
+                        Log.LogErrorWithCodeFromResource(TaskStrings.DownloadFile_ErrorUnknownFileName, SourceUrl, nameof(DestinationFileName));
                         return;
                     }
 
@@ -187,7 +187,7 @@ namespace Microsoft.Build.Tasks
                     // The file is considered up-to-date if its the same length.  This could be inaccurate, we can consider alternatives in the future
                     if (ShouldSkip(response, destinationFile))
                     {
-                        Log.LogMessageFromResources(MessageImportance.Normal, "DownloadFile.DidNotDownloadBecauseOfFileMatch", SourceUrl, destinationFile.FullName, nameof(SkipUnchangedFiles), "true");
+                        Log.LogMessageFromResource(MessageImportance.Normal, TaskStrings.DownloadFile_DidNotDownloadBecauseOfFileMatch, SourceUrl, destinationFile.FullName, nameof(SkipUnchangedFiles), "true");
 
                         DownloadedFile = new TaskItem(destinationFile.FullName);
 
@@ -195,7 +195,7 @@ namespace Microsoft.Build.Tasks
                     }
                     else if (FailIfNotIncremental)
                     {
-                        Log.LogErrorFromResources("DownloadFile.Downloading", SourceUrl, destinationFile.FullName, response.Content.Headers.ContentLength);
+                        Log.LogErrorFromResource(TaskStrings.DownloadFile_Downloading, SourceUrl, destinationFile.FullName, response.Content.Headers.ContentLength);
                         return;
                     }
 
@@ -205,7 +205,7 @@ namespace Microsoft.Build.Tasks
 
                         using (var target = new FileStream(destinationFile.FullName, FileMode.Create, FileAccess.Write, FileShare.None))
                         {
-                            Log.LogMessageFromResources(MessageImportance.High, "DownloadFile.Downloading", SourceUrl, destinationFile.FullName, response.Content.Headers.ContentLength);
+                            Log.LogMessageFromResource(MessageImportance.High, TaskStrings.DownloadFile_Downloading, SourceUrl, destinationFile.FullName, response.Content.Headers.ContentLength);
 #pragma warning disable SA1111, SA1009 // Closing parenthesis should be on line of last parameter
                             using (Stream responseStream = await response.Content.ReadAsStreamAsync(
 #if NET

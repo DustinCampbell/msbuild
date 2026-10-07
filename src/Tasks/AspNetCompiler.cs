@@ -304,7 +304,7 @@ namespace Microsoft.Build.Tasks
 
             if (pathToTool == null)
             {
-                Log.LogErrorWithCodeFromResources("General.FrameworksFileNotFound", ToolExe,
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_FrameworksFileNotFound, ToolExe,
                     ToolLocationHelper.GetDotNetFrameworkVersionFolderPrefix(TargetDotNetFrameworkVersion.Latest));
             }
 
@@ -318,25 +318,25 @@ namespace Microsoft.Build.Tasks
         {
             if (MetabasePath != null && (VirtualPath != null || PhysicalPath != null))
             {
-                Log.LogErrorWithCodeFromResources("AspNetCompiler.CannotCombineMetabaseAndVirtualPathOrPhysicalPath");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AspNetCompiler_CannotCombineMetabaseAndVirtualPathOrPhysicalPath);
                 return false;
             }
 
             if (MetabasePath == null && VirtualPath == null)
             {
-                Log.LogErrorWithCodeFromResources("AspNetCompiler.MissingMetabasePathAndVirtualPath");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AspNetCompiler_MissingMetabasePathAndVirtualPath);
                 return false;
             }
 
             if (Updateable && TargetPath == null)
             {
-                Log.LogErrorWithCodeFromResources("AspNetCompiler.MissingTargetPathForUpdatableApplication");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AspNetCompiler_MissingTargetPathForUpdatableApplication);
                 return false;
             }
 
             if (Force && TargetPath == null)
             {
-                Log.LogErrorWithCodeFromResources("AspNetCompiler.MissingTargetPathForOverwrittenApplication");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AspNetCompiler_MissingTargetPathForOverwrittenApplication);
                 return false;
             }
 

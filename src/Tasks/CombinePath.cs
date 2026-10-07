@@ -72,7 +72,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (ArgumentException e)
                 {
-                    Log.LogErrorWithCodeFromResources("General.InvalidArgument", e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.General_InvalidArgument, e.Message);
                 }
             }
 

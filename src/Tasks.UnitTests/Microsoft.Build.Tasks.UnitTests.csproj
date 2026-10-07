@@ -17,6 +17,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Microsoft.Build.Framework.Resources.FrameworkStrings" Alias="FrameworkStrings" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceStringUtilities" Alias="ResourceStringUtilities" />
+    <Using Include="Microsoft.Build.Tasks.Resources.TaskStrings" Alias="TaskStrings" />
+
     <PackageReference Include="Shouldly" />
     <PackageReference Include="Verify.XunitV3" />
 

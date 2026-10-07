@@ -53,13 +53,13 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             {
                 if (filename == null)
                 {
-                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateLauncher.InvalidInput"));
+                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateLauncher_InvalidInput));
                     return _results;
                 }
 
                 if (String.IsNullOrEmpty(outputPath.Value))
                 {
-                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateLauncher.NoOutputPath"));
+                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateLauncher_NoOutputPath));
                     return _results;
                 }
 
@@ -89,7 +89,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             }
             catch (Exception ex)
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateLauncher.General", ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateLauncher_General, ex.Message));
             }
 
             return _results;
@@ -99,7 +99,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
         {
             if (!FileSystems.Default.FileExists(launcher.Value))
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateLauncher.MissingLauncherExe", launcher.OriginalValue));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateLauncher_MissingLauncherExe, launcher.OriginalValue));
                 return false;
             }
 
@@ -111,7 +111,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             }
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateLauncher.CopyError", launcher.OriginalValue, outputExe.OriginalValue, ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateLauncher_CopyError, launcher.OriginalValue, outputExe.OriginalValue, ex.Message));
                 return false;
             }
 

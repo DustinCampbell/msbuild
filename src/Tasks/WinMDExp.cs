@@ -267,7 +267,7 @@ namespace Microsoft.Build.Tasks
         {
             if (References == null)
             {
-                Log.LogErrorWithCodeFromResources("WinMDExp.MustPassReferences");
+                Log.LogErrorWithCodeFromResource(TaskStrings.WinMDExp_MustPassReferences);
                 return false;
             }
 

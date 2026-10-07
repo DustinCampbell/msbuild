@@ -77,7 +77,7 @@ namespace Microsoft.Build.Tasks
                 }
             }
 
-            Log.LogErrorFromResources("CommonSdk.SpecifiedSeverityDoesNotExist", Severity);
+            Log.LogErrorFromResource(TaskStrings.CommonSdk_SpecifiedSeverityDoesNotExist, Severity);
 
             return !Log.HasLoggedErrors;
         }

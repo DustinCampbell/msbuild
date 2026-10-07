@@ -195,7 +195,14 @@ namespace Microsoft.Build.Tasks
 #if BUILD_ENGINE
             log?.LogErrorWithCodeFromResources(BuildStrings.General_InvalidPropertyError, parameterName, propertyNameValue);
 #else
-            log?.LogErrorWithCodeFromResources("General.InvalidPropertyError", parameterName, propertyNameValue);
+            if (log is not null)
+            {
+                Microsoft.Build.Tasks.ResourceStringTaskLoggingExtensions.LogErrorWithCodeFromResource(
+                    log,
+                    TaskStrings.General_InvalidPropertyError,
+                    parameterName,
+                    propertyNameValue);
+            }
 #endif
         }
 

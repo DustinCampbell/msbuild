@@ -577,8 +577,12 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.Single(t.ResolvedFiles);
             Assert.Empty(t.ResolvedFiles[0].GetMetadata(ItemMetadataNames.winmdImplmentationFile));
 
-            string invalidPEMessage = ResourceUtilities.GetResourceString("ResolveAssemblyReference.ImplementationDllHasInvalidPEHeader");
-            string fullMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.ProblemReadingImplementationDll", @"C:\WinMDArchVerification\DependsOnInvalidPeHeader.dll", invalidPEMessage);
+            string invalidPEMessage = ResourceStringUtilities.GetResourceString(
+                TaskStrings.ResolveAssemblyReference_ImplementationDllHasInvalidPEHeader);
+            string fullMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveAssemblyReference_ProblemReadingImplementationDll,
+                @"C:\WinMDArchVerification\DependsOnInvalidPeHeader.dll",
+                invalidPEMessage);
             engine.AssertLogContains(fullMessage);
         }
 
@@ -706,11 +710,20 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             string fullMessage;
             if (implementationFileArch.Equals("Unknown"))
             {
-                fullMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.UnknownProcessorArchitecture", @"C:\WinMDArchVerification\" + winmdName + ".dll", @"C:\WinMDArchVerification\" + winmdName + ".winmd", Tasks.NativeMethods.IMAGE_FILE_MACHINE_R4000.ToString("X", CultureInfo.InvariantCulture));
+                fullMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveAssemblyReference_UnknownProcessorArchitecture,
+                    @"C:\WinMDArchVerification\" + winmdName + ".dll",
+                    @"C:\WinMDArchVerification\" + winmdName + ".winmd",
+                    Tasks.NativeMethods.IMAGE_FILE_MACHINE_R4000.ToString("X", CultureInfo.InvariantCulture));
             }
             else
             {
-                fullMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.MismatchBetweenTargetedAndReferencedArchOfImplementation", targetProcessorArchitecture, implementationFileArch, @"C:\WinMDArchVerification\" + winmdName + ".dll", @"C:\WinMDArchVerification\" + winmdName + ".winmd");
+                fullMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveAssemblyReference_MismatchBetweenTargetedAndReferencedArchOfImplementation,
+                    targetProcessorArchitecture,
+                    implementationFileArch,
+                    @"C:\WinMDArchVerification\" + winmdName + ".dll",
+                    @"C:\WinMDArchVerification\" + winmdName + ".winmd");
             }
 
             if (warnOrErrorOnTargetArchitectureMismatch.Equals("None", StringComparison.OrdinalIgnoreCase))

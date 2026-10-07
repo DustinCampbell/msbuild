@@ -147,7 +147,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("General.InvalidValue", "StdOutEncoding", "Exec");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.General_InvalidValue, "StdOutEncoding", "Exec");
                     _encodingParametersValid = false;
                 }
             }
@@ -168,7 +168,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("General.InvalidValue", "StdErrEncoding", "Exec");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.General_InvalidValue, "StdErrEncoding", "Exec");
                     _encodingParametersValid = false;
                 }
             }
@@ -315,7 +315,7 @@ namespace Microsoft.Build.Tasks
                 // Don't log when EchoOff and IgnoreExitCode.
                 if (!EchoOff)
                 {
-                    Log.LogMessageFromResources(MessageImportance.Normal, "Exec.CommandFailedNoErrorCode", Command, ExitCode);
+                    Log.LogMessageFromResource(MessageImportance.Normal, TaskStrings.Exec_CommandFailedNoErrorCode, Command, ExitCode);
                 }
                 return true;
             }
@@ -324,15 +324,15 @@ namespace Microsoft.Build.Tasks
             string commandForLog = EchoOff ? "..." : Command;
             if (ExitCode == NativeMethods.SE_ERR_ACCESSDENIED)
             {
-                Log.LogErrorWithCodeFromResources("Exec.CommandFailedAccessDenied", commandForLog, ExitCode);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Exec_CommandFailedAccessDenied, commandForLog, ExitCode);
             }
             else if (ExitCodeOverriddenToIndicateErrors)
             {
-                Log.LogErrorWithCodeFromResources("Exec.CommandExitedZeroWithErrors", commandForLog);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Exec_CommandExitedZeroWithErrors, commandForLog);
             }
             else
             {
-                Log.LogErrorWithCodeFromResources("Exec.CommandFailed", commandForLog, ExitCode);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Exec_CommandFailed, commandForLog, ExitCode);
             }
 
             return false;
@@ -427,7 +427,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (ArgumentException ex)
             {
-                Log.LogErrorWithCodeFromResources("Exec.InvalidRegex", regularExpression, ex.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Exec_InvalidRegex, regularExpression, ex.Message);
                 // Clear out the regex so there won't be any more errors; let the tool continue,
                 // then it will fail because of the error we just logged
                 regularExpression = null;
@@ -452,7 +452,7 @@ namespace Microsoft.Build.Tasks
             // Make sure that at least the Command property was set
             if (Command.Trim().Length == 0)
             {
-                Log.LogErrorWithCodeFromResources("Exec.MissingCommandError");
+                Log.LogErrorWithCodeFromResource(TaskStrings.Exec_MissingCommandError);
                 return false;
             }
 
@@ -469,8 +469,8 @@ namespace Microsoft.Build.Tasks
             // will not be able to auto-map to the UNC path
             if (workingDirectoryIsUNC && AllDrivesMapped())
             {
-                Log.LogErrorWithCodeFromResources(
-                    "Exec.AllDriveLettersMappedError",
+                Log.LogErrorWithCodeFromResource(
+                    TaskStrings.Exec_AllDriveLettersMappedError,
                     _workingDirectory.OriginalValue,
                     _workingDirectory.Value);
                 return false;
@@ -557,7 +557,7 @@ namespace Microsoft.Build.Tasks
             // So verify it's valid here.
             if (!FileSystems.Default.DirectoryExists(_workingDirectory))
             {
-                throw new DirectoryNotFoundException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Exec.InvalidWorkingDirectory", _workingDirectory.OriginalValue));
+                throw new DirectoryNotFoundException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(TaskStrings.Exec_InvalidWorkingDirectory, _workingDirectory.OriginalValue));
             }
 
             if (workingDirectoryIsUNC)

@@ -139,13 +139,13 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             {
                 if (settings.ApplicationFile == null && (settings.ProductBuilders == null || settings.ProductBuilders.Count == 0))
                 {
-                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.InvalidInput"));
+                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_InvalidInput));
                     return _results;
                 }
 
                 if (String.IsNullOrEmpty(settings.OutputPath))
                 {
-                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.NoOutputPath"));
+                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_NoOutputPath));
                     return _results;
                 }
 
@@ -248,7 +248,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             }
             catch (Exception ex)
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General", ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General, ex.Message));
             }
             return _results;
         }
@@ -296,7 +296,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 {
                     if (builtProducts.ContainsKey(p.ProductCode.ToLowerInvariant()))
                     {
-                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.IncludedProductIncluded", builder.Name, p.Name));
+                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_IncludedProductIncluded, builder.Name, p.Name));
                     }
                 }
 
@@ -316,7 +316,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                     {
                         if (productDependency.Count == 1)
                         {
-                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.MissingDependency", productDependency[0].Name, builder.Name));
+                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_MissingDependency, productDependency[0].Name, builder.Name));
                         }
                         else
                         {
@@ -329,7 +329,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
                             string productCodes = missingProductCodes.ToString();
                             productCodes = productCodes.Substring(0, productCodes.Length - 2);
-                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.MissingDependencyMultiple", productCodes, builder.Name));
+                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_MissingDependencyMultiple, productCodes, builder.Name));
                         }
                     }
                 }
@@ -338,7 +338,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 {
                     if (missingDependecies.Count == 1)
                     {
-                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.DependencyNotFound", builder.Name, missingDependecies[0]));
+                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_DependencyNotFound, builder.Name, missingDependecies[0]));
                     }
                     else
                     {
@@ -351,7 +351,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
                         string productCodes = missingProductCodes.ToString();
                         productCodes = productCodes.Substring(0, productCodes.Length - 2);
-                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.MultipleDependeciesNotFound", builder.Name, productCodes));
+                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_MultipleDependeciesNotFound, builder.Name, productCodes));
                     }
                 }
             }
@@ -364,7 +364,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
             if (!FileSystems.Default.FileExists(setupSourceFile))
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.MissingSetupBin", SETUP_BIN, bootstrapperPath));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_MissingSetupBin, SETUP_BIN, bootstrapperPath));
                 return false;
             }
 
@@ -376,22 +376,22 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             }
             catch (IOException ex)
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyError", setupSourceFile, strOutputExe, ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyError, setupSourceFile, strOutputExe, ex.Message));
                 return false;
             }
             catch (UnauthorizedAccessException ex)
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyError", setupSourceFile, strOutputExe, ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyError, setupSourceFile, strOutputExe, ex.Message));
                 return false;
             }
             catch (ArgumentException ex)
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyError", setupSourceFile, strOutputExe, ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyError, setupSourceFile, strOutputExe, ex.Message));
                 return false;
             }
             catch (NotSupportedException ex)
             {
-                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyError", setupSourceFile, strOutputExe, ex.Message));
+                _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyError, setupSourceFile, strOutputExe, ex.Message));
                 return false;
             }
 
@@ -405,7 +405,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 resourceUpdater.AddStringResource(40, name, url);
                 if (!Util.IsWebUrl(url) && !Util.IsUncPath(url))
                 {
-                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.InvalidUrl", nameToUseInLog, url));
+                    _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_InvalidUrl, nameToUseInLog, url));
                 }
             }
         }
@@ -778,7 +778,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 if (productsInLoop.Length > 0 && (buildQueue.Count == 0 || productsToRemove.Count == 0))
                 {
                     productsInLoop.Remove(productsInLoop.Length - 2, 2);
-                    _loopDependenciesWarnings.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.CircularDependency", productsInLoop.ToString()));
+                    _loopDependenciesWarnings.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_CircularDependency, productsInLoop.ToString()));
                     productsInLoop.Remove(0, productsInLoop.Length);
                 }
             }
@@ -1370,14 +1370,14 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 {
                     if (_results != null)
                     {
-                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.ProductValidation", builder.Name, builder.Product.ValidationResults.FilePath));
+                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_ProductValidation, builder.Name, builder.Product.ValidationResults.FilePath));
                         foreach (string validationMessage in builder.Product.ValidationResults.ValidationErrors)
                         {
-                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.ValidationError", builder.Product.ValidationResults.FilePath, validationMessage));
+                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_ValidationError, builder.Product.ValidationResults.FilePath, validationMessage));
                         }
                         foreach (string validationMessage in builder.Product.ValidationResults.ValidationWarnings)
                         {
-                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.ValidationWarning", builder.Product.ValidationResults.FilePath, validationMessage));
+                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_ValidationWarning, builder.Product.ValidationResults.FilePath, validationMessage));
                         }
                     }
                 }
@@ -1392,14 +1392,14 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 {
                     if (_results != null)
                     {
-                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.PackageValidation", builder.Name, package.ValidationResults.FilePath));
+                        _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_PackageValidation, builder.Name, package.ValidationResults.FilePath));
                         foreach (string validationMessage in package.ValidationResults.ValidationErrors)
                         {
-                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.ValidationError", package.ValidationResults.FilePath, validationMessage));
+                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_ValidationError, package.ValidationResults.FilePath, validationMessage));
                         }
                         foreach (string validationMessage in package.ValidationResults.ValidationWarnings)
                         {
-                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.ValidationWarning", package.ValidationResults.FilePath, validationMessage));
+                            _results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_ValidationWarning, package.ValidationResults.FilePath, validationMessage));
                         }
                     }
                 }
@@ -1454,7 +1454,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                             {
                                 if (!FileSystems.Default.FileExists(packageFileSource.Value))
                                 {
-                                    _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.PackageResourceFileNotFound", packageFileSource.Value, builder.Name));
+                                    _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_PackageResourceFileNotFound, packageFileSource.Value, builder.Name));
                                     fSucceeded = false;
                                     continue;
                                 }
@@ -1472,7 +1472,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                                     {
                                         if (!FileSystems.Default.FileExists(packageFileSource.Value))
                                         {
-                                            _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.PackageFileNotFound", packageFileDestination.Value, builder.Name));
+                                            _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_PackageFileNotFound, packageFileDestination.Value, builder.Name));
                                             fSucceeded = false;
                                             continue;
                                         }
@@ -1482,25 +1482,25 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                                     }
                                     catch (UnauthorizedAccessException ex)
                                     {
-                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyPackageError", packageFileSource.Value, builder.Name, ex.Message));
+                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyPackageError, packageFileSource.Value, builder.Name, ex.Message));
                                         fSucceeded = false;
                                         continue;
                                     }
                                     catch (IOException ex)
                                     {
-                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyPackageError", packageFileSource.Value, builder.Name, ex.Message));
+                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyPackageError, packageFileSource.Value, builder.Name, ex.Message));
                                         fSucceeded = false;
                                         continue;
                                     }
                                     catch (ArgumentException ex)
                                     {
-                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyPackageError", packageFileSource.Value, builder.Name, ex.Message));
+                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyPackageError, packageFileSource.Value, builder.Name, ex.Message));
                                         fSucceeded = false;
                                         continue;
                                     }
                                     catch (NotSupportedException ex)
                                     {
-                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.CopyPackageError", packageFileSource.Value, builder.Name, ex.Message));
+                                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_CopyPackageError, packageFileSource.Value, builder.Name, ex.Message));
                                         fSucceeded = false;
                                         continue;
                                     }
@@ -1540,7 +1540,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                     }
                     else
                     {
-                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.PackageResourceFileNotFound", eulaAttribute.Value, builder.Name));
+                        _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_PackageResourceFileNotFound, eulaAttribute.Value, builder.Name));
                         fSucceeded = false;
                         continue;
                     }
@@ -1663,7 +1663,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
             if (builder.Product.Packages.Count == 0)
             {
-                results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.ProductCultureNotFound", builder.Name));
+                results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_ProductCultureNotFound, builder.Name));
                 return null;
             }
 
@@ -1727,7 +1727,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
             if (results != null && ci != null)
             {
-                results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.UsingProductCulture", ci.Name, builder.Name, builder.Product.Packages.Item(0).Culture));
+                results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_UsingProductCulture, ci.Name, builder.Name, builder.Product.Packages.Item(0).Culture));
             }
 
             return builder.Product.Packages.Item(0);
@@ -1744,7 +1744,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             {
                 if (fShowWarning && culture != null)
                 {
-                    results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.UsingProductCulture", culture.Name, builder.Name, altCulture.Name));
+                    results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_UsingProductCulture, culture.Name, builder.Name, altCulture.Name));
                 }
                 return package;
             }
@@ -1756,7 +1756,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
         {
             if (_cultures.Count == 0)
             {
-                _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.NoResources"));
+                _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_NoResources));
                 return false;
             }
 
@@ -1767,7 +1767,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
             if (stringsNode == null)
             {
-                _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.NoStringsForCulture", resourcesNode.Attributes.GetNamedItem("Culture").Value));
+                _results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_NoStringsForCulture, resourcesNode.Attributes.GetNamedItem("Culture").Value));
                 return false;
             }
 
@@ -1867,7 +1867,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             KeyValuePair<string, XmlNode> altCulturePair = _cultures.FirstOrDefault();
             if (ci != null)
             {
-                results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.UsingResourcesCulture", ci.Name, altCulturePair.Key));
+                results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_UsingResourcesCulture, ci.Name, altCulturePair.Key));
             }
             GetCodePage(altCulturePair.Key, ref codepage);
             return altCulturePair.Value;
@@ -1879,7 +1879,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             {
                 if (fShowWarning && culture != null)
                 {
-                    results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.UsingResourcesCulture", culture.Name, altCulture.Name));
+                    results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_UsingResourcesCulture, culture.Name, altCulture.Name));
                 }
 
                 codepage = altCulture.TextInfo.ANSICodePage;
@@ -2083,7 +2083,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
             if (homesiteAttribute == null && builder.Product.CopyAllPackageFiles != CopyAllFilesType.CopyAllFilesIfNotHomeSite)
             {
-                results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.PackageHomeSiteMissing", builder.Name));
+                results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_PackageHomeSiteMissing, builder.Name));
                 return false;
             }
 
@@ -2133,7 +2133,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                     if (!publicKeyAttribute.Value.Equals("0", StringComparison.OrdinalIgnoreCase) &&
                         publicKey?.Equals(publicKeyAttribute.Value, StringComparison.OrdinalIgnoreCase) == false)
                     {
-                        results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.DifferingPublicKeys", PUBLICKEY_ATTRIBUTE, builder.Name, fileSource));
+                        results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_DifferingPublicKeys, PUBLICKEY_ATTRIBUTE, builder.Name, fileSource));
                     }
                 }
                 if (hashAttribute != null)
@@ -2146,7 +2146,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                     // If the public key in the file doesn't match the public key on disk, issue a build warning
                     if (!fileHash.Equals(hashAttribute.Value, StringComparison.OrdinalIgnoreCase))
                     {
-                        results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.DifferingPublicKeys", "Hash", builder.Name, fileSource));
+                        results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_DifferingPublicKeys, "Hash", builder.Name, fileSource));
                     }
                 }
             }
@@ -2154,7 +2154,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             {
                 if (hashAttribute == null && publicKeyAttribute == null)
                 {
-                    results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.MissingVerificationInformation", fileName, builder.Name));
+                    results?.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_MissingVerificationInformation, fileName, builder.Name));
                     return false;
                 }
             }

@@ -18,12 +18,34 @@ internal static class AssemblyResources
     internal static ResourceManager PrimaryResources { get; } = new ResourceManager("Microsoft.Build.Tasks.Core.Strings", typeof(AssemblyResources).Assembly);
 
     /// <summary>
+    ///  Gets the manifest utilities resources.
+    /// </summary>
+    internal static ResourceManager ManifestUtilitiesResources { get; } =
+        new ResourceManager("Microsoft.Build.Tasks.Core.Strings.ManifestUtilities", typeof(AssemblyResources).Assembly);
+
+    /// <summary>
     ///  Gets the assembly's shared resources, i.e. the resources this assembly shares with other assemblies.
     /// </summary>
     internal static ResourceManager SharedResources => Framework.Resources.SR.ResourceManager;
 
     /// <summary>
     ///  Loads the specified resource string, either from the assembly's primary resources, or its shared resources.
+    /// </summary>
+    /// <param name="resource">The resource to load.</param>
+    /// <param name="culture">
+    ///  The culture to use when looking up the resource. If <see langword="null"/>, the current UI culture is used.
+    /// </param>
+    /// <returns>
+    ///  The resource string.
+    /// </returns>
+    /// <exception cref="MissingManifestResourceException">Thrown if the resource is not found.</exception>
+    internal static string GetString(ResourceString resource, CultureInfo? culture = null)
+    {
+        return resource.Resolve(culture ?? CultureInfo.CurrentUICulture).OriginalText;
+    }
+
+    /// <summary>
+    ///  Loads the specified dynamically named resource string, either from the assembly's primary resources, or its shared resources.
     /// </summary>
     /// <param name="name">The name of the resource to load.</param>
     /// <param name="culture">

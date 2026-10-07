@@ -202,7 +202,7 @@ namespace Microsoft.Build.Tasks
                     {
                         resolvedReferences.Add(resolvedReference);
 
-                        Log.LogMessageFromResources(MessageImportance.Low, "AssignProjectConfiguration.ProjectConfigurationResolutionSuccess", projectRef.ItemSpec, resolvedReference.GetMetadata(attrFullConfiguration));
+                        Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.AssignProjectConfiguration_ProjectConfigurationResolutionSuccess, projectRef.ItemSpec, resolvedReference.GetMetadata(attrFullConfiguration));
                     }
                     else
                     {
@@ -233,7 +233,7 @@ namespace Microsoft.Build.Tasks
                         // This is not an error - we pass unresolved references to UnresolvedProjectReferences for further
                         // processing in the .targets file. This means this project was not checked for building in the
                         // active solution configuration.
-                        Log.LogMessageFromResources(MessageImportance.Low, "AssignProjectConfiguration.ProjectConfigurationUnresolved", projectRef.ItemSpec);
+                        Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.AssignProjectConfiguration_ProjectConfigurationUnresolved, projectRef.ItemSpec);
                     }
                 }
 
@@ -242,7 +242,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (XmlException e)
             {
-                Log.LogErrorWithCodeFromResources("General.ErrorExecutingTask", GetType().Name, e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_ErrorExecutingTask, GetType().Name, e.Message);
                 return false;
             }
 
@@ -398,7 +398,7 @@ namespace Microsoft.Build.Tasks
 
                 if (platforms.Length != 2)
                 {
-                    Log.LogErrorFromResources("AssignProjectConfiguration.IllegalMappingString", mapping.Trim(), mappingList);
+                    Log.LogErrorFromResource(TaskStrings.AssignProjectConfiguration_IllegalMappingString, mapping.Trim(), mappingList);
                 }
                 else
                 {

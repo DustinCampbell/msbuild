@@ -60,7 +60,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 while (hUpdate == HANDLE.Null && Marshal.GetHRForLastWin32Error() == (int)(HRESULT)WIN32_ERROR.ERROR_SHARING_VIOLATION && beginUpdateRetries > 0) // If it equals 0x80070020 (ERROR_SHARING_VIOLATION), sleep & retry
                 {
                     // This warning can be useful for debugging, but shouldn't be displayed to an actual user
-                    // results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, "GenerateBootstrapper.General", String.Format("Unable to begin updating resource for {0} with error {1:X}, trying again after short sleep", filename, Marshal.GetHRForLastWin32Error())));
+                    // results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Warning, TaskStrings.GenerateBootstrapper_General, String.Format("Unable to begin updating resource for {0} with error {1:X}, trying again after short sleep", filename, Marshal.GetHRForLastWin32Error())));
                     hUpdate = PInvoke.BeginUpdateResource(filePath, false);
                     beginUpdateRetries--;
                     Thread.Sleep(beginUpdateRetryInterval);
@@ -68,7 +68,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                 // If after all that we still failed, throw a build error
                 if (hUpdate == HANDLE.Null)
                 {
-                    results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General",
+                    results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General,
                         $"Unable to begin updating resource for {filename.OriginalValue} with error {Marshal.GetHRForLastWin32Error():X}"));
                     return false;
                 }
@@ -81,7 +81,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
                     if (!UpdateResource(hUpdate, resource.Type, resource.Name, data))
                     {
-                        results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General",
+                        results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General,
                             $"Unable to update resource for {filename.OriginalValue} with error {Marshal.GetHRForLastWin32Error():X}"));
                         return false;
                     }
@@ -93,7 +93,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                     byte[] countArray = StringToByteArray(_fileResources.Count.ToString("G", CultureInfo.InvariantCulture));
                     if (!UpdateResource(hUpdate, 42, "COUNT", countArray))
                     {
-                        results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General",
+                        results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General,
                             $"Unable to update count resource for {filename.OriginalValue} with error {Marshal.GetHRForLastWin32Error():X}"));
                         return false;
                     }
@@ -115,7 +115,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 
                         if (!UpdateResource(hUpdate, 42, dataName, fileContent.AsSpan(0, fileLength)))
                         {
-                            results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General",
+                            results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General,
                                 $"Unable to update data resource for {filename.OriginalValue} with error {Marshal.GetHRForLastWin32Error():X}"));
                             return false;
                         }
@@ -125,7 +125,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
                         byte[] data = StringToByteArray(resource.Key);
                         if (!UpdateResource(hUpdate, 42, keyName, data))
                         {
-                            results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General",
+                            results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General,
                                 $"Unable to update key resource for {filename.OriginalValue} with error {Marshal.GetHRForLastWin32Error():X}"));
                             return false;
                         }
@@ -138,7 +138,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
             {
                 if (endUpdate && !PInvoke.EndUpdateResource(hUpdate, false))
                 {
-                    results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, "GenerateBootstrapper.General",
+                    results.AddMessage(BuildMessage.CreateMessage(BuildMessageSeverity.Error, TaskStrings.GenerateBootstrapper_General,
                         $"Unable to finish updating resource for {filename.OriginalValue} with error {Marshal.GetHRForLastWin32Error():X}"));
                     returnValue = false;
                 }
@@ -149,7 +149,7 @@ namespace Microsoft.Build.Tasks.Deployment.Bootstrapper
 #else
             results.AddMessage(BuildMessage.CreateMessage(
                 BuildMessageSeverity.Error,
-                "GenerateBootstrapper.General",
+                TaskStrings.GenerateBootstrapper_General,
                 $"Unable to update resources for {filename.OriginalValue}: bootstrapper resource updates require Windows interop support, which is not available in this build."));
             return false;
 #endif

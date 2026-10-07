@@ -159,7 +159,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!NativeMethodsShared.IsWindows)
             {
-                Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(GenerateDeploymentManifest));
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_TaskRequiresWindows, nameof(GenerateDeploymentManifest));
                 return false;
             }
             return base.Execute();
@@ -184,7 +184,7 @@ namespace Microsoft.Build.Tasks
         {
             if (manifest.EntryPoint == null)
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.NoEntryPoint");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_NoEntryPoint);
                 return false;
             }
 
@@ -269,7 +269,7 @@ namespace Microsoft.Build.Tasks
             bool valid = base.ValidateInputs();
             if (!String.IsNullOrEmpty(MinimumRequiredVersion) && !Util.IsValidVersion(MinimumRequiredVersion, 4))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "MinimumRequiredVersion");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "MinimumRequiredVersion");
                 valid = false;
             }
             if (UpdateMode != null)
@@ -280,12 +280,12 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (FormatException)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "UpdateMode");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "UpdateMode");
                     valid = false;
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "UpdateMode");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "UpdateMode");
                     valid = false;
                 }
             }
@@ -297,12 +297,12 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (FormatException)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "UpdateUnit");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "UpdateUnit");
                     valid = false;
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "UpdateUnit");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "UpdateUnit");
                     valid = false;
                 }
             }

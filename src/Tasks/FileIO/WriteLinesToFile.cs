@@ -114,7 +114,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("General.InvalidValue", "Encoding", "WriteLinesToFile");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.General_InvalidValue, "Encoding", "WriteLinesToFile");
                     return false;
                 }
             }
@@ -146,7 +146,7 @@ namespace Microsoft.Build.Tasks
                 {
                     if (WriteOnlyWhenDifferent)
                     {
-                        Log.LogMessageFromResources(MessageImportance.Normal, "WriteLinesToFile.UnusedWriteOnlyWhenDifferent", filePath.OriginalValue);
+                        Log.LogMessageFromResource(MessageImportance.Normal, TaskStrings.WriteLinesToFile_UnusedWriteOnlyWhenDifferent, filePath.OriginalValue);
                     }
 
                     // For append mode, use atomic write to append only the new content
@@ -157,7 +157,7 @@ namespace Microsoft.Build.Tasks
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 string lockedFileMessage = LockCheck.GetLockedFileMessage(filePath);
-                Log.LogErrorWithCodeFromResources("WriteLinesToFile.ErrorOrWarning", filePath.OriginalValue, e.Message, lockedFileMessage);
+                Log.LogErrorWithCodeFromResource(TaskStrings.WriteLinesToFile_ErrorOrWarning, filePath.OriginalValue, e.Message, lockedFileMessage);
                 return !Log.HasLoggedErrors;
             }
         }
@@ -192,7 +192,7 @@ namespace Microsoft.Build.Tasks
                     if (attempt > 1)
                     {
                         // Log the retry so concurrency issues are visible when diagnosing builds.
-                        Log.LogMessageFromResources(MessageImportance.High, "WriteLinesToFile.Retry",
+                        Log.LogMessageFromResource(MessageImportance.High, TaskStrings.WriteLinesToFile_Retry,
                             filePath.OriginalValue, attempt, maxAttempts, lastException.Message);
                         System.Threading.Thread.Sleep(10);
                     }
@@ -213,7 +213,7 @@ namespace Microsoft.Build.Tasks
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 string lockedFileMessage = LockCheck.GetLockedFileMessage(filePath);
-                Log.LogErrorWithCodeFromResources("WriteLinesToFile.ErrorOrWarning", filePath.OriginalValue, e.Message, lockedFileMessage);
+                Log.LogErrorWithCodeFromResource(TaskStrings.WriteLinesToFile_ErrorOrWarning, filePath.OriginalValue, e.Message, lockedFileMessage);
                 return !Log.HasLoggedErrors;
             }
             finally
@@ -255,7 +255,7 @@ namespace Microsoft.Build.Tasks
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 string lockedFileMessage = LockCheck.GetLockedFileMessage(filePath);
-                Log.LogErrorWithCodeFromResources("WriteLinesToFile.ErrorOrWarning", filePath.OriginalValue, e.Message, lockedFileMessage);
+                Log.LogErrorWithCodeFromResource(TaskStrings.WriteLinesToFile_ErrorOrWarning, filePath.OriginalValue, e.Message, lockedFileMessage);
                 return !Log.HasLoggedErrors;
             }
         }
@@ -279,13 +279,13 @@ namespace Microsoft.Build.Tasks
                     // Use stream-based comparison to avoid loading entire file into memory
                     if (FilesAreIdentical(filePath, contentsAsString, encoding))
                     {
-                        Log.LogMessageFromResources(MessageImportance.Low, "WriteLinesToFile.SkippingUnchangedFile", filePath.OriginalValue);
+                        Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.WriteLinesToFile_SkippingUnchangedFile, filePath.OriginalValue);
                         MSBuildEventSource.Log.WriteLinesToFileUpToDateStop(filePath.OriginalValue, true);
                         return false; // Skip write - content is identical
                     }
                     else if (FailIfNotIncremental)
                     {
-                        Log.LogErrorWithCodeFromResources("WriteLinesToFile.ErrorReadingFile", filePath.OriginalValue);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.WriteLinesToFile_ErrorReadingFile, filePath.OriginalValue);
                         MSBuildEventSource.Log.WriteLinesToFileUpToDateStop(filePath.OriginalValue, false);
                         return false; // Skip write - file differs and FailIfNotIncremental is set
                     }
@@ -293,7 +293,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (IOException)
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "WriteLinesToFile.ErrorReadingFile", filePath.OriginalValue);
+                Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.WriteLinesToFile_ErrorReadingFile, filePath.OriginalValue);
             }
 
             MSBuildEventSource.Log.WriteLinesToFileUpToDateStop(filePath.OriginalValue, false);

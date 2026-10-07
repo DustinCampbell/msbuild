@@ -187,7 +187,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Assert.False(succeeded);
             Assert.Equal(1, engine.Errors);
             Assert.Equal(0, engine.Warnings);
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.InvalidParameter", "TargetFrameworkMoniker", t.TargetFrameworkMoniker, String.Empty);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveAssemblyReference_InvalidParameter,
+                "TargetFrameworkMoniker",
+                t.TargetFrameworkMoniker,
+                String.Empty);
             engine.AssertLogContains(message);
         }
 
@@ -1400,7 +1404,11 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
             Execute(t);
 
             Assert.Empty(t.ResolvedFiles);
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("AssemblyResolutionSearchTrace_TargetedProcessorArchitectureDoesNotMatch", @"C:\Regress714052\X86\A.dll", "X86", "AMD64");
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                FrameworkStrings.AssemblyResolutionSearchTrace_TargetedProcessorArchitectureDoesNotMatch,
+                @"C:\Regress714052\X86\A.dll",
+                "X86",
+                "AMD64");
             mockEngine.AssertLogContains(message);
         }
 
@@ -5696,7 +5704,9 @@ namespace Microsoft.Build.UnitTests.ResolveAssemblyReference_Tests
                 Assert.Empty(denyList); // "Expected to have no assembly in the deny list"
                 Assert.Single(allowListErrors); // "Expected there to be one error in the allowListErrors"
                 Assert.Single(allowListErrorFileNames); // "Expected there to be one error in the allowListErrorFileNames"
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveAssemblyReference.NoSubSetRedistListName", subsetFile);
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveAssemblyReference_NoSubSetRedistListName,
+                    subsetFile);
                 Assert.Contains(message, ((Exception)allowListErrors[0]).Message); // "Expected assertion to contain correct error code"
             }
             finally

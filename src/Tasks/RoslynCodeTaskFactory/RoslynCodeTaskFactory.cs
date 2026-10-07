@@ -165,7 +165,7 @@ namespace Microsoft.Build.Tasks
                         TaskResources = AssemblyResources.PrimaryResources,
                         HelpKeywordPrefix = "MSBuild."
                     };
-                    taskInvocationLog.LogErrorWithCodeFromResources("CodeTaskFactory.NeedsITaskInterface", _taskName);
+                    taskInvocationLog.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_NeedsITaskInterface, _taskName);
                 }
 
                 return taskInstance;
@@ -259,7 +259,7 @@ namespace Microsoft.Build.Tasks
 
                 if (TaskType == null)
                 {
-                    _log.LogErrorWithCodeFromResources("CodeTaskFactory.CouldNotFindTaskInAssembly", taskName);
+                    _log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_CouldNotFindTaskInAssembly, taskName);
                     return false;
                 }
 
@@ -391,13 +391,13 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e)
             {
-                log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidTaskXml", e.Message);
+                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidTaskXml, e.Message);
                 return false;
             }
 
             if (document.Root == null)
             {
-                log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidTaskXml", String.Empty);
+                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidTaskXml, String.Empty);
                 return false;
             }
 
@@ -419,7 +419,7 @@ namespace Microsoft.Build.Tasks
                             if (codeElement != null)
                             {
                                 // Only one <Code /> element is allowed.
-                                log.LogErrorWithCodeFromResources("CodeTaskFactory.MultipleCodeNodes");
+                                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_MultipleCodeNodes);
                                 return false;
                             }
 
@@ -432,7 +432,7 @@ namespace Microsoft.Build.Tasks
                             if (String.IsNullOrWhiteSpace(includeAttribute?.Value))
                             {
                                 // A <Reference Include="" /> is not allowed.
-                                log.LogErrorWithCodeFromResources("CodeTaskFactory.AttributeEmptyWithTaskElement", "Include", "Reference", taskName);
+                                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_AttributeEmptyWithTaskElement, "Include", "Reference", taskName);
                                 return false;
                             }
 
@@ -446,7 +446,7 @@ namespace Microsoft.Build.Tasks
                             if (String.IsNullOrWhiteSpace(namespaceAttribute?.Value))
                             {
                                 // A <Using Namespace="" /> is not allowed
-                                log.LogErrorWithCodeFromResources("CodeTaskFactory.AttributeEmptyWithElement", "Namespace", "Using");
+                                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_AttributeEmptyWithElement, "Namespace", "Using");
                                 return false;
                             }
 
@@ -455,7 +455,7 @@ namespace Microsoft.Build.Tasks
                         }
                         else
                         {
-                            log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidElementLocation",
+                            log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidElementLocation,
                                 child.Name.LocalName,
                                 document.Root.Name.LocalName);
                             return false;
@@ -464,7 +464,7 @@ namespace Microsoft.Build.Tasks
                         break;
 
                     default:
-                        log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidElementLocation",
+                        log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidElementLocation,
                             node.NodeType,
                             document.Root.Name.LocalName);
                         return false;
@@ -474,7 +474,7 @@ namespace Microsoft.Build.Tasks
             if (codeElement == null)
             {
                 // <Code /> element is required so if we didn't find it then we need to error
-                log.LogErrorWithCodeFromResources("CodeTaskFactory.CodeElementIsMissing", taskName);
+                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_CodeElementIsMissing, taskName);
                 return false;
             }
 
@@ -505,7 +505,7 @@ namespace Microsoft.Build.Tasks
                         break;
 
                     default:
-                        log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidCodeElementAttribute",
+                        log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidCodeElementAttribute,
                             attribute.Name.LocalName);
                         return false;
                 }
@@ -516,7 +516,7 @@ namespace Microsoft.Build.Tasks
                 if (String.IsNullOrWhiteSpace(sourceAttribute.Value))
                 {
                     // A <Code Source="" /> is not allowed
-                    log.LogErrorWithCodeFromResources("CodeTaskFactory.AttributeEmptyWithElement", "Source", "Code");
+                    log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_AttributeEmptyWithElement, "Source", "Code");
                     return false;
                 }
 
@@ -538,14 +538,14 @@ namespace Microsoft.Build.Tasks
                 if (String.IsNullOrWhiteSpace(typeAttribute.Value))
                 {
                     // A <Code Type="" /> is not allowed
-                    log.LogErrorWithCodeFromResources("CodeTaskFactory.AttributeEmptyWithElement", "Type", "Code");
+                    log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_AttributeEmptyWithElement, "Type", "Code");
                     return false;
                 }
 
                 // Attempt to parse the code type as a CodeTaskFactoryCodeType
                 if (!Enum.TryParse(typeAttribute.Value.Trim(), ignoreCase: true, result: out RoslynCodeTaskFactoryCodeType codeType))
                 {
-                    log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidCodeType", typeAttribute.Value, String.Join(", ", Enum.GetNames(typeof(RoslynCodeTaskFactoryCodeType))));
+                    log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidCodeType, typeAttribute.Value, String.Join(", ", Enum.GetNames(typeof(RoslynCodeTaskFactoryCodeType))));
                     return false;
                 }
 
@@ -557,7 +557,7 @@ namespace Microsoft.Build.Tasks
                 if (String.IsNullOrWhiteSpace(languageAttribute.Value))
                 {
                     // A <Code Language="" /> is not allowed
-                    log.LogErrorWithCodeFromResources("CodeTaskFactory.AttributeEmptyWithElement", "Language", "Code");
+                    log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_AttributeEmptyWithElement, "Language", "Code");
                     return false;
                 }
 
@@ -584,7 +584,7 @@ namespace Microsoft.Build.Tasks
                     if (!foundValidCodeLanguage)
                     {
                         // The user specified a code language we don't support
-                        log.LogErrorWithCodeFromResources("CodeTaskFactory.InvalidCodeLanguage", languageAttribute.Value, String.Join(", ", ValidCodeLanguages.Keys));
+                        log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_InvalidCodeLanguage, languageAttribute.Value, String.Join(", ", ValidCodeLanguages.Keys));
                         return false;
                     }
                 }
@@ -593,7 +593,7 @@ namespace Microsoft.Build.Tasks
             if (String.IsNullOrWhiteSpace(taskInfo.SourceCode))
             {
                 // The user did not specify a path to source code or source code within the <Code /> element.
-                log.LogErrorWithCodeFromResources("CodeTaskFactory.NoSourceCode");
+                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_NoSourceCode);
                 return false;
             }
 
@@ -665,7 +665,7 @@ namespace Microsoft.Build.Tasks
 
                 // Could not resolve the assembly.  We currently don't support looking things up the GAC so that in-line task
                 // assemblies are portable across platforms
-                log.LogErrorWithCodeFromResources("CodeTaskFactory.CouldNotFindReferenceAssembly", reference);
+                log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_CouldNotFindReferenceAssembly, reference);
 
                 hasInvalidReference = true;
             }
@@ -851,13 +851,13 @@ namespace Microsoft.Build.Tasks
                     managedCompiler.TargetType = "Library";
                     managedCompiler.UseSharedCompilation = false;
 
-                    _log.LogMessageFromResources(MessageImportance.Low, "CodeTaskFactory.CompilingAssembly");
+                    _log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CodeTaskFactory_CompilingAssembly);
 
                     if (!managedCompiler.Execute())
                     {
                         deleteSourceCodeFile = false;
 
-                        _log.LogErrorWithCodeFromResources("CodeTaskFactory.FindSourceFileAt", sourceCodePath);
+                        _log.LogErrorWithCodeFromResource(TaskStrings.CodeTaskFactory_FindSourceFileAt, sourceCodePath);
 
                         return false;
                     }
@@ -865,7 +865,7 @@ namespace Microsoft.Build.Tasks
                     if (!deleteSourceCodeFile)
                     {
                         // Log the location of the code file because MSBUILDLOGCODETASKFACTORYOUTPUT was set.
-                        _log.LogMessageFromResources(MessageImportance.Low, "CodeTaskFactory.FindSourceFileAt", sourceCodePath);
+                        _log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CodeTaskFactory_FindSourceFileAt, sourceCodePath);
                     }
                 }
 

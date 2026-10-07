@@ -409,16 +409,28 @@ namespace Microsoft.Build.UnitTests.ResolveSDKReference_Tests
             Assert.Equal(4, engine.Warnings);
             Assert.Equal(0, engine.Errors);
 
-            string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.SDKMissingDependency", reference1.SDKName, "\"NotThere, Version=1.0\"");
+            string warning = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveSDKReference_SDKMissingDependency,
+                reference1.SDKName,
+                "\"NotThere, Version=1.0\"");
             engine.AssertLogContains(warning);
 
-            warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.SDKMissingDependency", reference2.SDKName, "\"reference11, Version=1.0\", \"reference77, Version=1.0\"");
+            warning = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveSDKReference_SDKMissingDependency,
+                reference2.SDKName,
+                "\"reference11, Version=1.0\", \"reference77, Version=1.0\"");
             engine.AssertLogContains(warning);
 
-            warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.SDKMissingDependency", reference3.SDKName, "\"NotThere, Version=1.0\", \"WhereAmI, Version=1.0\"");
+            warning = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveSDKReference_SDKMissingDependency,
+                reference3.SDKName,
+                "\"NotThere, Version=1.0\", \"WhereAmI, Version=1.0\"");
             engine.AssertLogContains(warning);
 
-            warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.SDKMissingDependency", reference4.SDKName, "\"NotThere, Version=1.0\"");
+            warning = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveSDKReference_SDKMissingDependency,
+                reference4.SDKName,
+                "\"NotThere, Version=1.0\"");
             engine.AssertLogContains(warning);
         }
 
@@ -449,7 +461,10 @@ namespace Microsoft.Build.UnitTests.ResolveSDKReference_Tests
             engine.AssertLogContainsMessageFromResource(_resourceDelegate, "ResolveSDKReference.NoFrameworkIdentitiesFound");
             Assert.Equal(_sdkPath, t.ResolvedSDKReferences[0].ItemSpec);
 
-            string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.SDKMissingDependency", "GoodTestSDK, Version=2.0", "\"NotHere, Version=1.0\"");
+            string warning = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.ResolveSDKReference_SDKMissingDependency,
+                "GoodTestSDK, Version=2.0",
+                "\"NotHere, Version=1.0\"");
             engine.AssertLogContains(warning);
         }
 
@@ -505,7 +520,10 @@ namespace Microsoft.Build.UnitTests.ResolveSDKReference_Tests
                 bool succeeded = t.Execute();
                 Assert.True(succeeded);
 
-                string warning = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.SDKMissingDependency", "GoodTestSDK, Version=2.0", "\"Foo, Version=1.0\", \"bar, Version=2.0\"");
+                string warning = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveSDKReference_SDKMissingDependency,
+                    "GoodTestSDK, Version=2.0",
+                    "\"Foo, Version=1.0\", \"bar, Version=2.0\"");
                 engine.AssertLogContains(warning);
 
                 engine.AssertLogDoesntContainMessageFromResource(_resourceDelegate, "ResolveSDKReference.NoFrameworkIdentitiesFound");
@@ -2356,13 +2374,23 @@ namespace Microsoft.Build.UnitTests.ResolveSDKReference_Tests
 
                 Assert.Single(t.ResolvedSDKReferences);
 
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.ReadingSDKManifestFile", sdkManifestFile);
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveSDKReference_ReadingSDKManifestFile,
+                    sdkManifestFile);
                 engine.AssertLogContains(message);
 
-                string errorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.NoMatchingFrameworkIdentity", sdkManifestFile, "Retail", "x86");
+                string errorMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveSDKReference_NoMatchingFrameworkIdentity,
+                    sdkManifestFile,
+                    "Retail",
+                    "x86");
                 engine.AssertLogContains(errorMessage);
 
-                errorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.NoMatchingAppxLocation", sdkManifestFile, "Retail", "x86");
+                errorMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveSDKReference_NoMatchingAppxLocation,
+                    sdkManifestFile,
+                    "Retail",
+                    "x86");
                 engine.AssertLogContains(errorMessage);
             }
             finally
@@ -2428,10 +2456,18 @@ namespace Microsoft.Build.UnitTests.ResolveSDKReference_Tests
 
                 Assert.Empty(t.ResolvedSDKReferences);
 
-                string errorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.NoMatchingFrameworkIdentity", sdkManifestFile, "Retail", "x86");
+                string errorMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveSDKReference_NoMatchingFrameworkIdentity,
+                    sdkManifestFile,
+                    "Retail",
+                    "x86");
                 engine.AssertLogContains(errorMessage);
 
-                errorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.NoMatchingAppxLocation", sdkManifestFile, "Retail", "x86");
+                errorMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.ResolveSDKReference_NoMatchingAppxLocation,
+                    sdkManifestFile,
+                    "Retail",
+                    "x86");
                 engine.AssertLogContains(errorMessage);
             }
             finally

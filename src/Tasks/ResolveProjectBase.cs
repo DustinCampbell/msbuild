@@ -89,12 +89,12 @@ namespace Microsoft.Build.Tasks
                 {
                     if (treatAsError)
                     {
-                        Log.LogErrorWithCodeFromResources("General.MissingOrUnknownProjectReferenceAttribute", reference.ItemSpec, missingAttribute);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.General_MissingOrUnknownProjectReferenceAttribute, reference.ItemSpec, missingAttribute);
                         referencesValid = false;
                     }
                     else
                     {
-                        Log.LogWarningWithCodeFromResources("General.MissingOrUnknownProjectReferenceAttribute", reference.ItemSpec, missingAttribute);
+                        Log.LogWarningWithCodeFromResource(TaskStrings.General_MissingOrUnknownProjectReferenceAttribute, reference.ItemSpec, missingAttribute);
                     }
                 }
             }

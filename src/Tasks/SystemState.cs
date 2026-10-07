@@ -650,7 +650,7 @@ namespace Microsoft.Build.Tasks
             {
                 if (FileUtilities.FileExistsNoThrow(stateFile))
                 {
-                    log.LogWarningWithCodeFromResources("General.StateFileAlreadyPresent", stateFile.OriginalValue);
+                    log.LogWarningWithCodeFromResource(TaskStrings.General_StateFileAlreadyPresent, stateFile.OriginalValue);
                 }
                 SerializeCache(stateFile, log);
             }

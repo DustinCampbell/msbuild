@@ -133,7 +133,7 @@ namespace Microsoft.Build.Tasks
             }
 
             // We can't resolve the rule set to any existing file.
-            Log.LogWarningWithCodeFromResources("Compiler.UnableToFindRuleSet", CodeAnalysisRuleSet);
+            Log.LogWarningWithCodeFromResource(TaskStrings.Compiler_UnableToFindRuleSet, CodeAnalysisRuleSet);
             return null;
         }
 

@@ -13,7 +13,6 @@ using Microsoft.IO;
 
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.XamlTypes;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 
 #nullable disable
@@ -541,7 +540,7 @@ namespace Microsoft.Build.Tasks.Xaml
                     {
                         if (arg.Item2)
                         {
-                            throw new ArgumentException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Xaml.MissingRequiredArgument", parentSwitch, arg.Item1));
+                            throw new ArgumentException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(TaskStrings.Xaml_MissingRequiredArgument, parentSwitch, arg.Item1));
                         }
                     }
                 }

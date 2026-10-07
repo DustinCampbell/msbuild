@@ -452,7 +452,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                 }
                                 else
                                 {
-                                    OutputMessages.AddErrorMessage("GenerateManifest.DuplicateComDefinition", "clsid", comInfo.ComponentFileName, comInfo.ClsId, comInfo.ManifestFileName, info.ManifestFileName);
+                                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_DuplicateComDefinition, "clsid", comInfo.ComponentFileName, comInfo.ClsId, comInfo.ManifestFileName, info.ManifestFileName);
                                 }
                             }
                             if (!String.IsNullOrEmpty(comInfo.TlbId))
@@ -464,7 +464,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                 }
                                 else
                                 {
-                                    OutputMessages.AddErrorMessage("GenerateManifest.DuplicateComDefinition", "tlbid", comInfo.ComponentFileName, comInfo.TlbId, comInfo.ManifestFileName, info.ManifestFileName);
+                                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_DuplicateComDefinition, "tlbid", comInfo.ComponentFileName, comInfo.TlbId, comInfo.ManifestFileName, info.ManifestFileName);
                                 }
                             }
                         }
@@ -486,7 +486,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         }
                         else
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.DuplicateComDefinition", "clsid", file.ToString(), comClass.ClsId, outputFileName, info.ManifestFileName);
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_DuplicateComDefinition, "clsid", file.ToString(), comClass.ClsId, outputFileName, info.ManifestFileName);
                         }
                     }
                 }
@@ -501,7 +501,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         }
                         else
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.DuplicateComDefinition", "tlbid", file.ToString(), typeLib.TlbId, outputFileName, info.ManifestFileName);
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_DuplicateComDefinition, "tlbid", file.ToString(), typeLib.TlbId, outputFileName, info.ManifestFileName);
                         }
                     }
                 }
@@ -536,7 +536,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 XmlNodeList nodes = document.SelectNodes(XPaths.configBindingRedirect, nsmgr);
                 if (nodes.Count > 0)
                 {
-                    OutputMessages.AddWarningMessage("GenerateManifest.ConfigBindingRedirectsWithPartialTrust");
+                    OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_ConfigBindingRedirectsWithPartialTrust);
                 }
             }
         }
@@ -548,7 +548,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 bool isCorrectFileType = !String.IsNullOrEmpty(_entryPoint.TargetPath) && _entryPoint.TargetPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
                 if (!isCorrectFileType)
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.InvalidEntryPoint", _entryPoint.ToString());
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_InvalidEntryPoint, _entryPoint.ToString());
                 }
             }
         }
@@ -559,7 +559,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             {
                 if (FileAssociations.Count > Constants.MaxFileAssociationsCount)
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationsCountExceedsMaximum", Constants.MaxFileAssociationsCount.ToString(CultureInfo.CurrentUICulture));
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationsCountExceedsMaximum, Constants.MaxFileAssociationsCount.ToString(CultureInfo.CurrentUICulture));
                 }
 
                 var usedExtensions = new Dictionary<string, FileAssociation>(StringComparer.OrdinalIgnoreCase);
@@ -570,17 +570,17 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         string.IsNullOrEmpty(fileAssociation.ProgId) ||
                         string.IsNullOrEmpty(fileAssociation.DefaultIcon))
                     {
-                        OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationMissingAttribute");
+                        OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationMissingAttribute);
                     }
                     if (!string.IsNullOrEmpty(fileAssociation.Extension))
                     {
                         if (fileAssociation.Extension[0] != '.')
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationExtensionMissingLeadDot");
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationExtensionMissingLeadDot);
                         }
                         if (fileAssociation.Extension.Length > Constants.MaxFileAssociationExtensionLength)
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationExtensionTooLong", fileAssociation.Extension, Constants.MaxFileAssociationExtensionLength.ToString(CultureInfo.CurrentUICulture));
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationExtensionTooLong, fileAssociation.Extension, Constants.MaxFileAssociationExtensionLength.ToString(CultureInfo.CurrentUICulture));
                         }
                         if (!usedExtensions.ContainsKey(fileAssociation.Extension))
                         {
@@ -588,7 +588,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         }
                         else
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationsDuplicateExtensions", fileAssociation.Extension);
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationsDuplicateExtensions, fileAssociation.Extension);
                         }
                     }
                     if (!string.IsNullOrEmpty(fileAssociation.DefaultIcon))
@@ -604,18 +604,18 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         }
                         if (defaultIconReference == null || !string.IsNullOrEmpty(defaultIconReference.Group))
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationDefaultIconNotInstalled", fileAssociation.DefaultIcon);
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationDefaultIconNotInstalled, fileAssociation.DefaultIcon);
                         }
                     }
                 }
 
                 if (!TrustInfo.IsFullTrust)
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationsApplicationNotFullTrust");
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationsApplicationNotFullTrust);
                 }
                 if (EntryPoint == null)
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationsNoEntryPoint");
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationsNoEntryPoint);
                 }
             }
         }
@@ -630,7 +630,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         Path.GetFileNameWithoutExtension(assembly.TargetPath),
                         StringComparison.OrdinalIgnoreCase))
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.IdentityFileNameMismatch", assembly.ToString(), assembly.AssemblyIdentity.Name, assembly.AssemblyIdentity.Name + Path.GetExtension(assembly.TargetPath));
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_IdentityFileNameMismatch, assembly.ToString(), assembly.AssemblyIdentity.Name, assembly.AssemblyIdentity.Name + Path.GetExtension(assembly.TargetPath));
                 }
             }
         }
@@ -655,7 +655,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     // Check target path does not exceed maximum...
                     if (_maxTargetPath > 0 && assembly.TargetPath.Length > _maxTargetPath)
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.TargetPathTooLong", assembly.ToString(), _maxTargetPath.ToString(CultureInfo.CurrentCulture));
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_TargetPathTooLong, assembly.ToString(), _maxTargetPath.ToString(CultureInfo.CurrentCulture));
                     }
 
                     // Check for two or more items with the same TargetPath...
@@ -666,7 +666,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     }
                     else if (!value)
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.DuplicateTargetPath", assembly.ToString());
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_DuplicateTargetPath, assembly.ToString());
                         targetPathList[key] = true; // only warn once per path
                     }
                 }
@@ -675,14 +675,14 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     // Check assembly name does not exceed maximum...
                     if (_maxTargetPath > 0 && assembly.AssemblyIdentity.Name.Length > _maxTargetPath)
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.TargetPathTooLong", assembly.AssemblyIdentity.Name, _maxTargetPath.ToString(CultureInfo.CurrentCulture));
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_TargetPathTooLong, assembly.AssemblyIdentity.Name, _maxTargetPath.ToString(CultureInfo.CurrentCulture));
                     }
                 }
 
                 // Check that all prerequisites are strong named...
                 if (assembly.IsPrerequisite && !assembly.AssemblyIdentity.IsStrongName && !assembly.IsVirtual)
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.PrerequisiteNotSigned", assembly.ToString());
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_PrerequisiteNotSigned, assembly.ToString());
                 }
             }
             foreach (FileReference file in FileReferences)
@@ -693,7 +693,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 if (!LauncherBasedDeployment &&
                     !String.IsNullOrEmpty(file.ResolvedPath) && PathUtil.IsAssembly(file.ResolvedPath))
                 {
-                    OutputMessages.AddWarningMessage("GenerateManifest.AssemblyAsFile", file.ToString());
+                    OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_AssemblyAsFile, file.ToString());
                 }
 
                 if (!String.IsNullOrEmpty(file.TargetPath))
@@ -701,7 +701,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     // Check target path does not exceed maximum...
                     if (_maxTargetPath > 0 && file.TargetPath.Length > _maxTargetPath)
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.TargetPathTooLong", file.TargetPath, _maxTargetPath.ToString(CultureInfo.CurrentCulture));
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_TargetPathTooLong, file.TargetPath, _maxTargetPath.ToString(CultureInfo.CurrentCulture));
                     }
 
                     // Check for two or more items with the same TargetPath...
@@ -712,7 +712,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     }
                     else if (!value)
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.DuplicateTargetPath", file.TargetPath);
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_DuplicateTargetPath, file.TargetPath);
                         targetPathList[key] = true; // only warn once per path
                     }
                 }
@@ -735,7 +735,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 if (assembly.IsPrimary && flags.IsSigned
                                        && !flags.HasAllowPartiallyTrustedCallersAttribute)
                 {
-                    OutputMessages.AddWarningMessage("GenerateManifest.AllowPartiallyTrustedCallers", Path.GetFileNameWithoutExtension(path));
+                    OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_AllowPartiallyTrustedCallers, Path.GetFileNameWithoutExtension(path));
                 }
             }
             else
@@ -746,7 +746,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     if (assembly.IsPrimary
                         && !(flags.HasAllowPartiallyTrustedCallersAttribute || flags.HasSecurityTransparentAttribute))
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.AllowPartiallyTrustedCallers", Path.GetFileNameWithoutExtension(path));
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_AllowPartiallyTrustedCallers, Path.GetFileNameWithoutExtension(path));
                     }
                 }
                 else
@@ -756,14 +756,14 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                            && !(flags.HasAllowPartiallyTrustedCallersAttribute ||
                                                 flags.HasSecurityTransparentAttribute))
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.AllowPartiallyTrustedCallers", Path.GetFileNameWithoutExtension(path));
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_AllowPartiallyTrustedCallers, Path.GetFileNameWithoutExtension(path));
                     }
                 }
             }
 
             if (flags.HasPrimaryInteropAssemblyAttribute || flags.HasImportedFromTypeLibAttribute)
             {
-                OutputMessages.AddWarningMessage("GenerateManifest.UnmanagedCodePermission", Path.GetFileNameWithoutExtension(path));
+                OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_UnmanagedCodePermission, Path.GetFileNameWithoutExtension(path));
             }
         }
 

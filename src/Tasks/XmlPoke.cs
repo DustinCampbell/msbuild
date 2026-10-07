@@ -7,7 +7,6 @@ using System.Xml;
 using System.Xml.XPath;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 
 #nullable disable
@@ -88,11 +87,11 @@ namespace Microsoft.Build.Tasks
             {
                 if (XmlTaskUtility.IsDtdProhibitedException(e, ProhibitDtd, () => XmlTaskUtility.ContainsDtd(inputPath)))
                 {
-                    Log.LogErrorWithCodeFromResources("XmlPeekPoke.InputDtdProhibited", nameof(ProhibitDtd), nameof(XmlPoke));
+                    Log.LogErrorWithCodeFromResource(TaskStrings.XmlPeekPoke_InputDtdProhibited, nameof(ProhibitDtd), nameof(XmlPoke));
                 }
                 else
                 {
-                    Log.LogErrorWithCodeFromResources("XmlPeekPoke.InputFileError", XmlInputPath.ItemSpec, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.XmlPeekPoke_InputFileError, XmlInputPath.ItemSpec, e.Message);
                 }
 
                 return false;
@@ -108,7 +107,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
             {
-                Log.LogErrorWithCodeFromResources("XmlPeekPoke.XPathError", Query, e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.XmlPeekPoke_XPathError, Query, e.Message);
                 return false;
             }
 
@@ -122,7 +121,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
             {
-                Log.LogErrorWithCodeFromResources("XmlPoke.NamespacesError", e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.XmlPoke_NamespacesError, e.Message);
                 return false;
             }
 
@@ -132,7 +131,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (XPathException e)
             {
-                Log.LogErrorWithCodeFromResources("XmlPoke.XPathContextError", e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.XmlPoke_XPathContextError, e.Message);
                 return false;
             }
 
@@ -145,16 +144,16 @@ namespace Microsoft.Build.Tasks
                 {
                     count++;
                     iter.Current.InnerXml = Value.ItemSpec;
-                    Log.LogMessageFromResources(MessageImportance.Low, "XmlPoke.Replaced", iter.Current.Name, Value.ItemSpec);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.XmlPoke_Replaced, iter.Current.Name, Value.ItemSpec);
                 }
                 catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
                 {
-                    Log.LogErrorWithCodeFromResources("XmlPoke.PokeError", Value.ItemSpec, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.XmlPoke_PokeError, Value.ItemSpec, e.Message);
                     return false;
                 }
             }
 
-            Log.LogMessageFromResources(MessageImportance.Normal, "XmlPoke.Count", count);
+            Log.LogMessageFromResource(MessageImportance.Normal, TaskStrings.XmlPoke_Count, count);
 
             if (count > 0)
             {
@@ -189,7 +188,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (XmlException xe)
             {
-                throw new ArgumentException(ResourceUtilities.GetResourceString("XmlPoke.NamespacesParameterNotWellFormed"), xe);
+                throw new ArgumentException(ResourceStringUtilities.GetResourceString(TaskStrings.XmlPoke_NamespacesParameterNotWellFormed), xe);
             }
 
             XmlNodeList xnl = doc.SelectNodes("/Namespaces/*[local-name() = 'Namespace']");
@@ -202,14 +201,14 @@ namespace Microsoft.Build.Tasks
                 XmlAttribute prefix = xn.Attributes?[prefixAttr];
                 if (prefix == null)
                 {
-                    throw new ArgumentException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("XmlPoke.NamespacesParameterNoAttribute", prefixAttr));
+                    throw new ArgumentException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(TaskStrings.XmlPoke_NamespacesParameterNoAttribute, prefixAttr));
                 }
 
                 const string uriAttr = "Uri";
                 XmlAttribute uri = xn.Attributes[uriAttr];
                 if (uri == null)
                 {
-                    throw new ArgumentException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("XmlPoke.NamespacesParameterNoAttribute", uriAttr));
+                    throw new ArgumentException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(TaskStrings.XmlPoke_NamespacesParameterNoAttribute, uriAttr));
                 }
 
                 namespaceManager.AddNamespace(prefix.Value, uri.Value);

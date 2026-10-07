@@ -4,7 +4,6 @@
 using System;
 using System.Xml;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -38,7 +37,7 @@ namespace Microsoft.Build.Tasks
             string oldVersion = reader.GetAttribute("oldVersion");
 
             // A badly formed assembly name.
-            ErrorUtilities.VerifyThrowArgument(!String.IsNullOrEmpty(oldVersion), "AppConfig.BindingRedirectMissingOldVersion");
+            FrameworkErrorUtilities.VerifyThrowArgument(!String.IsNullOrEmpty(oldVersion), TaskStrings.AppConfig_BindingRedirectMissingOldVersion);
 
             int dashPosition = oldVersion.IndexOf('-');
 
@@ -63,13 +62,13 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
             {
-                ErrorUtilities.ThrowArgument(e, "AppConfig.InvalidOldVersionAttribute", e.Message);
+                FrameworkErrorUtilities.ThrowArgument(e, TaskStrings.AppConfig_InvalidOldVersionAttribute, e.Message);
             }
 
             string newVersionAttribute = reader.GetAttribute("newVersion");
 
             // A badly formed assembly name.
-            ErrorUtilities.VerifyThrowArgument(!String.IsNullOrEmpty(newVersionAttribute), "AppConfig.BindingRedirectMissingNewVersion");
+            FrameworkErrorUtilities.VerifyThrowArgument(!String.IsNullOrEmpty(newVersionAttribute), TaskStrings.AppConfig_BindingRedirectMissingNewVersion);
 
             try
             {
@@ -77,7 +76,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
             {
-                ErrorUtilities.ThrowArgument(e, "AppConfig.InvalidNewVersionAttribute", e.Message);
+                FrameworkErrorUtilities.ThrowArgument(e, TaskStrings.AppConfig_InvalidNewVersionAttribute, e.Message);
             }
         }
     }

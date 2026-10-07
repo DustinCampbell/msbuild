@@ -84,7 +84,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (FormatException e)
             {
-                Log.LogErrorWithCodeFromResources("Touch.TimeSyntaxIncorrect", e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Touch_TimeSyntaxIncorrect, e.Message);
                 return false;
             }
 
@@ -102,7 +102,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (ArgumentException ex)
                 {
-                    Log.LogErrorWithCodeFromResources("Touch.FileDoesNotExist", file.ItemSpec, ex.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Touch_FileDoesNotExist, file.ItemSpec, ex.Message);
                     retVal = false;
                     continue;
                 }
@@ -158,7 +158,7 @@ namespace Microsoft.Build.Tasks
             {
                 if (!Enum.TryParse(Importance, ignoreCase: true, out messageImportance))
                 {
-                    Log.LogErrorWithCodeFromResources("Message_InvalidImportance", Importance);
+                    Log.LogErrorWithCodeFromResource(FrameworkStrings.Message_InvalidImportance, Importance);
                     return false;
                 }
             }
@@ -190,7 +190,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                Log.LogErrorWithCodeFromResources("Touch.CannotCreateFile", file.OriginalValue, e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Touch_CannotCreateFile, file.OriginalValue, e.Message);
                 return false;
             }
 
@@ -218,11 +218,11 @@ namespace Microsoft.Build.Tasks
                 {
                     if (FailIfNotIncremental)
                     {
-                        Log.LogWarningFromResources("Touch.CreatingFile", file.OriginalValue, "AlwaysCreate");
+                        Log.LogWarningFromResource(TaskStrings.Touch_CreatingFile, file.OriginalValue, "AlwaysCreate");
                     }
                     else
                     {
-                        Log.LogMessageFromResources(messageImportance, "Touch.CreatingFile", file.OriginalValue, "AlwaysCreate");
+                        Log.LogMessageFromResource(messageImportance, TaskStrings.Touch_CreatingFile, file.OriginalValue, "AlwaysCreate");
                     }
 
                     if (!CreateFile(file, fileCreate))
@@ -232,18 +232,18 @@ namespace Microsoft.Build.Tasks
                 }
                 else
                 {
-                    Log.LogErrorWithCodeFromResources("Touch.FileDoesNotExist", file.OriginalValue);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Touch_FileDoesNotExist, file.OriginalValue);
                     return false;
                 }
             }
 
             if (FailIfNotIncremental)
             {
-                Log.LogWarningFromResources("Touch.Touching", file.OriginalValue);
+                Log.LogWarningFromResource(TaskStrings.Touch_Touching, file.OriginalValue);
             }
             else
             {
-                Log.LogMessageFromResources(messageImportance, "Touch.Touching", file.OriginalValue);
+                Log.LogMessageFromResource(messageImportance, TaskStrings.Touch_Touching, file.OriginalValue);
             }
 
             // If the file is read only then we must either issue an error, or, if the user so
@@ -263,7 +263,7 @@ namespace Microsoft.Build.Tasks
                     catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                     {
                         string lockedFileMessage = LockCheck.GetLockedFileMessage(file);
-                        Log.LogErrorWithCodeFromResources("Touch.CannotMakeFileWritable", file.OriginalValue, e.Message, lockedFileMessage);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.Touch_CannotMakeFileWritable, file.OriginalValue, e.Message, lockedFileMessage);
                         return false;
                     }
                 }
@@ -279,7 +279,7 @@ namespace Microsoft.Build.Tasks
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
                 string lockedFileMessage = LockCheck.GetLockedFileMessage(file);
-                Log.LogErrorWithCodeFromResources("Touch.CannotTouch", file.OriginalValue, e.Message, lockedFileMessage);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Touch_CannotTouch, file.OriginalValue, e.Message, lockedFileMessage);
                 return false;
             }
             finally
@@ -294,7 +294,7 @@ namespace Microsoft.Build.Tasks
                     }
                     catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                     {
-                        Log.LogErrorWithCodeFromResources("Touch.CannotRestoreAttributes", file.OriginalValue, e.Message);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.Touch_CannotRestoreAttributes, file.OriginalValue, e.Message);
                         retVal = false;
                     }
                 }

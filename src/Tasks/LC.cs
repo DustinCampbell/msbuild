@@ -102,7 +102,7 @@ namespace Microsoft.Build.Tasks
         /// </remarks>
         public override bool Execute()
         {
-            Log.LogErrorWithCodeFromResources("TaskRequiresFrameworkFailure", nameof(LC));
+            Log.LogErrorWithCodeFromResource(TaskStrings.TaskRequiresFrameworkFailure, nameof(LC));
             return false;
         }
 #endif

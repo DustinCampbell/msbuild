@@ -146,11 +146,11 @@ namespace Microsoft.Build.Tasks
             // Empty namespaces are allowed.
             if (RootNamespace != null)
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "CreateManifestResourceName.RootNamespace", RootNamespace);
+                Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CreateManifestResourceName_RootNamespace, RootNamespace);
             }
             else
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "CreateManifestResourceName.NoRootNamespace");
+                Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CreateManifestResourceName_NoRootNamespace);
             }
 
 
@@ -205,11 +205,11 @@ namespace Microsoft.Build.Tasks
 
                     if (isDependentOnSourceFile)
                     {
-                        Log.LogMessageFromResources(MessageImportance.Low, "CreateManifestResourceName.DependsUpon", fileName, dependentUpon);
+                        Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CreateManifestResourceName_DependsUpon, fileName, dependentUpon);
                     }
                     else
                     {
-                        Log.LogMessageFromResources(MessageImportance.Low, "CreateManifestResourceName.DependsUponNothing", fileName);
+                        Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CreateManifestResourceName_DependsUponNothing, fileName);
                     }
 
                     // Create the manifest name.
@@ -254,11 +254,11 @@ namespace Microsoft.Build.Tasks
                     }
 
                     // Post-logging
-                    Log.LogMessageFromResources(MessageImportance.Low, "CreateManifestResourceName.AssignedName", fileName, manifestName);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.CreateManifestResourceName_AssignedName, fileName, manifestName);
                 }
                 catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                 {
-                    Log.LogErrorWithCodeFromResources("CreateManifestResourceName.Error", resourceFile.ItemSpec, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.CreateManifestResourceName_Error, resourceFile.ItemSpec, e.Message);
                     success = false;
                 }
 

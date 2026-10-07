@@ -269,11 +269,11 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                                 // So we use the ReadOnly flag to tell the difference between the two cases...
                                 if (_readOnly)
                                 {
-                                    OutputMessages.AddErrorMessage("GenerateManifest.ResolveFailedInReadOnlyMode", a.ToString(), ToString());
+                                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ResolveFailedInReadOnlyMode, a.ToString(), ToString());
                                 }
                                 else
                                 {
-                                    OutputMessages.AddErrorMessage("GenerateManifest.ResolveFailedInReadWriteMode", a.ToString());
+                                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ResolveFailedInReadWriteMode, a.ToString());
                                 }
                             }
                         }
@@ -297,11 +297,11 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         // So we use the ReadOnly flag to tell the difference between the two cases...
                         if (_readOnly)
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.ResolveFailedInReadOnlyMode", f.ToString(), this.ToString());
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ResolveFailedInReadOnlyMode, f.ToString(), this.ToString());
                         }
                         else
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.ResolveFailedInReadWriteMode", f.ToString());
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ResolveFailedInReadWriteMode, f.ToString());
                         }
                     }
                 }
@@ -530,7 +530,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 else
                 {
                     Debug.Assert(false, "AssemblyName cannot be empty");
-                    OutputMessages.AddWarningMessage("GenerateManifest.InvalidValue", "AssemblyName");
+                    OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_InvalidValue, "AssemblyName");
                 }
             }
 
@@ -581,12 +581,12 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                             if (a.AssemblyIdentity == null)
                             {
                                 BadImageFormatException exception = new BadImageFormatException(null, a.ResolvedPath);
-                                OutputMessages.AddErrorMessage("GenerateManifest.General", exception.Message);
+                                OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_General, exception.Message);
                             }
                         }
                         catch (Exception e)
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.General", e.Message);
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_General, e.Message);
                         }
                     }
                 }
@@ -603,7 +603,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         }
                         catch (Exception e)
                         {
-                            OutputMessages.AddErrorMessage("GenerateManifest.General", e.Message);
+                            OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_General, e.Message);
                         }
                     }
                 }
@@ -640,7 +640,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                     }
                     else if (!value)
                     {
-                        OutputMessages.AddWarningMessage("GenerateManifest.DuplicateAssemblyIdentity", identity);
+                        OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_DuplicateAssemblyIdentity, identity);
                         identityList[key] = true; // only warn once per identity
                     }
                 }
@@ -655,7 +655,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                             Path.GetFileNameWithoutExtension(assembly.TargetPath),
                             StringComparison.OrdinalIgnoreCase))
                         {
-                            OutputMessages.AddWarningMessage("GenerateManifest.IdentityFileNameMismatch", assembly.ToString(), assembly.AssemblyIdentity.Name, assembly.AssemblyIdentity.Name + Path.GetExtension(assembly.TargetPath));
+                            OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_IdentityFileNameMismatch, assembly.ToString(), assembly.AssemblyIdentity.Name, assembly.AssemblyIdentity.Name + Path.GetExtension(assembly.TargetPath));
                         }
                     }
                 }
@@ -668,7 +668,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             {
                 if (IsMismatchedPlatform(assembly))
                 {
-                    OutputMessages.AddWarningMessage("GenerateManifest.PlatformMismatch", assembly.ToString());
+                    OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_PlatformMismatch, assembly.ToString());
                 }
             }
         }

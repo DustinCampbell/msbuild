@@ -24,6 +24,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ResourceStringGenerator\Microsoft.Build.ResourceStringGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <Using Include="Microsoft.Build.Framework.FrameworkErrorUtilities" Alias="FrameworkErrorUtilities" />
+    <Using Include="Microsoft.Build.Framework.Resources.FrameworkStrings" Alias="FrameworkStrings" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceString" Alias="ResourceString" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceStringUtilities" Alias="ResourceStringUtilities" />
+    <Using Include="Microsoft.Build.Tasks.Resources.TaskStrings" Alias="TaskStrings" />
+
     <EmbeddedResource Include="system.design\system.design.txt">
       <Type>Resx</Type>
       <WithCulture>false</WithCulture>
@@ -93,8 +102,6 @@
     <Compile Include="..\Shared\VisualStudioConstants.cs">
       <Link>VisualStudioConstants.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\ErrorUtilities.cs" />
-    <Compile Include="..\Shared\ResourceUtilities.cs" />
     <Compile Include="..\Shared\LanguageParser\token.cs" />
     <Compile Include="..\Shared\LanguageParser\tokenChar.cs" />
     <Compile Include="..\Shared\LanguageParser\tokenCharReader.cs" />
@@ -233,6 +240,8 @@
     <Compile Include="ParserState.cs" />
     <Compile Include="AddToWin32Manifest.cs" />
     <Compile Include="RedistList.cs" />
+    <Compile Include="Resources\TaskStrings.Legacy.cs" />
+    <Compile Include="ResourceStringTaskLoggingExtensions.cs" />
     <Compile Include="RemoveDir.cs" />
     <Compile Include="ResGenDependencies.cs" />
     <Compile Include="ResolveCodeAnalysisRuleSet.cs" />
@@ -437,6 +446,16 @@
       <LogicalName>$(AssemblyName).Strings.ManifestUtilities.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <AdditionalFiles Include="Resources\Strings.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.Tasks.Resources"
+                     ResourceCatalogClass="TaskStrings"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.PrimaryResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
+    <AdditionalFiles Include="ManifestUtil\Resources\Strings.ManifestUtilities.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.Tasks.Resources"
+                     ResourceCatalogClass="TaskStrings"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.ManifestUtilitiesResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
     <!-- The manifest is needed when PreferNativeArm64 is enabled in Unix environments. -->
     <EmbeddedResource Include="Resources\default.win32manifest" />
     <!-- Other Source Files -->

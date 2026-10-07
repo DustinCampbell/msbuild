@@ -207,7 +207,7 @@ namespace Microsoft.Build.Tasks
             }
             else
             {
-                return log.FormatResourceString("ResolveComReference.TypeLibAttrId", attr.guid, attr.wMajorVerNum, attr.wMinorVerNum);
+                return log.FormatResource(TaskStrings.ResolveComReference_TypeLibAttrId, attr.guid, attr.wMajorVerNum, attr.wMinorVerNum);
             }
         }
 

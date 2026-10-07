@@ -565,7 +565,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
         {
             if (!String.IsNullOrEmpty(_deploymentUrl) && PathUtil.IsLocalPath(_deploymentUrl))
             {
-                OutputMessages.AddWarningMessage("GenerateManifest.InvalidDeploymentProvider");
+                OutputMessages.AddWarningMessage(TaskStrings.GenerateManifest_InvalidDeploymentProvider);
             }
         }
 
@@ -579,7 +579,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         ".manifest",
                         StringComparison.OrdinalIgnoreCase))
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.InvalidEntryPoint", _entryPoint.ToString());
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_InvalidEntryPoint, _entryPoint.ToString());
                 }
 
                 string manifestPath = _entryPoint.ResolvedPath;
@@ -596,14 +596,14 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                         {
                             if (entryPointManifest.HostInBrowser)
                             {
-                                OutputMessages.AddErrorMessage("GenerateManifest.HostInBrowserNotOnlineOnly");
+                                OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_HostInBrowserNotOnlineOnly);
                             }
                         }
                         else
                         {
                             if (entryPointManifest.FileAssociations?.Count > 0)
                             {
-                                OutputMessages.AddErrorMessage("GenerateManifest.FileAssociationsNotInstalled");
+                                OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_FileAssociationsNotInstalled);
                             }
                         }
                     }
@@ -619,7 +619,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 var v2 = new Version(AssemblyIdentity.Version);
                 if (v1 > v2)
                 {
-                    OutputMessages.AddErrorMessage("GenerateManifest.GreaterMinimumRequiredVersion");
+                    OutputMessages.AddErrorMessage(TaskStrings.GenerateManifest_GreaterMinimumRequiredVersion);
                 }
             }
         }

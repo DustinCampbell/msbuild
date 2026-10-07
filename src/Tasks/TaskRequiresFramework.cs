@@ -25,7 +25,7 @@ namespace Microsoft.Build.Tasks
         /// <returns></returns>
         public override bool Execute()
         {
-            Log.LogErrorWithCodeFromResources("TaskRequiresFrameworkFailure", TaskName);
+            Log.LogErrorWithCodeFromResource(TaskStrings.TaskRequiresFrameworkFailure, TaskName);
             return false;
         }
 #endif

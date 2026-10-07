@@ -7,7 +7,6 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Resources;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.Com;
@@ -24,8 +23,6 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 #if FEATURE_WINDOWSINTEROP
         private readonly OutputMessageCollection _outputMessages;
         private readonly string _outputDisplayName;
-        private readonly ResourceManager _resources = new ResourceManager("Microsoft.Build.Tasks.Core.Strings.ManifestUtilities", System.Reflection.Assembly.GetExecutingAssembly());
-
         // These must be defined in sorted order!
         private static readonly string[] s_knownImplementedCategories =
         {
@@ -60,13 +57,13 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 
             if (PInvoke.SfcIsFileProtected(default, path))
             {
-                outputMessages.AddWarningMessage("GenerateManifest.ComImport", outputDisplayName, _resources.GetString("ComImporter.ProtectedFile"));
+                outputMessages.AddWarningMessage(TaskStrings.GenerateManifest_ComImport, outputDisplayName, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_ProtectedFile));
             }
 
             using ComScope<ITypeLib> typeLib = new(null);
             if (PInvoke.LoadTypeLibEx(path, REGKIND.REGKIND_NONE, typeLib).Failed)
             {
-                outputMessages.AddErrorMessage("GenerateManifest.ComImport", outputDisplayName, _resources.GetString("ComImporter.TypeLibraryLoadFailure"));
+                outputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ComImport, outputDisplayName, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_TypeLibraryLoadFailure));
                 Success = false;
                 return;
             }
@@ -124,7 +121,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
 
             if (comClassList.Count == 0)
             {
-                outputMessages.AddErrorMessage("GenerateManifest.ComImport", outputDisplayName, _resources.GetString("ComImporter.NoRegisteredClasses"));
+                outputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ComImport, outputDisplayName, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_NoRegisteredClasses));
                 Success = false;
                 return;
             }
@@ -148,7 +145,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 {
                     if (Array.BinarySearch(knownNames, name, StringComparer.OrdinalIgnoreCase) < 0)
                     {
-                        _outputMessages.AddWarningMessage("GenerateManifest.ComImport", _outputDisplayName, String.Format(CultureInfo.CurrentCulture, _resources.GetString("ComImporter.SubKeyNotImported"), key.Name + "\\" + name));
+                        _outputMessages.AddWarningMessage(TaskStrings.GenerateManifest_ComImport, _outputDisplayName, String.Format(CultureInfo.CurrentCulture, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_SubKeyNotImported), key.Name + "\\" + name));
                     }
                 }
             }
@@ -170,7 +167,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                             name,
                             StringComparer.OrdinalIgnoreCase) < 0)
                     {
-                        _outputMessages.AddWarningMessage("GenerateManifest.ComImport", _outputDisplayName, String.Format(CultureInfo.CurrentCulture, _resources.GetString("ComImporter.ValueNotImported"), key.Name + "\\@" + name));
+                        _outputMessages.AddWarningMessage(TaskStrings.GenerateManifest_ComImport, _outputDisplayName, String.Format(CultureInfo.CurrentCulture, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_ValueNotImported), key.Name + "\\@" + name));
                     }
                 }
             }
@@ -252,7 +249,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 }
                 else if (String.Equals(subKeyName, "LocalServer32", StringComparison.OrdinalIgnoreCase))
                 {
-                    _outputMessages.AddWarningMessage("GenerateManifest.ComImport", _outputDisplayName, String.Format(CultureInfo.CurrentCulture, _resources.GetString("ComImporter.LocalServerNotSupported"), classKey.Name + "\\LocalServer32"));
+                    _outputMessages.AddWarningMessage(TaskStrings.GenerateManifest_ComImport, _outputDisplayName, String.Format(CultureInfo.CurrentCulture, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_LocalServerNotSupported), classKey.Name + "\\LocalServer32"));
                 }
                 else if (String.Equals(subKeyName, "Implemented Categories", StringComparison.OrdinalIgnoreCase))
                 {
@@ -263,14 +260,14 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 {
                     if (Array.BinarySearch(s_knownSubKeys, subKeyName, StringComparer.OrdinalIgnoreCase) < 0)
                     {
-                        _outputMessages.AddWarningMessage("GenerateManifest.ComImport", _outputDisplayName, String.Format(CultureInfo.CurrentCulture, _resources.GetString("ComImporter.SubKeyNotImported"), classKey.Name + "\\" + subKeyName));
+                        _outputMessages.AddWarningMessage(TaskStrings.GenerateManifest_ComImport, _outputDisplayName, String.Format(CultureInfo.CurrentCulture, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_SubKeyNotImported), classKey.Name + "\\" + subKeyName));
                     }
                 }
             }
 
             if (String.IsNullOrEmpty(registeredPath))
             {
-                _outputMessages.AddErrorMessage("GenerateManifest.ComImport", _outputDisplayName, String.Format(CultureInfo.CurrentCulture, _resources.GetString("ComImporter.MissingValue"), classKey.Name + "\\InProcServer32", "(Default)"));
+                _outputMessages.AddErrorMessage(TaskStrings.GenerateManifest_ComImport, _outputDisplayName, String.Format(CultureInfo.CurrentCulture, ResourceStringUtilities.GetResourceString(TaskStrings.ComImporter_MissingValue), classKey.Name + "\\InProcServer32", "(Default)"));
                 succeeded = false;
             }
 

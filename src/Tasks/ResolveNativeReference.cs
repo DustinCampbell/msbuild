@@ -126,18 +126,18 @@ namespace Microsoft.Build.Tasks
                     AssemblyIdentity ai = AssemblyIdentity.FromAssemblyName(item.ItemSpec);
                     if (ai != null)
                     {
-                        Log.LogMessageFromResources(MessageImportance.Low, "ResolveNativeReference.ResolveReference", item.ItemSpec);
+                        Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveNativeReference_ResolveReference, item.ItemSpec);
                         foreach (string searchPath in AdditionalSearchPaths)
                         {
-                            Log.LogMessageFromResources(MessageImportance.Low, "ResolveAssemblyReference.FourSpaceIndent", searchPath);
+                            Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveAssemblyReference_FourSpaceIndent, searchPath);
                         }
                         path = ai.Resolve(AdditionalSearchPaths);
                     }
                 }
                 else
                 {
-                    Log.LogMessageFromResources(MessageImportance.Low, "ResolveNativeReference.ResolveReference", item.ItemSpec);
-                    Log.LogMessageFromResources(MessageImportance.Low, "ResolveAssemblyReference.FourSpaceIndent", path);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveNativeReference_ResolveReference, item.ItemSpec);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveAssemblyReference_FourSpaceIndent, path);
                 }
 
                 if (!String.IsNullOrEmpty(path))
@@ -164,7 +164,7 @@ namespace Microsoft.Build.Tasks
                 }
                 else
                 {
-                    Log.LogWarningWithCodeFromResources("ResolveNativeReference.FailedToResolveReference", item.ItemSpec);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.ResolveNativeReference_FailedToResolveReference, item.ItemSpec);
                 }
             }
 
@@ -207,7 +207,7 @@ namespace Microsoft.Build.Tasks
             Dictionary<string, ITaskItem> containedLooseTlbFilesTable,
             Dictionary<string, ITaskItem> containedLooseEtcFilesTable)
         {
-            Log.LogMessageFromResources(MessageImportance.Low, "ResolveNativeReference.Comment", path);
+            Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveNativeReference_Comment, path);
 
             Manifest manifest;
 
@@ -217,7 +217,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (System.Xml.XmlException ex)
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.ReadInputManifestFailed", path, ex.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_ReadInputManifestFailed, path, ex.Message);
                 return false;
             }
 

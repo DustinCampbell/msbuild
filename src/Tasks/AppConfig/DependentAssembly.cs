@@ -96,7 +96,7 @@ namespace Microsoft.Build.Tasks
                     catch (System.IO.FileLoadException e)
                     {
                         // A badly formed assembly name.
-                        ErrorUtilities.ThrowArgument(e, "AppConfig.InvalidAssemblyIdentityFields");
+                        FrameworkErrorUtilities.ThrowArgument(TaskStrings.AppConfig_InvalidAssemblyIdentityFields, e);
                     }
                 }
 

@@ -267,7 +267,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.AttributeEmpty");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_AttributeEmpty);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Language"));
         }
 
@@ -295,7 +295,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.AttributeEmpty");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_AttributeEmpty);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Type"));
         }
 
@@ -323,7 +323,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.AttributeEmpty");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_AttributeEmpty);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Source"));
         }
 
@@ -356,7 +356,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.AttributeEmptyWithTaskElement");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_AttributeEmptyWithTaskElement);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Include", "Reference", taskName));
         }
 
@@ -385,7 +385,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.AttributeEmpty");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_AttributeEmpty);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Namespace"));
         }
 
@@ -524,7 +524,10 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            mockLogger.AssertLogContains(String.Format(ResourceUtilities.GetResourceString("CodeTaskFactory.CodeElementIsMissing"), "CustomTaskFromCodeFactory_MissingCodeElement"));
+            mockLogger.AssertLogContains(
+                String.Format(
+                    ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_CodeElementIsMissing),
+                    "CustomTaskFromCodeFactory_MissingCodeElement"));
         }
 
         /// <summary>
@@ -997,7 +1000,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.NeedsITaskInterface");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_NeedsITaskInterface);
             mockLogger.AssertLogContains(unformattedMessage);
         }
 
@@ -1028,7 +1031,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.MultipleCodeNodes");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_MultipleCodeNodes);
             mockLogger.AssertLogContains(unformattedMessage);
         }
 
@@ -1059,7 +1062,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.InvalidElementLocation");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_InvalidElementLocation);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Reference", "Code"));
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Using", "Code"));
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Task", "Code"));
@@ -1090,7 +1093,7 @@ namespace Microsoft.Build.UnitTests
                     </Project>";
 
             MockLogger mockLogger = Helpers.BuildProjectWithNewOMExpectFailure(projectFileContents, false);
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.InvalidElementLocation");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_InvalidElementLocation);
             mockLogger.AssertLogContains(String.Format(unformattedMessage, "Unknown", "Task"));
         }
 

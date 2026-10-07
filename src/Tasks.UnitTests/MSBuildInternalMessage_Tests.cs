@@ -44,7 +44,9 @@ namespace Microsoft.Build.Tasks.UnitTests
                 var projectFile = env.CreateFile(env.CreateFolder(), "test.csproj", projectContent).Path;
                 Project project = ObjectModelHelpers.LoadProjectFileInTempProjectDirectory(projectFile, touchProject: false);
 
-                string expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(expectedResourceName, formatArgs ?? []);
+                string expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.GetResourceString(expectedResourceName),
+                    formatArgs ?? []);
                 MockLogger logger = new MockLogger(_testOutput);
 
                 project.Build(logger);
@@ -87,7 +89,8 @@ namespace Microsoft.Build.Tasks.UnitTests
                 var projectFile = env.CreateFile(env.CreateFolder(), "test.csproj", projectContent).Path;
                 Project project = ObjectModelHelpers.LoadProjectFileInTempProjectDirectory(projectFile, touchProject: false);
 
-                string expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(expectedResourceName);
+                string expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.GetResourceString(expectedResourceName));
                 MockLogger logger = new MockLogger(_testOutput);
 
                 project.Build(logger);
@@ -144,7 +147,8 @@ namespace Microsoft.Build.Tasks.UnitTests
 
                 MockLogger logger = new MockLogger(_testOutput);
 
-                string expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(expectedResourceName);
+                string expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.GetResourceString(expectedResourceName));
 
                 project.Build(logger);
                 if (expectedResourceName == "CommonSdk.DeploymentUnpublishable")
@@ -154,12 +158,16 @@ namespace Microsoft.Build.Tasks.UnitTests
                 else if (expectedResourceName == "CommonSdk.RunTargetDependsOnMessage")
                 {
                     var targetPathParameter = expectedResourceName == "CommonSdk.DeploymentUnpublishable" ? "" : Path.Combine(project.DirectoryPath, "bin", "test.txt");
-                    expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(expectedResourceName, targetPathParameter);
+                    expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                        TaskStrings.GetResourceString(expectedResourceName),
+                        targetPathParameter);
                     logger.Errors[0].RawMessage.ShouldBe(expectedBuildMessage);
                 }
                 else if (expectedResourceName == "CommonSdk.NonExistentProjectReference")
                 {
-                    expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(expectedResourceName, "NonExistent.csproj");
+                    expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                        TaskStrings.GetResourceString(expectedResourceName),
+                        "NonExistent.csproj");
                     if (errorOnMissingProjectReference)
                     {
                         logger.Errors[0].RawMessage.ShouldBe(expectedBuildMessage);
@@ -219,7 +227,11 @@ namespace Microsoft.Build.Tasks.UnitTests
 
                 MockLogger logger = new MockLogger(_testOutput);
 
-                string expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(expectedResourceName, fileName, configuration, platform);
+                string expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.GetResourceString(expectedResourceName),
+                    fileName,
+                    configuration,
+                    platform);
 
                 project.Build(logger);
                 if (skipInvalidConfigurations)
@@ -281,7 +293,9 @@ namespace Microsoft.Build.Tasks.UnitTests
                     args = [warningNumber, itemName, "true", "Non-Resx"];
                 }
 
-                string expectedBuildMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(resourceName, args);
+                string expectedBuildMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.GetResourceString(resourceName),
+                    args);
 
                 project.Build(logger);
                 logger.Warnings[0].RawMessage.ShouldBe(expectedBuildMessage);

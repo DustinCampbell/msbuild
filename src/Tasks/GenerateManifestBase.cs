@@ -197,7 +197,7 @@ namespace Microsoft.Build.Tasks
             }
             if (String.IsNullOrEmpty(name))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.NoIdentity");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_NoIdentity);
                 return null;
             }
 
@@ -283,14 +283,14 @@ namespace Microsoft.Build.Tasks
         {
             if (!NativeMethodsShared.IsWindows)
             {
-                Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(GenerateManifestBase));
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_TaskRequiresWindows, nameof(GenerateManifestBase));
                 return false;
             }
 
 #if NET
             if (!RuntimeFeature.IsDynamicCodeSupported)
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.General", "Dynamic code generation is not supported in this runtime environment.");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_General, "Dynamic code generation is not supported in this runtime environment.");
                 return false;
             }
 #endif
@@ -389,11 +389,11 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (FormatException)
                 {
-                    Log.LogWarningWithCodeFromResources("GenerateManifest.InvalidItemValue", "AssemblyType", item.ItemSpec);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.GenerateManifest_InvalidItemValue, "AssemblyType", item.ItemSpec);
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogWarningWithCodeFromResources("GenerateManifest.InvalidItemValue", "AssemblyType", item.ItemSpec);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.GenerateManifest_InvalidItemValue, "AssemblyType", item.ItemSpec);
                 }
             }
             return AssemblyType.Unspecified;
@@ -420,11 +420,11 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (FormatException)
                 {
-                    Log.LogWarningWithCodeFromResources("GenerateManifest.InvalidItemValue", "DependencyType", item.ItemSpec);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.GenerateManifest_InvalidItemValue, "DependencyType", item.ItemSpec);
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogWarningWithCodeFromResources("GenerateManifest.InvalidItemValue", "DependencyType", item.ItemSpec);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.GenerateManifest_InvalidItemValue, "DependencyType", item.ItemSpec);
                 }
             }
             return DependencyType.Install;
@@ -478,14 +478,14 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (Exception ex)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.ReadInputManifestFailed", InputManifest.ItemSpec, ex.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_ReadInputManifestFailed, InputManifest.ItemSpec, ex.Message);
                     return false;
                 }
             }
 
             if (manifestType != _manifest.GetType())
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidInputManifest");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidInputManifest);
                 return false;
             }
 
@@ -576,17 +576,17 @@ namespace Microsoft.Build.Tasks
             bool valid = true;
             if (!String.IsNullOrEmpty(AssemblyName) && !Util.IsValidAssemblyName(AssemblyName))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "AssemblyName");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "AssemblyName");
                 valid = false;
             }
             if (!String.IsNullOrEmpty(AssemblyVersion) && !Util.IsValidVersion(AssemblyVersion, 4))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "AssemblyVersion");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "AssemblyVersion");
                 valid = false;
             }
             if (!String.IsNullOrEmpty(TargetCulture) && !Util.IsValidCulture(TargetCulture))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "TargetCulture");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "TargetCulture");
                 valid = false;
             }
             if (!String.IsNullOrEmpty(Platform))
@@ -594,7 +594,7 @@ namespace Microsoft.Build.Tasks
                 _processorArchitecture = Util.PlatformToProcessorArchitecture(Platform);
                 if (String.IsNullOrEmpty(_processorArchitecture))
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "Platform");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "Platform");
                     valid = false;
                 }
             }
@@ -615,7 +615,7 @@ namespace Microsoft.Build.Tasks
                 string manifestFileName = Path.GetFileName(OutputManifest.ItemSpec);
                 if (manifestFileName.Length > MaxTargetPath)
                 {
-                    Log.LogWarningWithCodeFromResources("GenerateManifest.TargetPathTooLong", manifestFileName, MaxTargetPath);
+                    Log.LogWarningWithCodeFromResource(TaskStrings.GenerateManifest_TargetPathTooLong, manifestFileName, MaxTargetPath);
                 }
             }
 
@@ -645,7 +645,7 @@ namespace Microsoft.Build.Tasks
             catch (Exception ex)
             {
                 string lockedFileMessage = LockCheck.GetLockedFileMessage(outputManifestPath);
-                Log.LogErrorWithCodeFromResources("GenerateManifest.WriteOutputManifestFailed", OutputManifest.ItemSpec, ex.Message, lockedFileMessage);
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_WriteOutputManifestFailed, OutputManifest.ItemSpec, ex.Message, lockedFileMessage);
 
                 return false;
             }

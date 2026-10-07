@@ -135,7 +135,7 @@ namespace Microsoft.Build.Tasks
 
                         if (!FileSystems.Default.FileExists(sourceFile.FullName))
                         {
-                            Log.LogErrorWithCodeFromResources("Untar.ErrorFileDoesNotExist", sourceFile.FullName);
+                            Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorFileDoesNotExist, sourceFile.FullName);
                             continue;
                         }
 
@@ -188,7 +188,7 @@ namespace Microsoft.Build.Tasks
                 catch (Exception e)
                 {
                     // Should only be thrown if the archive could not be read (corrupt file, etc).
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotOpenFile", sourceFile.FullName, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotOpenFile, sourceFile.FullName, e.Message);
                 }
             }
             catch (OperationCanceledException)
@@ -198,7 +198,7 @@ namespace Microsoft.Build.Tasks
             catch (Exception e)
             {
                 // Should only be thrown if the archive could not be opened (Access denied, corrupt file, etc).
-                Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotOpenFile", sourceFile.FullName, e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotOpenFile, sourceFile.FullName, e.Message);
             }
 
             return true;
@@ -223,7 +223,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception e)
             {
-                Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotCreateDestinationDirectory", destinationFolderPath, e.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotCreateDestinationDirectory, destinationFolderPath, e.Message);
 
                 destinationDirectory = null;
 
@@ -276,7 +276,7 @@ namespace Microsoft.Build.Tasks
 
                 if (ShouldSkipEntry(entryName))
                 {
-                    Log.LogMessageFromResources(MessageImportance.Low, "Untar.DidNotUntarBecauseOfFilter", entryName);
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.Untar_DidNotUntarBecauseOfFilter, entryName);
                     continue;
                 }
 
@@ -287,7 +287,7 @@ namespace Microsoft.Build.Tasks
                 // one malicious entry doesn't abort extraction of the rest of the (benign) archive.
                 if (!fullDestinationPath.Value.StartsWith(fullDestinationDirectoryPath, FileUtilities.PathComparison))
                 {
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorExtractingResultsInFilesOutsideDestination", fullDestinationPath.Value, fullDestinationDirectoryPath.Value);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorExtractingResultsInFilesOutsideDestination, fullDestinationPath.Value, fullDestinationDirectoryPath.Value);
                     continue;
                 }
 
@@ -305,7 +305,7 @@ namespace Microsoft.Build.Tasks
                         // Creating the directory can fail (e.g. a file already exists at that path, or permissions
                         // are denied). Report it against the entry and continue so one bad entry doesn't abort
                         // extraction of the rest of the archive.
-                        Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotCreateDestinationDirectory", destinationPath.FullName, e.Message);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotCreateDestinationDirectory, destinationPath.FullName, e.Message);
                     }
 
                     continue;
@@ -314,18 +314,18 @@ namespace Microsoft.Build.Tasks
                 // Only regular files are extracted. Other entry types (symbolic/hard links, devices, etc.) are skipped.
                 if (tarEntry.EntryType is not (TarEntryType.RegularFile or TarEntryType.V7RegularFile))
                 {
-                    Log.LogMessageFromResources(MessageImportance.Low, "Untar.DidNotUntarBecauseOfEntryType", entryName, tarEntry.EntryType.ToString());
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.Untar_DidNotUntarBecauseOfEntryType, entryName, tarEntry.EntryType.ToString());
                     continue;
                 }
 
                 if (ShouldSkipEntry(tarEntry, destinationPath))
                 {
-                    Log.LogMessageFromResources(MessageImportance.Low, "Untar.DidNotUntarBecauseOfFileMatch", entryName, destinationPath.FullName, nameof(SkipUnchangedFiles), "true");
+                    Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.Untar_DidNotUntarBecauseOfFileMatch, entryName, destinationPath.FullName, nameof(SkipUnchangedFiles), "true");
                     continue;
                 }
                 else if (FailIfNotIncremental)
                 {
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorFailIfNotIncremental", entryName, destinationPath.FullName);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorFailIfNotIncremental, entryName, destinationPath.FullName);
                     continue;
                 }
 
@@ -335,7 +335,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (Exception e)
                 {
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotCreateDestinationDirectory", destinationPath.DirectoryName, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotCreateDestinationDirectory, destinationPath.DirectoryName, e.Message);
                     continue;
                 }
 
@@ -348,14 +348,14 @@ namespace Microsoft.Build.Tasks
                     catch (Exception e)
                     {
                         string lockedFileMessage = LockCheck.GetLockedFileMessage(destinationPath.FullName);
-                        Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotMakeFileWriteable", entryName, destinationPath.FullName, e.Message, lockedFileMessage);
+                        Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotMakeFileWriteable, entryName, destinationPath.FullName, e.Message, lockedFileMessage);
                         continue;
                     }
                 }
 
                 try
                 {
-                    Log.LogMessageFromResources(MessageImportance.Normal, "Untar.FileComment", entryName, destinationPath.FullName);
+                    Log.LogMessageFromResource(MessageImportance.Normal, TaskStrings.Untar_FileComment, entryName, destinationPath.FullName);
 
                     // Delegate to the runtime's extraction, which restores the archived modification time and
                     // (on Unix) applies the archived permissions masked to the 9 ownership rwx bits, dropping the
@@ -370,7 +370,7 @@ namespace Microsoft.Build.Tasks
                     // UnauthorizedAccessException (e.g. denied permissions on the destination) are per-entry
                     // failures. Log against the entry being extracted and continue so one problematic
                     // destination doesn't abort extraction of the rest of the archive.
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorCouldNotExtractFile", entryName, destinationPath.FullName, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorCouldNotExtractFile, entryName, destinationPath.FullName, e.Message);
                 }
             }
         }
@@ -425,11 +425,11 @@ namespace Microsoft.Build.Tasks
                 if (FileMatcher.HasPropertyOrItemReferences(pattern))
                 {
                     // Supporting property references would require access to Expander which is unavailable in Microsoft.Build.Tasks
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorParsingPatternPropertyReferences", pattern);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorParsingPatternPropertyReferences, pattern);
                 }
                 else if (pattern.AsSpan().IndexOfAny(FileUtilities.InvalidPathChars) >= 0)
                 {
-                    Log.LogErrorWithCodeFromResources("Untar.ErrorParsingPatternInvalidPath", pattern);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.Untar_ErrorParsingPatternInvalidPath, pattern);
                 }
                 else
                 {

@@ -51,7 +51,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!NativeMethodsShared.IsWindows)
             {
-                Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(SignFile));
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_TaskRequiresWindows, nameof(SignFile));
                 return false;
             }
             try
@@ -67,37 +67,37 @@ namespace Microsoft.Build.Tasks
             }
             catch (ArgumentException ex) when (ex.ParamName.Equals("certThumbprint"))
             {
-                Log.LogErrorWithCodeFromResources("SignFile.CertNotInStore");
+                Log.LogErrorWithCodeFromResource(TaskStrings.SignFile_CertNotInStore);
                 return false;
             }
             catch (FileNotFoundException ex)
             {
-                Log.LogErrorWithCodeFromResources("SignFile.TargetFileNotFound", ex.FileName);
+                Log.LogErrorWithCodeFromResource(TaskStrings.SignFile_TargetFileNotFound, ex.FileName);
                 return false;
             }
             catch (ApplicationException ex)
             {
-                Log.LogErrorWithCodeFromResources("SignFile.SignToolError", ex.Message.Trim());
+                Log.LogErrorWithCodeFromResource(TaskStrings.SignFile_SignToolError, ex.Message.Trim());
                 return false;
             }
             catch (WarningException ex)
             {
-                Log.LogWarningWithCodeFromResources("SignFile.SignToolWarning", ex.Message.Trim());
+                Log.LogWarningWithCodeFromResource(TaskStrings.SignFile_SignToolWarning, ex.Message.Trim());
                 return true;
             }
             catch (CryptographicException ex)
             {
-                Log.LogErrorWithCodeFromResources("SignFile.SignToolError", ex.Message.Trim());
+                Log.LogErrorWithCodeFromResource(TaskStrings.SignFile_SignToolError, ex.Message.Trim());
                 return false;
             }
             catch (Win32Exception ex)
             {
-                Log.LogErrorWithCodeFromResources("SignFile.SignToolError", ex.Message.Trim());
+                Log.LogErrorWithCodeFromResource(TaskStrings.SignFile_SignToolError, ex.Message.Trim());
                 return false;
             }
             catch (UriFormatException ex)
             {
-                Log.LogErrorWithCodeFromResources("SignFile.SignToolError", ex.Message.Trim());
+                Log.LogErrorWithCodeFromResource(TaskStrings.SignFile_SignToolError, ex.Message.Trim());
                 return false;
             }
         }

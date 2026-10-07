@@ -264,7 +264,7 @@ namespace Microsoft.Build.Tasks
 
                 if (publicKey == null)
                 {
-                    Log.LogErrorWithCodeFromResources(null, ReferenceInfo.SourceItemSpec, 0, 0, 0, 0, "StrongNameUtils.NoPublicKeySpecified");
+                    Log.LogErrorWithCodeFromResource(null, ReferenceInfo.SourceItemSpec, 0, 0, 0, 0, TaskStrings.StrongNameUtils_NoPublicKeySpecified);
                     throw new StrongNameException();
                 }
             }
@@ -279,12 +279,12 @@ namespace Microsoft.Build.Tasks
                 {
                     if (!string.IsNullOrEmpty(KeyContainer))
                     {
-                        Log.LogErrorWithCodeFromResources(null, ReferenceInfo.SourceItemSpec, 0, 0, 0, 0, "ResolveComReference.StrongNameUtils.NoKeyPairInContainer", KeyContainer);
+                        Log.LogErrorWithCodeFromResource(null, ReferenceInfo.SourceItemSpec, 0, 0, 0, 0, TaskStrings.ResolveComReference_StrongNameUtils_NoKeyPairInContainer, KeyContainer);
                         throw new StrongNameException();
                     }
                     if (!string.IsNullOrEmpty(KeyFile))
                     {
-                        Log.LogErrorWithCodeFromResources(null, ReferenceInfo.SourceItemSpec, 0, 0, 0, 0, "ResolveComReference.StrongNameUtils.NoKeyPairInFile", KeyFile);
+                        Log.LogErrorWithCodeFromResource(null, ReferenceInfo.SourceItemSpec, 0, 0, 0, 0, TaskStrings.ResolveComReference_StrongNameUtils_NoKeyPairInFile, KeyFile);
                         throw new StrongNameException();
                     }
                 }

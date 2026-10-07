@@ -100,7 +100,7 @@ namespace Microsoft.Build.Tasks
                     {
                         if (targetPlatformVersionAsVersion < version)
                         {
-                            Log.LogWarningWithCodeFromResources("FindInvalidProjectReferences.WarnWhenVersionIsIncompatible", TargetPlatformIdentifier, TargetPlatformVersion, referenceIdentity, referencePlatformMoniker);
+                            Log.LogWarningWithCodeFromResource(TaskStrings.FindInvalidProjectReferences_WarnWhenVersionIsIncompatible, TargetPlatformIdentifier, TargetPlatformVersion, referenceIdentity, referencePlatformMoniker);
                             invalidReferences.Add(item);
                         }
                     }

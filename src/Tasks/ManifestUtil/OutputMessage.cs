@@ -4,7 +4,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Build.Utilities;
 
@@ -40,13 +39,16 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
     {
         private readonly string[] _arguments;
 
-        internal OutputMessage(OutputMessageType type, string name, string text, params string[] arguments)
+        internal OutputMessage(OutputMessageType type, ResourceString resource, string text, params string[] arguments)
         {
             Type = type;
-            Name = name ?? throw new ArgumentNullException(nameof(name));
+            Resource = resource ?? throw new ArgumentNullException(nameof(resource));
+            Name = resource.ResourceName;
             _arguments = arguments ?? throw new ArgumentNullException(nameof(arguments));
             Text = text;
         }
+
+        internal ResourceString Resource { get; }
 
         /// <summary>
         /// Returns a string array of arguments for the message.
@@ -76,7 +78,6 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
     [ComVisible(false)]
     public sealed class OutputMessageCollection : IEnumerable
     {
-        private readonly System.Resources.ResourceManager _taskResources = Shared.AssemblyResources.PrimaryResources;
         private readonly List<OutputMessage> _list = new List<OutputMessage>();
 
         internal OutputMessageCollection()
@@ -90,26 +91,18 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
         /// <returns>The file reference instance.</returns>
         public OutputMessage this[int index] => _list[index];
 
-        internal void AddErrorMessage(string taskResourceName, params string[] arguments)
+        internal void AddErrorMessage(ResourceString taskResource, params string[] arguments)
         {
             ++ErrorCount;
-            string taskText = _taskResources.GetString(taskResourceName);
-            if (!String.IsNullOrEmpty(taskText))
-            {
-                taskText = String.Format(CultureInfo.CurrentCulture, taskText, arguments);
-            }
-            _list.Add(new OutputMessage(OutputMessageType.Error, taskResourceName, taskText, arguments));
+            string taskText = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(taskResource, arguments);
+            _list.Add(new OutputMessage(OutputMessageType.Error, taskResource, taskText, arguments));
         }
 
-        internal void AddWarningMessage(string taskResourceName, params string[] arguments)
+        internal void AddWarningMessage(ResourceString taskResource, params string[] arguments)
         {
             ++WarningCount;
-            string taskText = _taskResources.GetString(taskResourceName);
-            if (!String.IsNullOrEmpty(taskText))
-            {
-                taskText = String.Format(CultureInfo.CurrentCulture, taskText, arguments);
-            }
-            _list.Add(new OutputMessage(OutputMessageType.Warning, taskResourceName, taskText, arguments));
+            string taskText = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(taskResource, arguments);
+            _list.Add(new OutputMessage(OutputMessageType.Warning, taskResource, taskText, arguments));
         }
 
         /// <summary>
@@ -143,10 +136,10 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
                 switch (message.Type)
                 {
                     case OutputMessageType.Warning:
-                        task.Log.LogWarningWithCodeFromResources(message.Name, message.GetArguments());
+                        task.Log.LogWarningWithCodeFromResource(message.Resource, message.GetArguments());
                         break;
                     case OutputMessageType.Error:
-                        task.Log.LogErrorWithCodeFromResources(message.Name, message.GetArguments());
+                        task.Log.LogErrorWithCodeFromResource(message.Resource, message.GetArguments());
                         break;
                 }
             }

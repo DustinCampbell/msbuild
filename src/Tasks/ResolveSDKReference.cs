@@ -271,7 +271,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!NativeMethodsShared.IsWindows)
             {
-                Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(ResolveSDKReference));
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_TaskRequiresWindows, nameof(ResolveSDKReference));
                 return false;
             }
 
@@ -279,7 +279,7 @@ namespace Microsoft.Build.Tasks
 
             if (InstalledSDKs.Length == 0)
             {
-                Log.LogMessageFromResources("ResolveSDKReference.NoSDKLocationsSpecified");
+                Log.LogMessageFromResource(TaskStrings.ResolveSDKReference_NoSDKLocationsSpecified);
                 return true;
             }
 
@@ -424,11 +424,11 @@ namespace Microsoft.Build.Tasks
                             string incompatibleReferencesDelimited = String.Join(", ", listOfIncompatibleReferences);
                             if (notCompatibleReference.SupportsMultipleVersions == MultipleVersionSupport.Error)
                             {
-                                Log.LogErrorWithCodeFromResources("ResolveSDKReference.CannotReferenceTwoSDKsSameFamily", notCompatibleReference.SDKName, incompatibleReferencesDelimited, notCompatibleReference.ProductFamilyName);
+                                Log.LogErrorWithCodeFromResource(TaskStrings.ResolveSDKReference_CannotReferenceTwoSDKsSameFamily, notCompatibleReference.SDKName, incompatibleReferencesDelimited, notCompatibleReference.ProductFamilyName);
                             }
                             else
                             {
-                                Log.LogWarningWithCodeFromResources("ResolveSDKReference.CannotReferenceTwoSDKsSameFamily", notCompatibleReference.SDKName, incompatibleReferencesDelimited, notCompatibleReference.ProductFamilyName);
+                                Log.LogWarningWithCodeFromResource(TaskStrings.ResolveSDKReference_CannotReferenceTwoSDKsSameFamily, notCompatibleReference.SDKName, incompatibleReferencesDelimited, notCompatibleReference.ProductFamilyName);
                             }
                         }
                     }
@@ -453,11 +453,11 @@ namespace Microsoft.Build.Tasks
                         string incompatibleReferencesDelimited = string.Join(", ", listOfIncompatibleReferences);
                         if (notCompatibleReference.SupportsMultipleVersions == MultipleVersionSupport.Error)
                         {
-                            Log.LogErrorWithCodeFromResources("ResolveSDKReference.CannotReferenceTwoSDKsSameName", notCompatibleReference.SDKName, incompatibleReferencesDelimited);
+                            Log.LogErrorWithCodeFromResource(TaskStrings.ResolveSDKReference_CannotReferenceTwoSDKsSameName, notCompatibleReference.SDKName, incompatibleReferencesDelimited);
                         }
                         else
                         {
-                            Log.LogWarningWithCodeFromResources("ResolveSDKReference.CannotReferenceTwoSDKsSameName", notCompatibleReference.SDKName, incompatibleReferencesDelimited);
+                            Log.LogWarningWithCodeFromResource(TaskStrings.ResolveSDKReference_CannotReferenceTwoSDKsSameName, notCompatibleReference.SDKName, incompatibleReferencesDelimited);
                         }
                     }
                 }
@@ -511,7 +511,7 @@ namespace Microsoft.Build.Tasks
 
                     if (missingDependencies.Length > 0)
                     {
-                        log.LogWarningWithCodeFromResources("ResolveSDKReference.SDKMissingDependency", reference.SDKName, missingDependencies);
+                        log.LogWarningWithCodeFromResource(TaskStrings.ResolveSDKReference_SDKMissingDependency, reference.SDKName, missingDependencies);
                     }
                 }
             }
@@ -565,7 +565,7 @@ namespace Microsoft.Build.Tasks
 
             if (!splitSuccessful)
             {
-                LogErrorOrWarning(new Tuple<string, object[]>("ResolveSDKReference.SDKReferenceIncorrectFormat", [referenceItem.ItemSpec]));
+                LogErrorOrWarning(new Tuple<ResourceString, object[]>(TaskStrings.ResolveSDKReference_SDKReferenceIncorrectFormat, [referenceItem.ItemSpec]));
                 return null;
             }
 
@@ -600,16 +600,16 @@ namespace Microsoft.Build.Tasks
         /// </summary>
         private void LogResolution(SDKReference reference)
         {
-            Log.LogMessageFromResources(MessageImportance.Low, "ResolveSDKReference.SearchingForSDK", reference.ReferenceItem.ItemSpec);
+            Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveSDKReference_SearchingForSDK, reference.ReferenceItem.ItemSpec);
 
             if (reference.Resolved)
             {
-                Log.LogMessageFromResources(MessageImportance.Low, "ResolveSDKReference.FoundSDK", reference.ResolvedPath);
+                Log.LogMessageFromResource(MessageImportance.Low, TaskStrings.ResolveSDKReference_FoundSDK, reference.ResolvedPath);
                 if (reference.StatusMessages != null)
                 {
-                    foreach (Tuple<string, object[]> message in reference.StatusMessages)
+                    foreach (Tuple<ResourceString, object[]> message in reference.StatusMessages)
                     {
-                        string formattedMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(message.Item1, message.Item2);
+                        string formattedMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(message.Item1, message.Item2);
                         Log.LogMessage("  " + formattedMessage);
                     }
                 }
@@ -617,22 +617,22 @@ namespace Microsoft.Build.Tasks
             else if (reference.ResolutionErrors == null || reference.ResolutionErrors.Count == 0)
             {
                 // We only want to say we could not find it if there were no other errors which would cause it not to be found
-                LogErrorOrWarning(new Tuple<string, object[]>("ResolveSDKReference.CouldNotResolveSDK", [reference.ReferenceItem.ItemSpec]));
+                LogErrorOrWarning(new Tuple<ResourceString, object[]>(TaskStrings.ResolveSDKReference_CouldNotResolveSDK, [reference.ReferenceItem.ItemSpec]));
             }
 
             // Log warnings
             if (reference.ResolutionWarnings != null)
             {
-                foreach (Tuple<string, object[]> warning in reference.ResolutionWarnings)
+                foreach (Tuple<ResourceString, object[]> warning in reference.ResolutionWarnings)
                 {
-                    Log.LogWarningWithCodeFromResources(warning.Item1, warning.Item2);
+                    Log.LogWarningWithCodeFromResource(warning.Item1, warning.Item2);
                 }
             }
 
             // Log errors
             if (reference.ResolutionErrors != null)
             {
-                foreach (Tuple<string, object[]> error in reference.ResolutionErrors)
+                foreach (Tuple<ResourceString, object[]> error in reference.ResolutionErrors)
                 {
                     LogErrorOrWarning(error);
                 }
@@ -642,15 +642,15 @@ namespace Microsoft.Build.Tasks
         /// <summary>
         /// Log an error or warning depending on the LogErrorsAsWarnigns propertry.
         /// </summary>
-        private void LogErrorOrWarning(Tuple<string, object[]> errorOrWarning)
+        private void LogErrorOrWarning(Tuple<ResourceString, object[]> errorOrWarning)
         {
             if (LogResolutionErrorsAsWarnings)
             {
-                Log.LogWarningWithCodeFromResources(errorOrWarning.Item1, errorOrWarning.Item2);
+                Log.LogWarningWithCodeFromResource(errorOrWarning.Item1, errorOrWarning.Item2);
             }
             else
             {
-                Log.LogErrorWithCodeFromResources(errorOrWarning.Item1, errorOrWarning.Item2);
+                Log.LogErrorWithCodeFromResource(errorOrWarning.Item1, errorOrWarning.Item2);
             }
         }
 
@@ -740,9 +740,9 @@ namespace Microsoft.Build.Tasks
                 SDKName = $"{SimpleName}, Version={Version}";
                 FrameworkIdentitiesFromManifest = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 AppxLocationsFromManifest = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                ResolutionErrors = new List<Tuple<string, object[]>>();
-                ResolutionWarnings = new List<Tuple<string, object[]>>();
-                StatusMessages = new List<Tuple<string, object[]>>();
+                ResolutionErrors = new List<Tuple<ResourceString, object[]>>();
+                ResolutionWarnings = new List<Tuple<ResourceString, object[]>>();
+                StatusMessages = new List<Tuple<ResourceString, object[]>>();
                 _supportsMultipleVersions = MultipleVersionSupport.Allow;
             }
             #endregion
@@ -776,17 +776,17 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// Messages which may be warnings or errors depending on the logging setting.
             /// </summary>
-            public List<Tuple<string, object[]>> ResolutionErrors { get; }
+            public List<Tuple<ResourceString, object[]>> ResolutionErrors { get; }
 
             /// <summary>
             /// Warning messages only
             /// </summary>
-            public List<Tuple<string, object[]>> ResolutionWarnings { get; }
+            public List<Tuple<ResourceString, object[]>> ResolutionWarnings { get; }
 
             /// <summary>
             /// Messages generated during resolution
             /// </summary>
-            public List<Tuple<string, object[]>> StatusMessages { get; }
+            public List<Tuple<ResourceString, object[]>> StatusMessages { get; }
 
             /// <summary>
             /// SDKName, this is a formatted name based on the SimpleName and the Version
@@ -981,17 +981,17 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// Add a resolution error or warning to the reference
             /// </summary>
-            internal void AddResolutionErrorOrWarning(string resourceId, params object[] parameters)
+            internal void AddResolutionErrorOrWarning(ResourceString resource, params object[] parameters)
             {
-                ResolutionErrors.Add(new Tuple<string, object[]>(resourceId, parameters));
+                ResolutionErrors.Add(new Tuple<ResourceString, object[]>(resource, parameters));
             }
 
             /// <summary>
             /// Add a resolution warning to the reference
             /// </summary>
-            internal void AddResolutionWarning(string resourceId, params object[] parameters)
+            internal void AddResolutionWarning(ResourceString resource, params object[] parameters)
             {
-                ResolutionWarnings.Add(new Tuple<string, object[]>(resourceId, parameters));
+                ResolutionWarnings.Add(new Tuple<ResourceString, object[]>(resource, parameters));
             }
 
             /// <summary>
@@ -1014,13 +1014,13 @@ namespace Microsoft.Build.Tasks
                 {
                     _sdkManifestPath = Path.Combine(ResolvedPath, "SDKManifest.xml");
 
-                    AddStatusMessage("ResolveSDKReference.ReadingSDKManifestFile", _sdkManifestPath);
+                    AddStatusMessage(TaskStrings.ResolveSDKReference_ReadingSDKManifestFile, _sdkManifestPath);
 
                     _sdkManifest = new SDKManifest(ResolvedPath);
 
                     if (_sdkManifest.ReadError)
                     {
-                        AddResolutionErrorOrWarning("ResolveSDKReference.ErrorResolvingSDK", ReferenceItem.ItemSpec, ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ResolveSDKReference.ErrorReadingManifest", _sdkManifestPath, _sdkManifest.ReadErrorMessage));
+                        AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_ErrorResolvingSDK, ReferenceItem.ItemSpec, ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(TaskStrings.ResolveSDKReference_ErrorReadingManifest, _sdkManifestPath, _sdkManifest.ReadErrorMessage));
                     }
                 }
 
@@ -1207,7 +1207,7 @@ namespace Microsoft.Build.Tasks
                 ResolvedItem.SetMetadata(TargetedSDKArchitecture, sdkArchitecture);
 
                 // Print out a message indicating what our targeted sdk configuration and architecture is so users know what the reference is targeting.
-                AddStatusMessage("ResolveSDKReference.TargetedConfigAndArchitecture", sdkConfiguration, sdkArchitecture);
+                AddStatusMessage(TaskStrings.ResolveSDKReference_TargetedConfigAndArchitecture, sdkConfiguration, sdkArchitecture);
 
                 string[] supportedArchitectures = null;
                 if (!string.IsNullOrEmpty(SupportedArchitectures))
@@ -1245,7 +1245,7 @@ namespace Microsoft.Build.Tasks
                             }
                         }
 
-                        AddResolutionErrorOrWarning("ResolveSDKReference.TargetArchitectureNotSupported", remappedArchitecture, SDKName, supportedArchList);
+                        AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_TargetArchitectureNotSupported, remappedArchitecture, SDKName, supportedArchList);
                     }
                 }
 
@@ -1253,24 +1253,24 @@ namespace Microsoft.Build.Tasks
                 {
                     if (System.Version.TryParse(MaxPlatformVersion, out Version maxPlatformVersionAsVersion) && (maxPlatformVersionAsVersion < targetPlatformVersion))
                     {
-                        AddResolutionWarning("ResolveSDKReference.MaxPlatformVersionLessThanTargetPlatformVersion", projectName, DisplayName, Version, targetPlatformIdentifier, MaxPlatformVersion, targetPlatformIdentifier, targetPlatformVersion.ToString());
+                        AddResolutionWarning(TaskStrings.ResolveSDKReference_MaxPlatformVersionLessThanTargetPlatformVersion, projectName, DisplayName, Version, targetPlatformIdentifier, MaxPlatformVersion, targetPlatformIdentifier, targetPlatformVersion.ToString());
                     }
                 }
                 else if (enableMaxPlatformVersionEmptyWarning && targetPlatformVersionFromItem != null && targetPlatformVersionFromItem < targetPlatformVersion)
                 {
-                    AddResolutionWarning("ResolveSDKReference.MaxPlatformVersionNotSpecified", projectName, DisplayName, Version, targetPlatformIdentifier, targetPlatformVersionFromItem.ToString(), targetPlatformIdentifier, targetPlatformVersion.ToString());
+                    AddResolutionWarning(TaskStrings.ResolveSDKReference_MaxPlatformVersionNotSpecified, projectName, DisplayName, Version, targetPlatformIdentifier, targetPlatformVersionFromItem.ToString(), targetPlatformIdentifier, targetPlatformVersion.ToString());
                 }
 
                 if (!String.IsNullOrEmpty(TargetPlatform) && !String.Equals(targetPlatformIdentifier, TargetPlatform) && (!PlatformAliases.TryGetValue(TargetPlatform, out string platform) || !String.Equals(targetPlatformIdentifier, platform, StringComparison.OrdinalIgnoreCase)))
                 {
-                    AddResolutionErrorOrWarning("ResolveSDKReference.TargetPlatformIdentifierDoesNotMatch", projectName, DisplayName, Version, targetPlatformIdentifier, TargetPlatform);
+                    AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_TargetPlatformIdentifierDoesNotMatch, projectName, DisplayName, Version, targetPlatformIdentifier, TargetPlatform);
                 }
 
                 if (!String.IsNullOrEmpty(TargetPlatformMinVersion))
                 {
                     if (System.Version.TryParse(TargetPlatformMinVersion, out Version targetPlatformMinVersionAsVersion) && (targetPlatformVersion < targetPlatformMinVersionAsVersion))
                     {
-                        AddResolutionErrorOrWarning("ResolveSDKReference.PlatformVersionIsLessThanMinVersion", projectName, DisplayName, Version, targetPlatformVersion.ToString(), targetPlatformMinVersionAsVersion.ToString());
+                        AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_PlatformVersionIsLessThanMinVersion, projectName, DisplayName, Version, targetPlatformVersion.ToString(), targetPlatformMinVersionAsVersion.ToString());
                     }
                 }
 
@@ -1280,7 +1280,7 @@ namespace Microsoft.Build.Tasks
 
                     if (!supportPrefer32Bit)
                     {
-                        AddResolutionErrorOrWarning("ResolveSDKReference.Prefer32BitNotSupportedWithNeutralProject", SDKName);
+                        AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_Prefer32BitNotSupportedWithNeutralProject, SDKName);
                     }
                 }
 
@@ -1312,7 +1312,7 @@ namespace Microsoft.Build.Tasks
 
                         if (FrameworkIdentity == null)
                         {
-                            AddResolutionErrorOrWarning("ResolveSDKReference.NoMatchingFrameworkIdentity", _sdkManifestPath, sdkConfiguration, sdkArchitecture);
+                            AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_NoMatchingFrameworkIdentity, _sdkManifestPath, sdkConfiguration, sdkArchitecture);
                         }
                         else
                         {
@@ -1321,18 +1321,18 @@ namespace Microsoft.Build.Tasks
                     }
                     else
                     {
-                        AddStatusMessage("ResolveSDKReference.NoFrameworkIdentitiesFound");
+                        AddStatusMessage(TaskStrings.ResolveSDKReference_NoFrameworkIdentitiesFound);
                     }
                 }
                 else
                 {
-                    AddStatusMessage("ResolveSDKReference.FoundFrameworkIdentity", FrameworkIdentity);
+                    AddStatusMessage(TaskStrings.ResolveSDKReference_FoundFrameworkIdentity, FrameworkIdentity);
                 }
 
                 // Print out if we are a platform SDK
                 if (!String.IsNullOrEmpty(PlatformIdentity))
                 {
-                    AddStatusMessage("ResolveSDKReference.PlatformSDK", PlatformIdentity);
+                    AddStatusMessage(TaskStrings.ResolveSDKReference_PlatformSDK, PlatformIdentity);
                     ResolvedItem.SetMetadata(SDKManifest.Attributes.PlatformIdentity, PlatformIdentity);
                 }
 
@@ -1393,11 +1393,11 @@ namespace Microsoft.Build.Tasks
                                 // Also, replace the entry if we have already added an entry for a non configuration specific entry and we now have a configuration specific entry that matches what we are targeting.
                                 if ((configurationComponent == null && !containsKey) || (configurationComponent?.Equals(sdkConfiguration, StringComparison.OrdinalIgnoreCase) == true))
                                 {
-                                    AddStatusMessage("ResolveSDKReference.FoundAppxLocation", appxLocation.Key + "=" + appxLocation.Value);
+                                    AddStatusMessage(TaskStrings.ResolveSDKReference_FoundAppxLocation, appxLocation.Key + "=" + appxLocation.Value);
 
                                     if (containsKey)
                                     {
-                                        AddStatusMessage("ResolveSDKReference.ReplaceAppxLocation", architectureComponent, architectureLocation, appxLocation.Value);
+                                        AddStatusMessage(TaskStrings.ResolveSDKReference_ReplaceAppxLocation, architectureComponent, architectureLocation, appxLocation.Value);
                                     }
 
                                     architectureLocations[architectureComponent] = appxLocation.Value;
@@ -1418,7 +1418,7 @@ namespace Microsoft.Build.Tasks
 
                         if (AppxLocation == null)
                         {
-                            AddResolutionErrorOrWarning("ResolveSDKReference.NoMatchingAppxLocation", _sdkManifestPath, sdkConfiguration, sdkArchitecture);
+                            AddResolutionErrorOrWarning(TaskStrings.ResolveSDKReference_NoMatchingAppxLocation, _sdkManifestPath, sdkConfiguration, sdkArchitecture);
                         }
                         else
                         {
@@ -1427,12 +1427,12 @@ namespace Microsoft.Build.Tasks
                     }
                     else
                     {
-                        AddStatusMessage("ResolveSDKReference.NoAppxLocationsFound");
+                        AddStatusMessage(TaskStrings.ResolveSDKReference_NoAppxLocationsFound);
                     }
                 }
                 else
                 {
-                    AddStatusMessage("ResolveSDKReference.FoundAppxLocation", AppxLocation);
+                    AddStatusMessage(TaskStrings.ResolveSDKReference_FoundAppxLocation, AppxLocation);
                 }
 
                 ResolvedItem.SetMetadata("SimpleName", SimpleName);
@@ -1529,11 +1529,11 @@ namespace Microsoft.Build.Tasks
             {
                 if (FrameworkIdentitiesFromManifest.TryGetValue(frameworkIdentityKey, out string frameworkIdentityValue))
                 {
-                    AddStatusMessage("ResolveSDKReference.FoundFrameworkIdentity", frameworkIdentityValue);
+                    AddStatusMessage(TaskStrings.ResolveSDKReference_FoundFrameworkIdentity, frameworkIdentityValue);
                 }
                 else
                 {
-                    AddStatusMessage("ResolveSDKReference.CouldNotFindFrameworkIdentity", frameworkIdentityKey);
+                    AddStatusMessage(TaskStrings.ResolveSDKReference_CouldNotFindFrameworkIdentity, frameworkIdentityKey);
                 }
 
                 return frameworkIdentityValue;
@@ -1542,9 +1542,9 @@ namespace Microsoft.Build.Tasks
             /// <summary>
             /// Keep track of messages which are status information about resolving this reference. We want to print it out in a nicer format at the end of resolution.
             /// </summary>
-            private void AddStatusMessage(string resource, params object[] parameters)
+            private void AddStatusMessage(ResourceString resource, params object[] parameters)
             {
-                StatusMessages.Add(new Tuple<string, object[]>(resource, parameters));
+                StatusMessages.Add(new Tuple<ResourceString, object[]>(resource, parameters));
             }
             #endregion
         }

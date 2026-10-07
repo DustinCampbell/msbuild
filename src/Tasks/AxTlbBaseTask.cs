@@ -84,7 +84,7 @@ namespace Microsoft.Build.Tasks
             // only descendant tasks who have defined their ToolName can be executed
             if (String.IsNullOrEmpty(ToolName))
             {
-                Log.LogErrorWithCodeFromResources("AxTlbBaseTask.ToolNameMustBeSet");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_ToolNameMustBeSet);
                 return false;
             }
 
@@ -129,7 +129,7 @@ namespace Microsoft.Build.Tasks
             if ((String.IsNullOrEmpty(ToolPath) || !FileSystems.Default.DirectoryExists(TaskEnvironment.GetAbsolutePath(ToolPath))) &&
                 (String.IsNullOrEmpty(SdkToolsPath) || !FileSystems.Default.DirectoryExists(TaskEnvironment.GetAbsolutePath(SdkToolsPath))))
             {
-                Log.LogErrorWithCodeFromResources("AxTlbBaseTask.SdkOrToolPathNotSpecifiedOrInvalid", SdkToolsPath ?? "", ToolPath ?? "");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_SdkOrToolPathNotSpecifiedOrInvalid, SdkToolsPath ?? "", ToolPath ?? "");
                 return false;
             }
 
@@ -191,7 +191,7 @@ namespace Microsoft.Build.Tasks
                 }
                 else
                 {
-                    Log.LogErrorWithCodeFromResources("AxTlbBaseTask.InvalidKeyFileSpecified", KeyFile);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_InvalidKeyFileSpecified, KeyFile);
                     return false;
                 }
             }
@@ -202,14 +202,14 @@ namespace Microsoft.Build.Tasks
             // Cannot define both KeyFile and KeyContainer
             if (keyFileExists && keyContainerSpecified)
             {
-                Log.LogErrorWithCodeFromResources("AxTlbBaseTask.CannotSpecifyBothKeyFileAndKeyContainer");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_CannotSpecifyBothKeyFileAndKeyContainer);
                 return false;
             }
 
             // If this assembly is delay signed, either KeyFile or KeyContainer must be defined
             if (DelaySign && !keyFileExists && !keyContainerSpecified)
             {
-                Log.LogErrorWithCodeFromResources("AxTlbBaseTask.CannotSpecifyDelaySignWithoutEitherKeyFileOrKeyContainer");
+                Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_CannotSpecifyDelaySignWithoutEitherKeyFileOrKeyContainer);
                 return false;
             }
 
@@ -236,7 +236,7 @@ namespace Microsoft.Build.Tasks
                 {
                     if (publicKey == null)
                     {
-                        Log.LogErrorWithCodeFromResources("AxTlbBaseTask.StrongNameUtils.NoPublicKeySpecified");
+                        Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_StrongNameUtils_NoPublicKeySpecified);
                         return false;
                     }
                     if (keyPair == null)
@@ -251,12 +251,12 @@ namespace Microsoft.Build.Tasks
                     {
                         if (!String.IsNullOrEmpty(KeyContainer))
                         {
-                            Log.LogErrorWithCodeFromResources("AxTlbBaseTask.StrongNameUtils.NoKeyPairInContainer", KeyContainer);
+                            Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_StrongNameUtils_NoKeyPairInContainer, KeyContainer);
                             return false;
                         }
                         if (!String.IsNullOrEmpty(KeyFile))
                         {
-                            Log.LogErrorWithCodeFromResources("AxTlbBaseTask.StrongNameUtils.NoKeyPairInFile", KeyFile);
+                            Log.LogErrorWithCodeFromResource(TaskStrings.AxTlbBaseTask_StrongNameUtils_NoKeyPairInFile, KeyFile);
                             return false;
                         }
                     }

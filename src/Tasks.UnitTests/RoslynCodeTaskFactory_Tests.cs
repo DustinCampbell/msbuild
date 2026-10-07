@@ -813,7 +813,9 @@ Log.LogError(Class1.ToPrint());
             const string taskName = "SayHello";
             const string className = "HelloWorld";
             taskName.ShouldNotBe(className, "The test is misconfigured.");
-            string errorMessage = string.Format(ResourceUtilities.GetResourceString("CodeTaskFactory.CouldNotFindTaskInAssembly"), taskName);
+            string errorMessage = string.Format(
+                ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_CouldNotFindTaskInAssembly),
+                taskName);
 
             const string projectContent = @"<Project>
   <UsingTask TaskName=""" + taskName + @""" TaskFactory=""RoslynCodeTaskFactory"" AssemblyFile=""$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll"">
@@ -858,7 +860,7 @@ namespace InlineTask
         public void ClassDoesNotInheritFromITask(bool forceOutOfProc)
         {
             const string taskName = "ClassDoesNotInheritFromITask";
-            string unformattedMessage = ResourceUtilities.GetResourceString("CodeTaskFactory.NeedsITaskInterface");
+            string unformattedMessage = ResourceStringUtilities.GetResourceString(TaskStrings.CodeTaskFactory_NeedsITaskInterface);
 
             string projectContent = $$"""
                 <Project>

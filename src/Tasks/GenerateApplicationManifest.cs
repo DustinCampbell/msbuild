@@ -115,7 +115,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!NativeMethodsShared.IsWindows)
             {
-                Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(GenerateApplicationManifest));
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_TaskRequiresWindows, nameof(GenerateApplicationManifest));
                 return false;
             }
             return base.Execute();
@@ -177,7 +177,7 @@ namespace Microsoft.Build.Tasks
             {
                 if (manifest.EntryPoint == null && Util.CompareFrameworkVersions(TargetFrameworkVersion, Constants.TargetFrameworkVersion35) < 0)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.NoEntryPoint");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_NoEntryPoint);
                     return false;
                 }
 
@@ -194,7 +194,7 @@ namespace Microsoft.Build.Tasks
 
             if (HostInBrowser && Util.CompareFrameworkVersions(TargetFrameworkVersion, Constants.TargetFrameworkVersion30) < 0)
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.HostInBrowserInvalidFrameworkVersion");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_HostInBrowserInvalidFrameworkVersion);
                 return false;
             }
 
@@ -347,12 +347,12 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (FormatException)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "ManifestType");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "ManifestType");
                     valid = false;
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "ManifestType");
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "ManifestType");
                     valid = false;
                 }
                 if (_manifestType == _ManifestType.Native)
@@ -362,17 +362,17 @@ namespace Microsoft.Build.Tasks
             }
             if (ClrVersion != null && !Util.IsValidVersion(ClrVersion, 4))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "ClrVersion");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "ClrVersion");
                 valid = false;
             }
             if (OSVersion != null && !Util.IsValidVersion(OSVersion, 4))
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "OSVersion");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "OSVersion");
                 valid = false;
             }
             if (!Util.IsValidFrameworkVersion(TargetFrameworkVersion) || Util.CompareFrameworkVersions(TargetFrameworkVersion, Constants.TargetFrameworkVersion20) < 0)
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidValue", "TargetFrameworkVersion");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidValue, "TargetFrameworkVersion");
                 valid = false;
             }
             if (_manifestType == _ManifestType.ClickOnce)
@@ -380,7 +380,7 @@ namespace Microsoft.Build.Tasks
                 // ClickOnce supports asInvoker privilege only.
                 if (GetRequestedExecutionLevel(out string requestedExecutionLevel) && String.CompareOrdinal(requestedExecutionLevel, Constants.UACAsInvoker) != 0)
                 {
-                    Log.LogErrorWithCodeFromResources("GenerateManifest.InvalidRequestedExecutionLevel", requestedExecutionLevel);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_InvalidRequestedExecutionLevel, requestedExecutionLevel);
                     valid = false;
                 }
             }
@@ -487,7 +487,7 @@ namespace Microsoft.Build.Tasks
             }
             catch (Exception ex)
             {
-                Log.LogErrorWithCodeFromResources("GenerateManifest.ReadInputManifestFailed", InputManifest.ItemSpec, ex.Message);
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateManifest_ReadInputManifestFailed, InputManifest.ItemSpec, ex.Message);
                 return false;
             }
         }

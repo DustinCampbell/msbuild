@@ -47,7 +47,7 @@ namespace Microsoft.Build.Tasks
         {
             if (!NativeMethodsShared.IsWindows)
             {
-                Log.LogErrorWithCodeFromResources("General.TaskRequiresWindows", nameof(GenerateLauncher));
+                Log.LogErrorWithCodeFromResource(TaskStrings.General_TaskRequiresWindows, nameof(GenerateLauncher));
                 return false;
             }
 
@@ -63,7 +63,7 @@ namespace Microsoft.Build.Tasks
             }
             if (EntryPoint == null)
             {
-                Log.LogErrorWithCodeFromResources("GenerateLauncher.InvalidInput");
+                Log.LogErrorWithCodeFromResource(TaskStrings.GenerateLauncher_InvalidInput);
                 return false;
             }
 

@@ -63,7 +63,7 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (ArgumentException)
                 {
-                    Log.LogErrorWithCodeFromResources("Message_InvalidImportance", Importance);
+                    Log.LogErrorWithCodeFromResource(FrameworkStrings.Message_InvalidImportance, Importance);
                     return false;
                 }
             }

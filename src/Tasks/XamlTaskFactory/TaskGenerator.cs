@@ -6,7 +6,6 @@ using System.CodeDom;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -400,7 +399,7 @@ namespace Microsoft.Build.Tasks.Xaml
             }
             catch (ConfigurationException e)
             {
-                LogError("InvalidLanguage", e.Message);
+                LogError(TaskStrings.XamlLegacy_InvalidLanguage, e.Message);
             }
 
             return null;
@@ -536,7 +535,7 @@ namespace Microsoft.Build.Tasks.Xaml
                     }
                     else
                     {
-                        LogError("ImproperType", property.Name, property.Type);
+                        LogError(TaskStrings.XamlLegacy_ImproperType, property.Name, property.Type);
                     }
 
                     // also assign a parent for each one
@@ -1139,9 +1138,9 @@ namespace Microsoft.Build.Tasks.Xaml
         /// <summary>
         /// Increases the error count by 1, and logs the error message
         /// </summary>
-        private void LogError(string messageResourceName, params object[] messageArgs)
+        private void LogError(ResourceString messageResource, params object[] messageArgs)
         {
-            ErrorLog.AddLast(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(messageResourceName, messageArgs));
+            ErrorLog.AddLast(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(messageResource, messageArgs));
             ErrorCount++;
         }
 

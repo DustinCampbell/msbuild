@@ -79,12 +79,12 @@ namespace Microsoft.Build.Tasks
                 }
                 catch (BadImageFormatException e)
                 {
-                    Log.LogErrorWithCodeFromResources("GetAssemblyIdentity.CouldNotGetAssemblyName", item.ItemSpec, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GetAssemblyIdentity_CouldNotGetAssemblyName, item.ItemSpec, e.Message);
                     continue;
                 }
                 catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                 {
-                    Log.LogErrorWithCodeFromResources("GetAssemblyIdentity.CouldNotGetAssemblyName", item.ItemSpec, e.Message);
+                    Log.LogErrorWithCodeFromResource(TaskStrings.GetAssemblyIdentity_CouldNotGetAssemblyName, item.ItemSpec, e.Message);
                     continue;
                 }
 

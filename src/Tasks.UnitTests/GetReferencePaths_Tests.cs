@@ -171,7 +171,9 @@ namespace Microsoft.Build.UnitTests
             string displayName = getReferencePaths.TargetFrameworkMonikerDisplayName;
             Assert.Null(displayName);
             FrameworkNameVersioning frameworkMoniker = new FrameworkNameVersioning(getReferencePaths.TargetFrameworkMoniker);
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("GetReferenceAssemblyPaths.NoReferenceAssemblyDirectoryFound", frameworkMoniker.ToString());
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                TaskStrings.GetReferenceAssemblyPaths_NoReferenceAssemblyDirectoryFound,
+                frameworkMoniker.ToString());
             engine.AssertLogContains("ERROR MSB3644: " + message);
         }
 
@@ -228,7 +230,9 @@ namespace Microsoft.Build.UnitTests
                 string displayName = getReferencePaths.TargetFrameworkMonikerDisplayName;
                 Assert.Null(displayName);
                 FrameworkNameVersioning frameworkMoniker = new FrameworkNameVersioning(getReferencePaths.TargetFrameworkMoniker);
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("GetReferenceAssemblyPaths.NoReferenceAssemblyDirectoryFound", frameworkMoniker.ToString());
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    TaskStrings.GetReferenceAssemblyPaths_NoReferenceAssemblyDirectoryFound,
+                    frameworkMoniker.ToString());
                 engine.AssertLogContains(message);
             }
             finally
@@ -284,8 +288,8 @@ namespace Microsoft.Build.UnitTests
                     // Since under Unix there are no invalid characters, we don't fail in the incorrect path
                     // and go through to actually looking for the directory
                     string message =
-                        ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                            "GetReferenceAssemblyPaths.NoReferenceAssemblyDirectoryFound",
+                        ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                            TaskStrings.GetReferenceAssemblyPaths_NoReferenceAssemblyDirectoryFound,
                             frameworkMoniker.ToString());
                     engine.AssertLogContains(message);
                 }
