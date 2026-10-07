@@ -212,15 +212,11 @@ internal static class FormattedResourceStringUtilities
 {
     internal static ResolvedResourceString Create(ResolvedResourceString resolved, string originalText)
     {
-        string? code;
-        string text;
-
-        if (!MessageParser.TryParseMSBuildCode(originalText, out code, out text))
+        if (MessageParser.TryParseMSBuildCode(originalText, out string? code, out string? text))
         {
-            code = null;
-            text = originalText;
+            return new ResolvedResourceString(originalText, text!, code, resolved.HelpKeyword);
         }
 
-        return new ResolvedResourceString(originalText, text, code, resolved.HelpKeyword);
+        return new ResolvedResourceString(originalText, originalText, code: null, resolved.HelpKeyword);
     }
 }
