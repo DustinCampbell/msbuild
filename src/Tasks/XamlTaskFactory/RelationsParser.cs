@@ -192,12 +192,12 @@ namespace Microsoft.Build.Tasks.Xaml
             }
             catch (FileNotFoundException e)
             {
-                LogError(TaskStrings.XamlLegacy_LoadFailed, e.ToString());
+                LogError(TaskStrings.LoadFailed, e.ToString());
                 return null;
             }
             catch (XmlException e)
             {
-                LogError(TaskStrings.XamlLegacy_XmlError, e.ToString());
+                LogError(TaskStrings.XmlError, e.ToString());
                 return null;
             }
         }
@@ -221,7 +221,7 @@ namespace Microsoft.Build.Tasks.Xaml
             }
             catch (XmlException e)
             {
-                LogError(TaskStrings.XamlLegacy_XmlError, e.ToString());
+                LogError(TaskStrings.XmlError, e.ToString());
                 return null;
             }
         }
@@ -260,20 +260,20 @@ namespace Microsoft.Build.Tasks.Xaml
             // verify the namespace
             if (String.IsNullOrEmpty(node.NamespaceURI) || !String.Equals(node.NamespaceURI, xmlNamespace, StringComparison.OrdinalIgnoreCase))
             {
-                LogError(TaskStrings.XamlLegacy_InvalidNamespace, xmlNamespace);
+                LogError(TaskStrings.InvalidNamespace, xmlNamespace);
                 return false;
             }
 
             // verify that the element name is "task"
             if (!VerifyNodeName(node))
             {
-                LogError(TaskStrings.XamlLegacy_MissingRootElement, relations);
+                LogError(TaskStrings.MissingRootElement, relations);
                 return false;
             }
             else if (!VerifyAttributeExists(node, nameProperty) && !_isImport)
             {
                 // we must have the name attribute if it not an import
-                LogError(TaskStrings.XamlLegacy_MissingAttribute, task, nameProperty);
+                LogError(TaskStrings.MissingAttribute, task, nameProperty);
                 return false;
             }
             // TODO verify resource namespace exists
@@ -314,7 +314,7 @@ namespace Microsoft.Build.Tasks.Xaml
             }
             else
             {
-                LogError(TaskStrings.XamlLegacy_NoChildren);
+                LogError(TaskStrings.NoChildren);
                 return false;
             }
         }
@@ -386,7 +386,7 @@ namespace Microsoft.Build.Tasks.Xaml
         {
             if (!VerifyAttributeExists(node, tasksAttribute))
             {
-                LogError(TaskStrings.XamlLegacy_MissingAttribute, importType, tasksAttribute);
+                LogError(TaskStrings.MissingAttribute, importType, tasksAttribute);
                 return false;
             }
             else

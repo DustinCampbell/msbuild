@@ -479,7 +479,7 @@ namespace Microsoft.Build.Tasks
                 {
                     Log.LogMessageFromResource(
                         MessageImportance.Normal,
-                        TaskStrings.ResolveComReferenceLegacy_BadTargetFrameworkFormat,
+                        TaskStrings.ResolveComReference_BadTargetFrameworkFormat,
                         version);
                 }
             }

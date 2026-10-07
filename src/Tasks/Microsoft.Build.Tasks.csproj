@@ -240,7 +240,6 @@
     <Compile Include="ParserState.cs" />
     <Compile Include="AddToWin32Manifest.cs" />
     <Compile Include="RedistList.cs" />
-    <Compile Include="Resources\TaskStrings.Legacy.cs" />
     <Compile Include="ResourceStringTaskLoggingExtensions.cs" />
     <Compile Include="RemoveDir.cs" />
     <Compile Include="ResGenDependencies.cs" />
@@ -451,7 +450,17 @@
                      ResourceCatalogClass="TaskStrings"
                      ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.PrimaryResources"
                      ResourceCatalogHelpKeywordPrefix="MSBuild." />
+    <AdditionalFiles Include="Resources\LegacyResourceNames.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.Tasks.Resources"
+                     ResourceCatalogClass="TaskStrings"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.PrimaryResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
     <AdditionalFiles Include="ManifestUtil\Resources\Strings.ManifestUtilities.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.Tasks.Resources"
+                     ResourceCatalogClass="TaskStrings"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.ManifestUtilitiesResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
+    <AdditionalFiles Include="ManifestUtil\Resources\LegacyResourceNames.ManifestUtilities.resx"
                      ResourceCatalogNamespace="Microsoft.Build.Tasks.Resources"
                      ResourceCatalogClass="TaskStrings"
                      ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.ManifestUtilitiesResources"

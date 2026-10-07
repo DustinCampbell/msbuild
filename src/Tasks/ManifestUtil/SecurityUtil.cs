@@ -574,7 +574,7 @@ namespace Microsoft.Build.Tasks.Deployment.ManifestUtilities
             if (cert == null)
             {
                 throw new ArgumentException(
-                    Microsoft.Build.Shared.AssemblyResources.ManifestUtilitiesResources.GetString(TaskStrings.ManifestLegacy_CertNotInStore),
+                    Microsoft.Build.Shared.AssemblyResources.ManifestUtilitiesResources.GetString(TaskStrings.CertNotInStore.ResourceName),
                     nameof(certThumbprint));
             }
 

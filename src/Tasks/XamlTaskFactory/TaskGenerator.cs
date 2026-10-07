@@ -399,7 +399,7 @@ namespace Microsoft.Build.Tasks.Xaml
             }
             catch (ConfigurationException e)
             {
-                LogError(TaskStrings.XamlLegacy_InvalidLanguage, e.Message);
+                LogError(TaskStrings.InvalidLanguage, e.Message);
             }
 
             return null;
@@ -535,7 +535,7 @@ namespace Microsoft.Build.Tasks.Xaml
                     }
                     else
                     {
-                        LogError(TaskStrings.XamlLegacy_ImproperType, property.Name, property.Type);
+                        LogError(TaskStrings.ImproperType, property.Name, property.Type);
                     }
 
                     // also assign a parent for each one

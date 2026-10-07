@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- These historical resource names are intentionally absent from the embedded resource set. -->
+  <data name="ImproperType" xml:space="preserve">
+    <value />
+  </data>
+  <data name="InvalidLanguage" xml:space="preserve">
+    <value />
+  </data>
+  <data name="InvalidNamespace" xml:space="preserve">
+    <value />
+  </data>
+  <data name="LoadFailed" xml:space="preserve">
+    <value />
+  </data>
+  <data name="MissingAttribute" xml:space="preserve">
+    <value />
+  </data>
+  <data name="MissingRootElement" xml:space="preserve">
+    <value />
+  </data>
+  <data name="NoChildren" xml:space="preserve">
+    <value />
+  </data>
+  <data name="ResolveComReference.BadTargetFrameworkFormat" xml:space="preserve">
+    <value />
+  </data>
+  <data name="XmlError" xml:space="preserve">
+    <value />
+  </data>
+</root>

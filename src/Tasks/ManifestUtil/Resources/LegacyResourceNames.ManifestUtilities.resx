@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- This historical resource name is intentionally absent from the embedded resource set. -->
+  <data name="CertNotInStore" xml:space="preserve">
+    <value />
+  </data>
+</root>
