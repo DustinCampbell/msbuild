@@ -224,6 +224,14 @@ namespace Microsoft.Build.Utilities
             return FormatString(resourceString, args);
         }
 
+        internal string FormatResourceString(
+            Microsoft.Build.Framework.Resources.ResourceString resource,
+            params object[] args)
+        {
+            ArgumentNullException.ThrowIfNull(resource);
+            return Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(resource, args);
+        }
+
         /// <summary>
         /// Formats the given string using the variable arguments passed in. The current thread's culture is used for formatting.
         /// Thread safe.
@@ -250,6 +258,10 @@ namespace Microsoft.Build.Utilities
             string resourceString = FormatResourceString(resourceName, null);
             return resourceString;
         }
+
+        internal string GetResourceMessage(Microsoft.Build.Framework.Resources.ResourceString resource)
+            => FormatResourceString(resource, null);
+
         #endregion
 
         #region Message logging methods
@@ -864,6 +876,43 @@ namespace Microsoft.Build.Utilities
                 message);
         }
 
+        internal void LogErrorFromResources(
+            Microsoft.Build.Framework.Resources.ResourceString subcategoryResource,
+            string errorCode,
+            string helpKeyword,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            string subcategory = subcategoryResource?.Resolve().OriginalText;
+            string message = Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                messageResource,
+                messageArgs);
+
+#if DEBUG
+            Assumed.False(
+                MessageParser.TryGetMSBuildCode(message, out string code),
+                $"Called {nameof(LogErrorFromResources)} instead of {nameof(LogErrorWithCodeFromResources)}, but message '{message}' does have an error code '{code}'");
+#endif
+
+            LogError(
+                subcategory,
+                errorCode,
+                helpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                message);
+        }
+
         /// <summary>
         /// Logs an error using the specified resource string.
         /// If the message has an error code prefixed to it, the code is extracted and logged with the message. If a help keyword
@@ -1246,6 +1295,43 @@ namespace Microsoft.Build.Utilities
             // should have been called instead, so that the errorCode field gets populated.
             // Check this only in debug, to avoid the cost of attempting to extract a
             // message code when there probably isn't one.
+            Assumed.False(
+                MessageParser.TryGetMSBuildCode(message, out string code),
+                $"Called {nameof(LogWarningFromResources)} instead of {nameof(LogWarningWithCodeFromResources)}, but message '{message}' does have an error code '{code}'");
+#endif
+
+            LogWarning(
+                subcategory,
+                warningCode,
+                helpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                message);
+        }
+
+        internal void LogWarningFromResources(
+            Microsoft.Build.Framework.Resources.ResourceString subcategoryResource,
+            string warningCode,
+            string helpKeyword,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            string subcategory = subcategoryResource?.Resolve().OriginalText;
+            string message = Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                messageResource,
+                messageArgs);
+
+#if DEBUG
             Assumed.False(
                 MessageParser.TryGetMSBuildCode(message, out string code),
                 $"Called {nameof(LogWarningFromResources)} instead of {nameof(LogWarningWithCodeFromResources)}, but message '{message}' does have an error code '{code}'");
@@ -1730,6 +1816,99 @@ namespace Microsoft.Build.Utilities
                 endColumnNumber,
                 message);
         }
+
+        internal void LogErrorWithCodeAndExceptionFromResources(
+            Exception exception,
+            bool showStackTrace,
+            bool showDetail,
+            string subcategory,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(exception);
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            if (exception is AggregateException aggregateException)
+            {
+                foreach (Exception innerException in aggregateException.Flatten().InnerExceptions)
+                {
+                    LogErrorWithCodeAndExceptionFromResources(
+                        innerException,
+                        showStackTrace,
+                        showDetail,
+                        subcategory,
+                        file,
+                        lineNumber,
+                        columnNumber,
+                        endLineNumber,
+                        endColumnNumber,
+                        messageResource,
+                        messageArgs);
+                }
+
+                return;
+            }
+
+            string formattedResourceMessage = FormatResourceString(messageResource, messageArgs);
+            MessageParser.TryGetAnyCode(formattedResourceMessage, out string errorCode);
+            string helpKeyword = HelpKeywordPrefix is null ? null : HelpKeywordPrefix + messageResource.ResourceName;
+            string message = GetFormattedExceptionDetails(exception, showStackTrace, showDetail);
+
+            LogError(
+                subcategory,
+                errorCode,
+                helpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                message);
+        }
+
+        internal void LogErrorWithCodeAndExceptionFromResources(
+            Exception exception,
+            bool showStackTrace,
+            bool showDetail,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+            => LogErrorWithCodeAndExceptionFromResources(
+                exception,
+                showStackTrace,
+                showDetail,
+                null,
+                null,
+                0,
+                0,
+                0,
+                0,
+                messageResource,
+                messageArgs);
+
+        internal void LogErrorWithCodeAndExceptionFromResources(
+            Exception exception,
+            bool showStackTrace,
+            bool showDetail,
+            string file,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+            => LogErrorWithCodeAndExceptionFromResources(
+                exception,
+                showStackTrace,
+                showDetail,
+                null,
+                file,
+                0,
+                0,
+                0,
+                0,
+                messageResource,
+                messageArgs);
 
         /// <summary>
         /// Logs an error using a resource string (with code extraction and help keyword) and appends exception details.
