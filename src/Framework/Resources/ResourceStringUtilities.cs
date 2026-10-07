@@ -62,6 +62,9 @@ internal static class ResourceStringUtilities
     public static string FormatResourceStringStripCodeAndKeyword<T1, T2, T3>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2)
         => resource.WithArguments(arg0, arg1, arg2).Resolve().Text;
 
+    public static string FormatResourceStringStripCodeAndKeyword(ResourceString resource, string?[] args)
+        => MessageFormatter.Format(resource.Resolve().Text, args);
+
     public static string FormatResourceStringStripCodeAndKeyword(ResourceString resource, params object?[] args)
         => MessageFormatter.Format(resource.Resolve().Text, args);
 
@@ -104,6 +107,18 @@ internal static class ResourceStringUtilities
         out string? code,
         out string? helpKeyword,
         ResourceString resource,
+        string?[] args)
+    {
+        ResolvedResourceString resolved = resource.Resolve();
+        code = resolved.Code;
+        helpKeyword = resolved.HelpKeyword;
+        return MessageFormatter.Format(resolved.Text, args);
+    }
+
+    public static string FormatResourceStringStripCodeAndKeyword(
+        out string? code,
+        out string? helpKeyword,
+        ResourceString resource,
         params object?[] args)
     {
         ResolvedResourceString resolved = resource.Resolve();
@@ -123,6 +138,9 @@ internal static class ResourceStringUtilities
 
     public static string FormatResourceStringIgnoreCodeAndKeyword<T1, T2, T3>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2)
         => resource.WithArguments(arg0, arg1, arg2).Resolve().OriginalText;
+
+    public static string FormatResourceStringIgnoreCodeAndKeyword(ResourceString resource, string?[] args)
+        => MessageFormatter.Format(resource.Resolve().OriginalText, args);
 
     public static string FormatResourceStringIgnoreCodeAndKeyword(ResourceString resource, params object?[] args)
         => MessageFormatter.Format(resource.Resolve().OriginalText, args);

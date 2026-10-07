@@ -104,6 +104,26 @@ public class ResourceStringTests
         typeof(FormattedResourceString<string>).GetInterfaces().ShouldContain(typeof(IResourceString));
     }
 
+    [Fact]
+    public void StringArrayArgumentsAreFormattedIndividually()
+    {
+        var resource = new ResourceString(
+            new TestResourceManager(static (_, _) => "MSB4321: {0} {1}"),
+            getCulture: null,
+            "Formatted.Resource",
+            "MSBuild.");
+        string[] arguments = ["one", "two"];
+
+        ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(resource, arguments).ShouldBe("MSB4321: one two");
+        ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+            out string? code,
+            out string? helpKeyword,
+            resource,
+            arguments).ShouldBe("one two");
+        code.ShouldBe("MSB4321");
+        helpKeyword.ShouldBe("MSBuild.Formatted.Resource");
+    }
+
     private sealed class TestResourceManager(Func<string, CultureInfo, string?> getString) : ResourceManager
     {
         public int GetStringCallCount { get; private set; }
