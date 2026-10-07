@@ -85,7 +85,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 catch (RegistryException ex)
                 {
-                    InvalidToolsetDefinitionException.Throw(ex, "RegistryReadError", ex.Source, ex.Message);
+                    InvalidToolsetDefinitionException.Throw(ex, BuildStrings.RegistryReadError, ex.Source, ex.Message);
                 }
 
                 foreach (string toolsVersionName in toolsVersionNames)
@@ -183,7 +183,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 catch (RegistryException ex)
                 {
-                    InvalidToolsetDefinitionException.Throw(ex, "RegistryReadError", ex.Source, ex.Message);
+                    InvalidToolsetDefinitionException.Throw(ex, BuildStrings.RegistryReadError, ex.Source, ex.Message);
                 }
 
                 foreach (string propertyName in toolsVersionWrapper.GetValueNames())
@@ -214,7 +214,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 catch (RegistryException ex)
                 {
-                    InvalidToolsetDefinitionException.Throw(ex, "RegistryReadError", ex.Source, ex.Message);
+                    InvalidToolsetDefinitionException.Throw(ex, BuildStrings.RegistryReadError, ex.Source, ex.Message);
                 }
 
                 return toolsVersionWrapper.GetSubKeyNames();
@@ -247,7 +247,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 catch (RegistryException ex)
                 {
-                    InvalidToolsetDefinitionException.Throw(ex, "RegistryReadError", ex.Source, ex.Message);
+                    InvalidToolsetDefinitionException.Throw(ex, BuildStrings.RegistryReadError, ex.Source, ex.Message);
                 }
 
                 try
@@ -256,7 +256,7 @@ namespace Microsoft.Build.Evaluation
                 }
                 catch (RegistryException ex)
                 {
-                    InvalidToolsetDefinitionException.Throw(ex, "RegistryReadError", ex.Source, ex.Message);
+                    InvalidToolsetDefinitionException.Throw(ex, BuildStrings.RegistryReadError, ex.Source, ex.Message);
                 }
 
                 foreach (string propertyName in subToolsetWrapper.GetValueNames())
@@ -292,7 +292,7 @@ namespace Microsoft.Build.Evaluation
 
             if (propertyName?.Length == 0)
             {
-                InvalidToolsetDefinitionException.Throw("PropertyNameInRegistryHasZeroLength", toolsetWrapper.Name);
+                InvalidToolsetDefinitionException.Throw(BuildStrings.PropertyNameInRegistryHasZeroLength, toolsetWrapper.Name);
             }
 
             try
@@ -301,7 +301,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (RegistryException ex)
             {
-                InvalidToolsetDefinitionException.Throw(ex, "RegistryReadError", ex.Source, ex.Message);
+                InvalidToolsetDefinitionException.Throw(ex, BuildStrings.RegistryReadError, ex.Source, ex.Message);
             }
 
             // For the purposes of error location, use the registry path instead of a file name
@@ -332,7 +332,7 @@ namespace Microsoft.Build.Evaluation
                     // Must be a value of string type
                     if (!(result is string))
                     {
-                        InvalidToolsetDefinitionException.Throw("NonStringDataInRegistry", wrapper.Name + "@" + valueName);
+                        InvalidToolsetDefinitionException.Throw(BuildStrings.NonStringDataInRegistry, wrapper.Name + "@" + valueName);
                     }
 
                     return result.ToString();

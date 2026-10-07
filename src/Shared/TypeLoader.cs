@@ -141,11 +141,11 @@ namespace Microsoft.Build.Shared
         internal static TypeLoader Create<TInterface>() where TInterface : class => new TypeLoader(typeof(TInterface));
 
         /// <summary>
-        /// Delegate used to log warning messages with formatted string support.
+        /// Delegate used to log warning messages with formatted resource support.
         /// </summary>
-        /// <param name="format">A composite format string for the warning message.</param>
+        /// <param name="resource">The resource for the warning message.</param>
         /// <param name="args">An array of objects to format into the warning message.</param>
-        internal delegate void LogWarningDelegate(string format, params object[] args);
+        internal delegate void LogWarningDelegate(Microsoft.Build.Framework.Resources.ResourceString resource, params object[] args);
 
         /// <summary>
         /// Given two type names, looks for a partial match between them. A partial match is considered valid only if it occurs on
@@ -567,10 +567,18 @@ namespace Microsoft.Build.Shared
             string typeName,
             AssemblyLoadInfo assembly,
             LogWarningDelegate logWarning,
+            Microsoft.Build.Framework.Resources.ResourceString assemblyLoadWarning = null,
             bool useTaskHost = false,
             bool taskHostParamsMatchCurrentProc = true)
         {
-            return GetLoadedType(s_cacheOfLoadedTypesByFilter, typeName, assembly, useTaskHost, taskHostParamsMatchCurrentProc, logWarning);
+            return GetLoadedType(
+                s_cacheOfLoadedTypesByFilter,
+                typeName,
+                assembly,
+                useTaskHost,
+                taskHostParamsMatchCurrentProc,
+                logWarning,
+                assemblyLoadWarning);
         }
 
         /// <summary>
@@ -582,7 +590,14 @@ namespace Microsoft.Build.Shared
         [RequiresUnreferencedCode("Loads types by reflecting over assemblies discovered at runtime, which is incompatible with trimming.")]
         internal LoadedType ReflectionOnlyLoad(
             string typeName,
-            AssemblyLoadInfo assembly) => GetLoadedType(s_cacheOfReflectionOnlyLoadedTypesByFilter, typeName, assembly, useTaskHost: false, taskHostParamsMatchCurrentProc: true, logWarning: (format, args) => { });
+            AssemblyLoadInfo assembly) => GetLoadedType(
+                s_cacheOfReflectionOnlyLoadedTypesByFilter,
+                typeName,
+                assembly,
+                useTaskHost: false,
+                taskHostParamsMatchCurrentProc: true,
+                logWarning: (resource, args) => { },
+                assemblyLoadWarning: null);
 
         /// <summary>
         /// Loads the specified type if it exists in the given assembly. If the type name is fully qualified, then a match (if
@@ -596,7 +611,8 @@ namespace Microsoft.Build.Shared
             AssemblyLoadInfo assembly,
             bool useTaskHost,
             bool taskHostParamsMatchCurrentProc,
-            LogWarningDelegate logWarning)
+            LogWarningDelegate logWarning,
+            Microsoft.Build.Framework.Resources.ResourceString assemblyLoadWarning)
         {
             // A given interface has been used on a number of assemblies. Based on the interface we will get another dictionary which
             // will map a specific AssemblyLoadInfo to a AssemblyInfoToLoadedTypes class which knows how to find a typeName in a given assembly.
@@ -607,7 +623,12 @@ namespace Microsoft.Build.Shared
             AssemblyInfoToLoadedTypes typeNameToType =
                 loadInfoToType.GetOrAdd(assembly, (_) => new AssemblyInfoToLoadedTypes(_desiredInterface, _));
 
-            return typeNameToType.GetLoadedTypeByTypeName(typeName, useTaskHost, taskHostParamsMatchCurrentProc, logWarning);
+            return typeNameToType.GetLoadedTypeByTypeName(
+                typeName,
+                useTaskHost,
+                taskHostParamsMatchCurrentProc,
+                logWarning,
+                assemblyLoadWarning);
         }
 
         /// <summary>
@@ -719,7 +740,8 @@ namespace Microsoft.Build.Shared
                 string typeName,
                 bool useTaskHost,
                 bool taskHostParamsMatchCurrentProc,
-                LogWarningDelegate logWarning)
+                LogWarningDelegate logWarning,
+                Microsoft.Build.Framework.Resources.ResourceString assemblyLoadWarning)
             {
                 ArgumentNullException.ThrowIfNull(typeName);
 
@@ -740,7 +762,10 @@ namespace Microsoft.Build.Shared
                     // Fall back to metadata load context. It will prepare prerequisites for out of proc execution.
                     MSBuildEventSource.Log.FallbackAssemblyLoadStart(typeName);
                     loadedType = GetTypeForOutOfProcExecution(typeName);
-                    logWarning("AssemblyLoad_Warning", loadedType?.LoadedAssemblyName?.Name);
+                    if (assemblyLoadWarning is not null)
+                    {
+                        logWarning(assemblyLoadWarning, loadedType?.LoadedAssemblyName?.Name);
+                    }
                     MSBuildEventSource.Log.FallbackAssemblyLoadStop(typeName);
                 }
 

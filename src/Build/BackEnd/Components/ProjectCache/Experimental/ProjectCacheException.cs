@@ -3,7 +3,6 @@
 
 using System;
 using Microsoft.Build.Framework.BuildException;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -53,34 +52,34 @@ namespace Microsoft.Build.Experimental.ProjectCache
 
         internal static void ThrowAsUnhandledException(
             Exception innerException,
-            string messageResourceName,
+            ResourceString messageResource,
             params string[] messageArgs)
         {
-            Assumed.NotNull(messageResourceName, "Need error message.");
+            Assumed.NotNull(messageResource, "Need error message.");
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResourceName, messageArgs);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResource, messageArgs);
 
             throw new ProjectCacheException(message, innerException, hasBeenLoggedByProjectCache: false, errorCode);
         }
 
         internal static void ThrowForErrorLoggedInsideTheProjectCache(
-            string messageResourceName,
+            ResourceString messageResource,
             params string[] messageArgs)
         {
-            Assumed.NotNull(messageResourceName, "Need error message.");
+            Assumed.NotNull(messageResource, "Need error message.");
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResourceName, messageArgs);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResource, messageArgs);
 
             throw new ProjectCacheException(message: message, innerException: null, hasBeenLoggedByProjectCache: true, errorCode: errorCode);
         }
 
         internal static void ThrowForMSBuildIssueWithTheProjectCache(
-            string messageResourceName,
+            ResourceString messageResource,
             params string[] messageArgs)
         {
-            Assumed.NotNull(messageResourceName, "Need error message.");
+            Assumed.NotNull(messageResource, "Need error message.");
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResourceName, messageArgs);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out var errorCode, out _, messageResource, messageArgs);
 
             throw new ProjectCacheException(message: message, innerException: null, hasBeenLoggedByProjectCache: false, errorCode: errorCode);
         }

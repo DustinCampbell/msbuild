@@ -149,7 +149,7 @@ namespace Microsoft.Build.Evaluation
                     // of this trimmed/Native AOT host. Fail observably rather than silently returning no toolsets.
                     // The configuration file is not a default toolset location on .NET, so hosts that do not opt in
                     // to ToolsetDefinitionLocations.ConfigurationFile never reach this path.
-                    ErrorUtilities.ThrowArgument("OM_ConfigurationFileToolsetsNotSupported");
+                    FrameworkErrorUtilities.ThrowArgument(BuildStrings.OM_ConfigurationFileToolsetsNotSupported);
                 }
             }
 
@@ -480,7 +480,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (subToolsetToolsPath != null || subToolsetBinPath != null)
                 {
-                    InvalidToolsetDefinitionException.Throw("MSBuildToolsPathNotSupportedInSubToolsets", toolsVersion.Name, toolsVersion.Source.LocationString, subToolsetVersion);
+                    InvalidToolsetDefinitionException.Throw(BuildStrings.MSBuildToolsPathNotSupportedInSubToolsets, toolsVersion.Name, toolsVersion.Source.LocationString, subToolsetVersion);
                 }
 
                 subToolsets[subToolsetVersion] = new SubToolset(subToolsetVersion, subToolsetProperties);
@@ -495,7 +495,7 @@ namespace Microsoft.Build.Evaluation
             // If both MSBuildBinPath and MSBuildToolsPath are present, they must be the same
             if (toolsPath != null && binPath != null && !toolsPath.Equals(binPath, StringComparison.OrdinalIgnoreCase))
             {
-                InvalidToolsetDefinitionException.Throw("ConflictingValuesOfMSBuildToolsPath", toolsVersion.Name, toolsVersion.Source.LocationString);
+                InvalidToolsetDefinitionException.Throw(BuildStrings.ConflictingValuesOfMSBuildToolsPath, toolsVersion.Name, toolsVersion.Source.LocationString);
             }
 
             Toolset toolset = null;
@@ -507,7 +507,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (ArgumentException e)
             {
-                InvalidToolsetDefinitionException.Throw("ErrorCreatingToolset", toolsVersion.Name, e.Message);
+                InvalidToolsetDefinitionException.Throw(BuildStrings.ErrorCreatingToolset, toolsVersion.Name, e.Message);
             }
 
             return toolset;
@@ -555,8 +555,8 @@ namespace Microsoft.Build.Evaluation
             else if (ReservedPropertyNames.IsReservedProperty(property.Name))
             {
                 // We don't allow toolsets to define reserved properties
-                string baseMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CannotModifyReservedProperty", property.Name);
-                InvalidToolsetDefinitionException.Throw("InvalidPropertyNameInToolset", property.Name, property.Source.LocationString, baseMessage);
+                string baseMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.CannotModifyReservedProperty, property.Name);
+                InvalidToolsetDefinitionException.Throw(BuildStrings.InvalidPropertyNameInToolset, property.Name, property.Source.LocationString, baseMessage);
             }
             else
             {
@@ -589,7 +589,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (InvalidProjectFileException ex)
             {
-                InvalidToolsetDefinitionException.Throw(ex, "ErrorEvaluatingToolsetPropertyExpression", property.Value, property.Source.LocationString, ex.BaseMessage);
+                InvalidToolsetDefinitionException.Throw(ex, BuildStrings.ErrorEvaluatingToolsetPropertyExpression, property.Value, property.Source.LocationString, ex.BaseMessage);
             }
 
             return string.Empty;
@@ -610,7 +610,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (ArgumentException ex)
             {
-                InvalidToolsetDefinitionException.Throw(ex, "InvalidPropertyNameInToolset", property.Name, property.Source.LocationString, ex.Message);
+                InvalidToolsetDefinitionException.Throw(ex, BuildStrings.InvalidPropertyNameInToolset, property.Name, property.Source.LocationString, ex.Message);
             }
         }
 

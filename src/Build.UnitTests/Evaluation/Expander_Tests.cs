@@ -3495,7 +3495,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
         {
             var pg = new PropertyDictionary<ProjectPropertyInstance>();
             var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
-            string expectedMessage = ResourceUtilities.GetResourceString("InvalidVersionFormat");
+            string expectedMessage = ResourceStringUtilities.GetResourceString(BuildStrings.InvalidVersionFormat);
 
             AssertThrows(expander, $"$([MSBuild]::VersionGreaterThan('{badVersion}', '1.0.0'))", expectedMessage);
             AssertThrows(expander, $"$([MSBuild]::VersionGreaterThan('1.0.0', '{badVersion}'))", expectedMessage);
@@ -3748,7 +3748,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
                 expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::GetPathOfFileAbove($(FileWithPath)))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
             });
 
-            Assert.Contains(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidGetPathOfFileAboveParameter", fileWithPath), exception.Message);
+            Assert.Contains(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.InvalidGetPathOfFileAboveParameter, fileWithPath), exception.Message);
         }
 
         /// <summary>

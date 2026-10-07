@@ -10,6 +10,8 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Resources;
+using Microsoft.Build.Resources;
 using Microsoft.Build.Shared;
 using Microsoft.Build.UnitTests;
 using Microsoft.Build.UnitTests.Shared;
@@ -869,7 +871,8 @@ public class EndToEndTests : IDisposable
 
             foreach (string registeredRule in expectedRegisteredRules)
             {
-                projectCheckBuildLog.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("CustomCheckSuccessfulAcquisition", registeredRule));
+                projectCheckBuildLog.ShouldContain(
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.CustomCheckSuccessfulAcquisition, registeredRule));
             }
 
             if (!expectedRejectedChecks)
@@ -878,8 +881,8 @@ public class EndToEndTests : IDisposable
             }
             else
             {
-                projectCheckBuildLog.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                    "CustomCheckBaseTypeNotAssignable",
+                projectCheckBuildLog.ShouldContain(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    BuildStrings.CustomCheckBaseTypeNotAssignable,
                     "InvalidCheck",
                     "InvalidCustomCheck, Version=15.1.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"));
             }

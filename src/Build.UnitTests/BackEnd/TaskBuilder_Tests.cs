@@ -288,9 +288,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
             project.Build("t", loggers);
 
             logger.AssertLogContains(new string[] { "final:[/assemblyresource:c.resx,barz]" });
-            logger.AssertLogContains(new string[] { ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskStarted", "CreateProperty") });
-            logger.AssertLogContains(new string[] { ResourceUtilities.FormatResourceStringStripCodeAndKeyword("PropertyOutputOverridden", "LinkSwitches", "/assemblyresource:a.resx,foo", "/assemblyresource:b.resx,bar") });
-            logger.AssertLogContains(new string[] { ResourceUtilities.FormatResourceStringStripCodeAndKeyword("PropertyOutputOverridden", "LinkSwitches", "/assemblyresource:b.resx,bar", "/assemblyresource:c.resx,barz") });
+            logger.AssertLogContains(new string[] { ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskStarted, "CreateProperty") });
+            logger.AssertLogContains(new string[] { ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.PropertyOutputOverridden, "LinkSwitches", "/assemblyresource:a.resx,foo", "/assemblyresource:b.resx,bar") });
+            logger.AssertLogContains(new string[] { ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.PropertyOutputOverridden, "LinkSwitches", "/assemblyresource:b.resx,bar", "/assemblyresource:c.resx,barz") });
         }
 
         /// <summary>
@@ -345,9 +345,9 @@ namespace Microsoft.Build.UnitTests.BackEnd
                 logger.AssertLogDoesntContain("end:");
 
                 logger.AssertLogContains(new string[] { "final:[/assemblyresource:c.resx,barz]" });
-                logger.AssertLogDoesntContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskStarted", "CreateProperty"));
-                logger.AssertLogContains(new string[] { ResourceUtilities.FormatResourceStringStripCodeAndKeyword("PropertyOutputOverridden", "LinkSwitches", "/assemblyresource:a.resx,foo", "/assemblyresource:b.resx,bar") });
-                logger.AssertLogContains(new string[] { ResourceUtilities.FormatResourceStringStripCodeAndKeyword("PropertyOutputOverridden", "LinkSwitches", "/assemblyresource:b.resx,bar", "/assemblyresource:c.resx,barz") });
+                logger.AssertLogDoesntContain(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskStarted, "CreateProperty"));
+                logger.AssertLogContains(new string[] { ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.PropertyOutputOverridden, "LinkSwitches", "/assemblyresource:a.resx,foo", "/assemblyresource:b.resx,bar") });
+                logger.AssertLogContains(new string[] { ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.PropertyOutputOverridden, "LinkSwitches", "/assemblyresource:b.resx,bar", "/assemblyresource:c.resx,barz") });
             }
             finally
             {

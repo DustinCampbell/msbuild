@@ -26,15 +26,22 @@
     <ApplyNgenOptimization Condition="'$(TargetFramework)' == '$(FullFrameworkTFM)'">full</ApplyNgenOptimization>
     <EnablePackageValidation>true</EnablePackageValidation>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-
     <!-- Do not generate a warning that our 'stable' package should not have a prerelease dependency. -->
     <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Framework\Microsoft.Build.Framework.csproj" />
+    <ProjectReference Include="..\ResourceStringGenerator\Microsoft.Build.ResourceStringGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" PrivateAssets="all" />
     <PackageReference Include="System.Configuration.ConfigurationManager" />
+    <Using Include="Microsoft.Build.Framework.FrameworkErrorUtilities" Alias="FrameworkErrorUtilities" />
+    <Using Include="Microsoft.Build.Framework.Resources.FrameworkStrings" Alias="FrameworkStrings" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceString" Alias="ResourceString" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceStringUtilities" Alias="ResourceStringUtilities" />
+    <Using Include="Microsoft.Build.Resources.BuildStrings" Alias="BuildStrings" />
 
     <PackageReference Include="System.Reflection.MetadataLoadContext" />
 
@@ -654,9 +661,6 @@
     <Compile Include="..\Shared\BuildEventFileInfo.cs">
       <Link>SharedUtilities\BuildEventFileInfo.cs</Link>
     </Compile>
-    <Compile Include="..\Shared\ErrorUtilities.cs">
-      <Link>Errors\ErrorUtilities.cs</Link>
-    </Compile>
     <Compile Include="..\Shared\InprocTrackingNativeMethods.cs">
       <Link>InprocTrackingNativeMethods.cs</Link>
     </Compile>
@@ -665,9 +669,6 @@
     </Compile>
     <Compile Include="..\Shared\ProjectFileErrorUtilities.cs">
       <Link>Errors\ProjectFileErrorUtilities.cs</Link>
-    </Compile>
-    <Compile Include="..\Shared\ResourceUtilities.cs">
-      <Link>SharedUtilities\ResourceUtilities.cs</Link>
     </Compile>
     <Compile Include="..\Shared\Tracing.cs" />
     <Compile Include="..\Shared\TypeLoader.cs">
@@ -685,6 +686,12 @@
       <LogicalName>$(AssemblyName).Strings.resources</LogicalName>
       <SubType>Designer</SubType>
     </EmbeddedResource>
+    <!-- Keep catalog identity and resource access explicit so neither is inferred from the RESX file name. -->
+    <AdditionalFiles Include="Resources\Strings.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.Resources"
+                     ResourceCatalogClass="BuildStrings"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.PrimaryResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
   </ItemGroup>
 
   <PropertyGroup>

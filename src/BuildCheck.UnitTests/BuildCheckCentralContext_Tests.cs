@@ -9,6 +9,7 @@ using Microsoft.Build.BuildCheck.Infrastructure;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
+using Microsoft.Build.Framework.Resources;
 using Microsoft.Build.Shared;
 using Shouldly;
 using Xunit;
@@ -243,7 +244,7 @@ public class BuildCheckCentralContext_Tests
     {
         public BuildEventContext BuildEventContext => BuildEventContext.Invalid;
 
-        public void DispatchAsComment(MessageImportance importance, string messageResourceName, params object?[] messageArgs) { }
+        public void DispatchAsComment(MessageImportance importance, ResourceString messageResource, params object?[] messageArgs) { }
 
         public void DispatchBuildEvent(BuildEventArgs buildEvent) { }
 

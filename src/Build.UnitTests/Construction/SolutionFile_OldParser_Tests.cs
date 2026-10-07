@@ -664,7 +664,7 @@ namespace Microsoft.Build.UnitTests.Construction
                         EndProject";
                 SolutionFile solution = ParseSolutionHelper(solutionFileContents);
                 string errCode;
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errCode, out _, "ProjectFileIsMalformed",
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out errCode, out _, BuildStrings.ProjectFileIsMalformed,
                    "someproj.etp", String.Empty);
                 foreach (string warningString in solution.SolutionParserWarnings)
                 {
@@ -699,7 +699,7 @@ namespace Microsoft.Build.UnitTests.Construction
             File.Delete(proj1Path);
             SolutionFile solution = ParseSolutionHelper(solutionFileContents);
             string errCode;
-            ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errCode, out _, "ProjectFileCouldNotBeLoaded",
+            ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out errCode, out _, BuildStrings.ProjectFileCouldNotBeLoaded,
                   "someproj.etp", String.Empty);
             solution.SolutionParserErrorCodes[0].ShouldContain(errCode);
         }
@@ -858,7 +858,7 @@ namespace Microsoft.Build.UnitTests.Construction
 
             SolutionFile solution = ParseSolutionHelper(solutionFileContents);
             solution.SolutionParserComments.ShouldHaveSingleItem(); // "Expected the solution parser to contain one comment"
-            solution.SolutionParserComments[0].ShouldBe(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnrecognizedSolutionComment", "999"));
+            solution.SolutionParserComments[0].ShouldBe(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.UnrecognizedSolutionComment, "999"));
         }
 
         [Fact]
@@ -2298,7 +2298,7 @@ EndGlobal
             Action parseSolution = () => ParseSolutionHelper(solutionFileContents);
             var exception = Should.Throw<InvalidProjectFileException>(parseSolution);
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, "SolutionParseDuplicateProject", "Project.Named.With.Dots");
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, BuildStrings.SolutionParseDuplicateProject, "Project.Named.With.Dots");
 
             exception.Message.ShouldStartWith(message);
         }
@@ -2342,7 +2342,7 @@ EndGlobal
             Action parseSolution = () => ParseSolutionHelper(solutionFileContents);
             var exception = Should.Throw<InvalidProjectFileException>(parseSolution);
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, "SolutionParseDuplicateProject", "Project_Named_With_Dots");
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, BuildStrings.SolutionParseDuplicateProject, "Project_Named_With_Dots");
 
             exception.Message.ShouldStartWith(message);
         }
@@ -2388,7 +2388,7 @@ EndGlobal
             Action parseSolution = () => ParseSolutionHelper(solutionFileContents);
             var exception = Should.Throw<InvalidProjectFileException>(parseSolution);
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, "SolutionParseDuplicateProject", "Project_Named_With_Dots");
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out _, out _, BuildStrings.SolutionParseDuplicateProject, "Project_Named_With_Dots");
 
             exception.Message.ShouldStartWith(message);
         }

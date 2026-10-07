@@ -165,13 +165,13 @@ namespace Microsoft.Build.Logging
                 // Check if the class was not found in the assembly
                 if (forwardingLogger == null)
                 {
-                    InternalLoggerException.Throw(null, null, "LoggerNotFoundError", true, this.Name);
+                    InternalLoggerException.Throw(null, null, BuildStrings.LoggerNotFoundError, true, this.Name);
                 }
             }
             catch (Exception e) // Wrap other exceptions in a more meaningful exception. LoggerException and InternalLoggerException are already meaningful.
             when (!(e is LoggerException /* Polite logger Failure*/ || e is InternalLoggerException /* LoggerClass not found*/ || ExceptionHandling.IsCriticalException(e)))
             {
-                InternalLoggerException.Throw(e, null, "LoggerCreationError", true, Name);
+                InternalLoggerException.Throw(e, null, BuildStrings.LoggerCreationError, true, Name);
             }
 
             return forwardingLogger;
@@ -226,7 +226,7 @@ namespace Microsoft.Build.Logging
             catch (InvalidCastException e)
             {
                 // The logger when trying to load has hit an invalid case, this is usually due to the framework assembly being a different version
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("LoggerInstantiationFailureErrorInvalidCast", _loggerClassName, _loggerAssembly.AssemblyLocation, e.Message);
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.LoggerInstantiationFailureErrorInvalidCast, _loggerClassName, _loggerAssembly.AssemblyLocation, e.Message);
                 throw new LoggerException(message, e.InnerException);
             }
             catch (TargetInvocationException e) when (e.InnerException is LoggerException le)

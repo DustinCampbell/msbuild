@@ -60,7 +60,7 @@ namespace Microsoft.Build.Engine.UnitTests
             }
 
             successTestTask.ShouldBeTrue();
-            testTaskOutput.ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("AssemblyLoad_Warning", "ExampleTaskX64"));
+            testTaskOutput.ShouldContain(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.AssemblyLoad_Warning, "ExampleTaskX64"));
         }
     }
 }

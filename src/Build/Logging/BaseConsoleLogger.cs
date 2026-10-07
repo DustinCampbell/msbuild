@@ -24,7 +24,7 @@ using WriteHandler = Microsoft.Build.Logging.WriteHandler;
 namespace Microsoft.Build.BackEnd.Logging
 {
     #region Delegates
-    internal delegate void WriteLinePrettyFromResourceDelegate(int indentLevel, string resourceString, params object[] args);
+    internal delegate void WriteLinePrettyFromResourceDelegate(int indentLevel, ResourceString resource, params object[] args);
     #endregion
 
     internal abstract class BaseConsoleLogger : INodeLogger, IStringBuilderProvider
@@ -146,20 +146,20 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <summary>
         /// Writes a line from a resource string to the log, using the default indentation.
         /// </summary>
-        /// <param name="resourceString"></param>
+        /// <param name="resource"></param>
         /// <param name="args"></param>
-        internal void WriteLinePrettyFromResource(string resourceString, params object[] args)
+        internal void WriteLinePrettyFromResource(ResourceString resource, params object[] args)
         {
             int indentLevel = IsVerbosityAtLeast(LoggerVerbosity.Normal) ? this.currentIndentLevel : 0;
-            WriteLinePrettyFromResource(indentLevel, resourceString, args);
+            WriteLinePrettyFromResource(indentLevel, resource, args);
         }
 
         /// <summary>
         /// Writes a line from a resource string to the log, using the specified indentation.
         /// </summary>
-        internal void WriteLinePrettyFromResource(int indentLevel, string resourceString, params object[] args)
+        internal void WriteLinePrettyFromResource(int indentLevel, ResourceString resource, params object[] args)
         {
-            string formattedString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(resourceString, args);
+            string formattedString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(resource, args);
             WriteLinePretty(indentLevel, formattedString);
         }
 
@@ -184,7 +184,7 @@ namespace Microsoft.Build.BackEnd.Logging
             {
                 setColor(ConsoleColor.Green);
                 WriteNewLine();
-                WriteLinePrettyFromResource("ProjectEvaluationPerformanceSummary");
+                WriteLinePrettyFromResource(BuildStrings.ProjectEvaluationPerformanceSummary);
 
                 setColor(ConsoleColor.Gray);
                 DisplayCounters(projectEvaluationPerformanceCounters);
@@ -195,7 +195,7 @@ namespace Microsoft.Build.BackEnd.Logging
             {
                 setColor(ConsoleColor.Green);
                 WriteNewLine();
-                WriteLinePrettyFromResource("ProjectPerformanceSummary");
+                WriteLinePrettyFromResource(BuildStrings.ProjectPerformanceSummary);
 
                 setColor(ConsoleColor.Gray);
                 DisplayCounters(projectPerformanceCounters);
@@ -206,7 +206,7 @@ namespace Microsoft.Build.BackEnd.Logging
             {
                 setColor(ConsoleColor.Green);
                 WriteNewLine();
-                WriteLinePrettyFromResource("TargetPerformanceSummary");
+                WriteLinePrettyFromResource(BuildStrings.TargetPerformanceSummary);
 
                 setColor(ConsoleColor.Gray);
                 DisplayCounters(targetPerformanceCounters);
@@ -217,7 +217,7 @@ namespace Microsoft.Build.BackEnd.Logging
             {
                 setColor(ConsoleColor.Green);
                 WriteNewLine();
-                WriteLinePrettyFromResource("TaskPerformanceSummary");
+                WriteLinePrettyFromResource(BuildStrings.TaskPerformanceSummary);
 
                 setColor(ConsoleColor.Gray);
                 DisplayCounters(taskPerformanceCounters);
@@ -509,7 +509,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteLinePretty(currentIndentLevel, ResourceUtilities.GetResourceString("EnvironmentHeader"));
+            WriteLinePretty(currentIndentLevel, ResourceStringUtilities.GetResourceString(BuildStrings.EnvironmentHeader));
 
             if (environment != null)
             {
@@ -530,7 +530,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteLinePretty(currentIndentLevel, ResourceUtilities.GetResourceString("PropertyListHeader"));
+            WriteLinePretty(currentIndentLevel, ResourceStringUtilities.GetResourceString(BuildStrings.PropertyListHeader));
             // Write each property name and its value, one per line
             foreach (DictionaryEntry prop in list)
             {
@@ -557,7 +557,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteLinePretty(currentIndentLevel, ResourceUtilities.GetResourceString("ItemListHeader"));
+            WriteLinePretty(currentIndentLevel, ResourceStringUtilities.GetResourceString(BuildStrings.ItemListHeader));
 
             // Write each item type and its itemspec, one per line
             foreach (DictionaryEntry entry in itemTypes)
@@ -717,7 +717,7 @@ namespace Microsoft.Build.BackEnd.Logging
             if (reentrantCounterExists)
             {
                 // display an explanation of why there was no value displayed
-                WriteLinePrettyFromResource(4, "PerformanceReentrancyNote");
+                WriteLinePrettyFromResource(4, BuildStrings.PerformanceReentrancyNote);
             }
         }
 
@@ -818,7 +818,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
                 writeLinePrettyFromResource(
                     2,
-                    "PerformanceLine",
+                    BuildStrings.PerformanceLine,
                     time,
                     $"{scopeName,-40}", // pad to 40 align left
                     $"{calls,3}");
@@ -1036,7 +1036,7 @@ namespace Microsoft.Build.BackEnd.Logging
             {
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidVerbosity", parameterValue);
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, BuildStrings.InvalidVerbosity, parameterValue);
                 throw new LoggerException(message, null, errorCode, helpKeyword);
             }
         }

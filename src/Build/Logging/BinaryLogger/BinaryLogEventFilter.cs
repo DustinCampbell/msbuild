@@ -6,7 +6,6 @@ using System;
 using System.Runtime.Serialization;
 #endif
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging;
 
@@ -72,7 +71,7 @@ public sealed class BinaryLogEventFilterException : Exception
     /// </summary>
     /// <param name="innerException">The exception thrown by the filter callback.</param>
     public BinaryLogEventFilterException(Exception innerException)
-        : base(ResourceUtilities.GetResourceString("Binlog_EventFilterThrew"), innerException)
+        : base(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_EventFilterThrew), innerException)
     {
     }
 
@@ -88,8 +87,8 @@ public sealed class BinaryLogEventFilterException : Exception
         long recordNumber,
         int fileFormatVersion,
         Exception innerException)
-        : base(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-            "Binlog_EventFilterThrewWithContext",
+        : base(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+            BuildStrings.Binlog_EventFilterThrewWithContext,
             recordNumber,
             metadata.RecordKind,
             fileFormatVersion,

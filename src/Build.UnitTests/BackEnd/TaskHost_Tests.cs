@@ -531,7 +531,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.Null(_customLogger.LastError); // "Expected no error Event"
             Assert.True(_customLogger.LastWarning is BuildWarningEventArgs); // "Expected Warning Event"
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ExpectedEventToBeSerializable", e.GetType().Name);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(FrameworkStrings.ExpectedEventToBeSerializable, e.GetType().Name);
             Assert.Contains(message, _customLogger.LastWarning.Message); // "Expected line to contain NotSerializable message but it did not"
         }
 
@@ -550,7 +550,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.True(_customLogger.LastWarning is BuildWarningEventArgs); // "Expected Warning Event"
             Assert.Equal(1, _customLogger.NumberOfWarning); // "Expected there to be only one warning"
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ExpectedEventToBeSerializable", e.GetType().Name);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(FrameworkStrings.ExpectedEventToBeSerializable, e.GetType().Name);
             Assert.Contains(message, _customLogger.LastWarning.Message); // "Expected line to contain NotSerializable message but it did not"
         }
 
@@ -570,7 +570,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             Assert.True(_customLogger.LastWarning is BuildWarningEventArgs); // "Expected Warning Event"
             Assert.Equal(1, _customLogger.NumberOfWarning); // "Expected there to be only one warning"
 
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ExpectedEventToBeSerializable", e.GetType().Name);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(FrameworkStrings.ExpectedEventToBeSerializable, e.GetType().Name);
             Assert.Contains(message, _customLogger.LastWarning.Message); // "Expected line to contain NotSerializable message but it did not"
         }
 
@@ -733,7 +733,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             // Make sure our custom logger received the actual custom event and not some fake.
             Assert.True(_customLogger.LastWarning is BuildWarningEventArgs); // "Expected Warning Event"
             Assert.Equal(1, _customLogger.NumberOfWarning); // "Expected there to be only one warning"
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ExpectedEventToBeSerializable", e.GetType().Name);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(FrameworkStrings.ExpectedEventToBeSerializable, e.GetType().Name);
             Assert.Contains(message, _customLogger.LastWarning.Message); // "Expected line to contain NotSerializable message but it did not"
         }
         #endregion

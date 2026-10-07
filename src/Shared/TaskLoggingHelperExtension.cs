@@ -6,8 +6,6 @@ using System.Globalization;
 using System.Resources;
 
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
-
 #if !BUILD_ENGINE
 using Microsoft.Build.Utilities;
 #endif
@@ -91,8 +89,14 @@ namespace Microsoft.Build.Tasks
         public override string FormatResourceString(string resourceName, params object[] args)
         {
             ArgumentNullException.ThrowIfNull(resourceName);
-            ErrorUtilities.VerifyThrowInvalidOperation(TaskResources != null, "TaskResourcesNotRegistered", TaskName);
-            ErrorUtilities.VerifyThrowInvalidOperation(TaskSharedResources != null, "TaskResourcesNotRegistered", TaskName);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                TaskResources != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.TaskResourcesNotRegistered,
+                TaskName);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                TaskSharedResources != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.TaskResourcesNotRegistered,
+                TaskName);
 
             // NOTE: the ResourceManager.GetString() method is thread-safe
             string resourceString = TaskResources.GetString(resourceName, CultureInfo.CurrentUICulture);
@@ -102,7 +106,11 @@ namespace Microsoft.Build.Tasks
                 resourceString = TaskSharedResources.GetString(resourceName, CultureInfo.CurrentUICulture);
             }
 
-            ErrorUtilities.VerifyThrowArgument(resourceString != null, "TaskResourceNotFound", resourceName, TaskName);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgument(
+                resourceString != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.TaskResourceNotFound,
+                resourceName,
+                TaskName);
 
             return FormatString(resourceString, args);
         }

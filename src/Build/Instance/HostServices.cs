@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -124,11 +123,11 @@ namespace Microsoft.Build.Execution
 
             /* Unmerged change from project 'Microsoft.Build (netcoreapp2.1)'
             Before:
-                        ErrorUtilities.VerifyThrowArgumentNull(projectFile, "projectFile");
-                        ErrorUtilities.VerifyThrowArgumentNull(targetName, "targetName");
+                        FrameworkErrorUtilities.VerifyThrowArgumentNull(projectFile, "projectFile");
+                        FrameworkErrorUtilities.VerifyThrowArgumentNull(targetName, "targetName");
             After:
-                        ErrorUtilities.VerifyThrowArgumentNull(projectFile, "projectFile));
-                        ErrorUtilities.VerifyThrowArgumentNull(targetName, "targetName));
+                        FrameworkErrorUtilities.VerifyThrowArgumentNull(projectFile, "projectFile));
+                        FrameworkErrorUtilities.VerifyThrowArgumentNull(targetName, "targetName));
             */
             ArgumentNullException.ThrowIfNull(projectFile);
             ArgumentNullException.ThrowIfNull(targetName);
@@ -138,7 +137,7 @@ namespace Microsoft.Build.Execution
             // out of proc, in which case it will become in-proc after this call completes.  See GetNodeAffinity.
             bool isExplicit;
             bool hasExplicitOutOfProcAffinity = (GetNodeAffinity(projectFile, out isExplicit) == NodeAffinity.OutOfProc) && isExplicit;
-            ErrorUtilities.VerifyThrowInvalidOperation(!hasExplicitOutOfProcAffinity || hostObject == null, "InvalidHostObjectOnOutOfProcProject");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(!hasExplicitOutOfProcAffinity || hostObject == null, BuildStrings.InvalidHostObjectOnOutOfProcProject);
             _hostObjectMap ??= new Dictionary<string, HostObjects>(StringComparer.OrdinalIgnoreCase);
 
             HostObjects hostObjects = GetHostObjectsFromMapByKeyOrCreateNew(projectFile);
@@ -213,7 +212,7 @@ namespace Microsoft.Build.Execution
             {
                 if (HasInProcessHostObject(projectFile))
                 {
-                    ErrorUtilities.VerifyThrowInvalidOperation(nodeAffinity == NodeAffinity.InProc, "InvalidAffinityForProjectWithHostObject");
+                    FrameworkErrorUtilities.VerifyThrowInvalidOperation(nodeAffinity == NodeAffinity.InProc, BuildStrings.InvalidAffinityForProjectWithHostObject);
                 }
 
                 if (_projectAffinities == null)

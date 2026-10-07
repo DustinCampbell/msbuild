@@ -446,7 +446,7 @@ namespace Microsoft.Build.Evaluation
                             // Reserved or invalid property name
                             try
                             {
-                                ProjectErrorUtilities.ThrowInvalidProject(ElementLocation.Create("MSBUILD"), "InvalidProperty", ex.Message);
+                                ProjectErrorUtilities.ThrowInvalidProject(ElementLocation.Create("MSBUILD"), BuildStrings.InvalidProperty, ex.Message);
                             }
                             catch (InvalidProjectFileException ex2)
                             {
@@ -636,7 +636,7 @@ namespace Microsoft.Build.Evaluation
                     if (!_toolsets.ContainsKey(value))
                     {
                         string toolsVersionList = Utilities.CreateToolsVersionListString(Toolsets);
-                        ErrorUtilities.ThrowInvalidOperation("UnrecognizedToolsVersion", value, toolsVersionList);
+                        FrameworkErrorUtilities.ThrowInvalidOperation(FrameworkStrings.UnrecognizedToolsVersion, value, toolsVersionList);
                     }
 
                     if (_defaultToolsVersion != value)
@@ -1504,7 +1504,7 @@ namespace Microsoft.Build.Evaluation
             using (_locker.EnterDisposableWriteLock())
             {
                 bool existed = _loadedProjects.RemoveProject(project);
-                ErrorUtilities.VerifyThrowInvalidOperation(existed, "OM_ProjectWasNotLoaded");
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(existed, BuildStrings.OM_ProjectWasNotLoaded);
 
                 project.Zombify();
 
@@ -1546,7 +1546,7 @@ namespace Microsoft.Build.Evaluation
                 Project conflictingProject = GetLoadedProjects(false, null).FirstOrDefault(project => project.UsesProjectRootElement(projectRootElement));
                 if (conflictingProject != null)
                 {
-                    ErrorUtilities.ThrowInvalidOperation("OM_ProjectXmlCannotBeUnloadedDueToLoadedProjects", projectRootElement.FullPath, conflictingProject.FullPath);
+                    FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_ProjectXmlCannotBeUnloadedDueToLoadedProjects, projectRootElement.FullPath, conflictingProject.FullPath);
                 }
 
                 ProjectRootElementCache.DiscardAnyWeakReference(projectRootElement);
@@ -1733,7 +1733,7 @@ namespace Microsoft.Build.Evaluation
                 if (oldFullPathIfAny != null)
                 {
                     bool existed = _loadedProjects.RemoveProject(oldFullPathIfAny, project);
-                    ErrorUtilities.VerifyThrowInvalidOperation(existed, "OM_ProjectWasNotLoaded");
+                    FrameworkErrorUtilities.VerifyThrowInvalidOperation(existed, BuildStrings.OM_ProjectWasNotLoaded);
                 }
 
                 // The only time this ever gets called with a null full path is when the project is first being
@@ -1764,7 +1764,7 @@ namespace Microsoft.Build.Evaluation
         {
             using (_locker.EnterDisposableWriteLock())
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(project.ProjectCollection, this), "OM_IncorrectObjectAssociation", "Project", "ProjectCollection");
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(project.ProjectCollection, this), BuildStrings.OM_IncorrectObjectAssociation, "Project", "ProjectCollection");
 
                 if (project.FullPath == null)
                 {
@@ -2109,7 +2109,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         if (HasEquivalentGlobalPropertiesAndToolsVersion(existing, project.GlobalProperties, project.ToolsVersion))
                         {
-                            ErrorUtilities.ThrowInvalidOperation("OM_MatchingProjectAlreadyInCollection", existing.FullPath);
+                            FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_MatchingProjectAlreadyInCollection, existing.FullPath);
                         }
                     }
 

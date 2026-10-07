@@ -1597,7 +1597,7 @@ namespace Microsoft.Build.UnitTests
         {
             var projectFile = @"C:\foo\bar.proj";
             var args = new ProjectEvaluationStartedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationStarted"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationStarted),
                 projectFile)
             {
                 BuildEventContext = BuildEventContext.Invalid,
@@ -1614,7 +1614,7 @@ namespace Microsoft.Build.UnitTests
         {
             var projectFile = @"C:\foo\bar.proj";
             var args = new ProjectEvaluationFinishedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationFinished"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationFinished),
                 projectFile)
             {
                 BuildEventContext = BuildEventContext.Invalid,
@@ -1684,7 +1684,7 @@ namespace Microsoft.Build.UnitTests
                 "TestItemSpec",
                 new Dictionary<string, string> { { "MetadataKey", "MetadataValue" }, { "Another", "Data" } });
             var args = new ProjectEvaluationFinishedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationFinished"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationFinished),
                 @"C:\foo\bar.proj")
             {
                 BuildEventContext = BuildEventContext.Invalid,
@@ -1775,7 +1775,7 @@ namespace Microsoft.Build.UnitTests
         {
             var projectFile = @"C:\foo\bar.proj";
             var args = new ProjectEvaluationFinishedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationFinished"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationFinished),
                 projectFile)
             {
                 BuildEventContext = BuildEventContext.Invalid,

@@ -577,7 +577,12 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Given a search path and a task pattern get a list of task or override task files.
         /// </summary>
-        internal static string[] GetTaskFiles(DirectoryGetFiles getFiles, LoggingContext loggingContext, string taskPattern, string searchPath, string taskFileWarning)
+        internal static string[] GetTaskFiles(
+            DirectoryGetFiles getFiles,
+            LoggingContext loggingContext,
+            string taskPattern,
+            string searchPath,
+            ResourceString taskFileWarning)
         {
             string[] defaultTasksFiles = null;
 
@@ -772,8 +777,18 @@ namespace Microsoft.Build.Evaluation
 
                             InitializeProperties(loggingContext);
 
-                            string[] defaultTasksFiles = GetTaskFiles(_getFiles, loggingContext, DefaultTasksFilePattern, ToolsPath, "DefaultTasksFileLoadFailureWarning");
-                            LoadAndRegisterFromTasksFile(defaultTasksFiles, loggingContext, "DefaultTasksFileFailure", projectRootElementCache, _defaultTaskRegistry);
+                            string[] defaultTasksFiles = GetTaskFiles(
+                                _getFiles,
+                                loggingContext,
+                                DefaultTasksFilePattern,
+                                ToolsPath,
+                                BuildStrings.DefaultTasksFileLoadFailureWarning);
+                            LoadAndRegisterFromTasksFile(
+                                defaultTasksFiles,
+                                loggingContext,
+                                BuildStrings.DefaultTasksFileFailure,
+                                projectRootElementCache,
+                                _defaultTaskRegistry);
                         }
                         finally
                         {
@@ -863,7 +878,7 @@ namespace Microsoft.Build.Evaluation
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                loggingContext.LogError(new BuildEventFileInfo(/* this warning truly does not involve any file it is just gathering properties */String.Empty), "TasksPropertyBagError", e.Message);
+                loggingContext.LogError(new BuildEventFileInfo(/* this warning truly does not involve any file it is just gathering properties */String.Empty), BuildStrings.TasksPropertyBagError, e.Message);
             }
         }
 
@@ -903,24 +918,34 @@ namespace Microsoft.Build.Evaluation
 
                                     if (!overrideDirectoryExists)
                                     {
-                                        string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", _overrideTasksPath);
-                                        loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
+                                        string rootedPathMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTaskNotRootedPath, _overrideTasksPath);
+                                        loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), BuildStrings.OverrideTasksFileFailure, rootedPathMessage);
                                     }
                                 }
                             }
                             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
                             {
-                                string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskProblemWithPath", _overrideTasksPath, e.Message);
-                                loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), "OverrideTasksFileFailure", rootedPathMessage);
+                                string rootedPathMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTaskProblemWithPath, _overrideTasksPath, e.Message);
+                                loggingContext.LogWarning(null, new BuildEventFileInfo(String.Empty /* this warning truly does not involve any file*/), BuildStrings.OverrideTasksFileFailure, rootedPathMessage);
                             }
 
                             if (overrideDirectoryExists)
                             {
                                 InitializeProperties(loggingContext);
-                                string[] overrideTasksFiles = GetTaskFiles(_getFiles, loggingContext, OverrideTasksFilePattern, _overrideTasksPath, "OverrideTasksFileLoadFailureWarning");
+                                string[] overrideTasksFiles = GetTaskFiles(
+                                    _getFiles,
+                                    loggingContext,
+                                    OverrideTasksFilePattern,
+                                    _overrideTasksPath,
+                                    BuildStrings.OverrideTasksFileLoadFailureWarning);
 
                                 // Load and register any override tasks
-                                LoadAndRegisterFromTasksFile(overrideTasksFiles, loggingContext, "OverrideTasksFileFailure", projectRootElementCache, _overrideTaskRegistry);
+                                LoadAndRegisterFromTasksFile(
+                                    overrideTasksFiles,
+                                    loggingContext,
+                                    BuildStrings.OverrideTasksFileFailure,
+                                    projectRootElementCache,
+                                    _overrideTaskRegistry);
                             }
                         }
                         finally
@@ -935,7 +960,12 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         /// Do the actual loading of the tasks or override tasks file and register the tasks in the task registry
         /// </summary>
-        private void LoadAndRegisterFromTasksFile(string[] defaultTaskFiles, LoggingContext loggingContext, string taskFileError, ProjectRootElementCacheBase projectRootElementCache, TaskRegistry registry)
+        private void LoadAndRegisterFromTasksFile(
+            string[] defaultTaskFiles,
+            LoggingContext loggingContext,
+            ResourceString taskFileError,
+            ProjectRootElementCacheBase projectRootElementCache,
+            TaskRegistry registry)
         {
             string currentTasksFile = null;
             try
@@ -987,7 +1017,7 @@ namespace Microsoft.Build.Evaluation
                         {
                             ProjectErrorUtilities.ThrowInvalidProject(
                                 elementXml.Location,
-                                "UnrecognizedElement",
+                                BuildStrings.UnrecognizedElement,
                                 elementXml.XmlElement.Name);
                         }
 

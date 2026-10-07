@@ -49,7 +49,7 @@ namespace Microsoft.Build.Construction
         public override string Condition
         {
             get => null;
-            set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
+            set => FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_CannotGetSetCondition);
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is UsingTaskParameterGroupElement, "OM_CannotAcceptParent");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(parent is UsingTaskParameterGroupElement, BuildStrings.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

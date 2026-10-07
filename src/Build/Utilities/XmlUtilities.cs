@@ -75,7 +75,7 @@ namespace Microsoft.Build.Shared
 
             if (-1 != firstInvalidCharLocation)
             {
-                ErrorUtilities.ThrowArgument("OM_NameInvalid", name, name[firstInvalidCharLocation]);
+                FrameworkErrorUtilities.ThrowArgument(BuildStrings.OM_NameInvalid, name, name[firstInvalidCharLocation]);
             }
         }
 
@@ -93,7 +93,7 @@ namespace Microsoft.Build.Shared
 
             if (-1 != firstInvalidCharLocation)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(location, "NameInvalid", name, name[firstInvalidCharLocation]);
+                ProjectErrorUtilities.ThrowInvalidProject(location, FrameworkStrings.NameInvalid, name, name[firstInvalidCharLocation]);
             }
         }
 
@@ -111,7 +111,7 @@ namespace Microsoft.Build.Shared
 
             if (-1 != firstInvalidCharLocation)
             {
-                ProjectErrorUtilities.ThrowInvalidProject(element.Location, "NameInvalid", name, name[firstInvalidCharLocation]);
+                ProjectErrorUtilities.ThrowInvalidProject(element.Location, FrameworkStrings.NameInvalid, name, name[firstInvalidCharLocation]);
             }
         }
 

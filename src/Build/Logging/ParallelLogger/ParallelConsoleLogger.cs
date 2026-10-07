@@ -229,7 +229,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
             if (IsVerbosityAtLeast(LoggerVerbosity.Normal))
             {
-                WriteLinePrettyFromResource("BuildStartedWithTime", e.Timestamp);
+                WriteLinePrettyFromResource(BuildStrings.BuildStartedWithTime, e.Timestamp);
             }
 
             if (Traits.LogAllEnvironmentVariables)
@@ -256,7 +256,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 if (IsVerbosityAtLeast(LoggerVerbosity.Normal))
                 {
                     // Print out all of the deferred messages
-                    WriteLinePrettyFromResource("DeferredMessages");
+                    WriteLinePrettyFromResource(BuildStrings.DeferredMessages);
                     foreach (List<BuildMessageEventArgs> messageList in _deferredMessages.Values)
                     {
                         foreach (BuildMessageEventArgs message in messageList)
@@ -312,14 +312,14 @@ namespace Microsoft.Build.BackEnd.Logging
                 {
                     setColor(ConsoleColor.Yellow);
                 }
-                WriteLinePrettyFromResource(2, "WarningCount", warningCount);
+                WriteLinePrettyFromResource(2, BuildStrings.WarningCount, warningCount);
                 resetColor();
 
                 if (errorCount > 0)
                 {
                     setColor(ConsoleColor.Red);
                 }
-                WriteLinePrettyFromResource(2, "ErrorCount", errorCount);
+                WriteLinePrettyFromResource(2, BuildStrings.ErrorCount, errorCount);
                 resetColor();
             }
 
@@ -349,7 +349,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 string timeElapsed = LogFormatter.FormatTimeSpan(e.Timestamp - buildStarted);
 
                 WriteNewLine();
-                WriteLinePrettyFromResource("TimeElapsed", timeElapsed);
+                WriteLinePrettyFromResource(BuildStrings.TimeElapsed, timeElapsed);
             }
 
             ResetConsoleLoggerState();
@@ -501,7 +501,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     // If no targetName was specified then do not show the target where the error occurred
                     if (!string.IsNullOrEmpty(valuePair.Key.TargetName))
                     {
-                        WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ErrorWarningInTarget", valuePair.Key.TargetName), false);
+                        WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ErrorWarningInTarget, valuePair.Key.TargetName), false);
                     }
                     previousTarget = valuePair.Key.TargetName;
                 }
@@ -529,7 +529,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="e">event arguments</param>
         public override void ProjectStartedHandler(object sender, ProjectStartedEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
             ArgumentNullException.ThrowIfNull(e.ParentProjectBuildEventContext, "ParentProjectBuildEventContext");
 
             // Add the project to the BuildManager so we can use the start information later in the build process
@@ -669,7 +669,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="e">event arguments</param>
         public override void ProjectFinishedHandler(object sender, ProjectFinishedEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
 
             // Get the project started event so we can use its information to properly display a project finished event
             ProjectStartedEventMinimumFields startedEvent = _buildEventManager.GetProjectStartedEvent(e.BuildEventContext);
@@ -704,22 +704,22 @@ namespace Microsoft.Build.BackEnd.Logging
                         {
                             if (e.Succeeded)
                             {
-                                WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectFinishedPrefixWithDefaultTargetsMultiProc", projectName), true);
+                                WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectFinishedPrefixWithDefaultTargetsMultiProc, projectName), true);
                             }
                             else
                             {
-                                WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectFinishedPrefixWithDefaultTargetsMultiProcFailed", projectName), true);
+                                WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectFinishedPrefixWithDefaultTargetsMultiProcFailed, projectName), true);
                             }
                         }
                         else
                         {
                             if (e.Succeeded)
                             {
-                                WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectFinishedPrefixWithTargetNamesMultiProc", projectName, targets), true);
+                                WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectFinishedPrefixWithTargetNamesMultiProc, projectName, targets), true);
                             }
                             else
                             {
-                                WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectFinishedPrefixWithTargetNamesMultiProcFailed", projectName, targets), true);
+                                WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectFinishedPrefixWithTargetNamesMultiProcFailed, projectName, targets), true);
                             }
                         }
 
@@ -773,7 +773,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteMessageAligned(ResourceUtilities.GetResourceString("PropertyListHeader"), true);
+            WriteMessageAligned(ResourceStringUtilities.GetResourceString(BuildStrings.PropertyListHeader), true);
             // Write each property name and its value, one per line
             foreach (DictionaryEntry prop in list)
             {
@@ -791,7 +791,7 @@ namespace Microsoft.Build.BackEnd.Logging
         {
             // Write the banner
             setColor(ConsoleColor.Green);
-            WriteMessageAligned(ResourceUtilities.GetResourceString("EnvironmentHeader"), true);
+            WriteMessageAligned(ResourceStringUtilities.GetResourceString(BuildStrings.EnvironmentHeader), true);
 
             if (environment != null)
             {
@@ -860,7 +860,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="e">event arguments</param>
         public override void TargetStartedHandler(object sender, TargetStartedEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
 
             // Add the target started information to the buildEventManager so its information can be used
             // later in the build
@@ -881,7 +881,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="e">event arguments</param>
         public override void TargetFinishedHandler(object sender, TargetFinishedEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
 
             if (this.showPerfSummary)
             {
@@ -907,10 +907,10 @@ namespace Microsoft.Build.BackEnd.Logging
 
                         if (targetOutputs != null)
                         {
-                            WriteMessageAligned(ResourceUtilities.GetResourceString("TargetOutputItemsHeader"), false);
+                            WriteMessageAligned(ResourceStringUtilities.GetResourceString(BuildStrings.TargetOutputItemsHeader), false);
                             foreach (ITaskItem item in targetOutputs)
                             {
-                                WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetOutputItem", item.ItemSpec), false);
+                                WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetOutputItem, item.ItemSpec), false);
 
                                 IDictionary metadata = item.CloneCustomMetadata();
 
@@ -929,7 +929,7 @@ namespace Microsoft.Build.BackEnd.Logging
                         setColor(ConsoleColor.Cyan);
                         if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || _showEventId)
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetMessageWithId", e.Message, e.BuildEventContext.TargetId), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetMessageWithId, e.Message, e.BuildEventContext.TargetId), true);
                         }
                         else
                         {
@@ -953,7 +953,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="e">event arguments</param>
         public override void TaskStartedHandler(object sender, TaskStartedEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
 
             // if verbosity is detailed or diagnostic
 
@@ -967,7 +967,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     setColor(ConsoleColor.DarkCyan);
                     if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || _showEventId)
                     {
-                        WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskMessageWithId", e.Message, e.BuildEventContext.TaskId), prefixAlreadyWritten);
+                        WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskMessageWithId, e.Message, e.BuildEventContext.TaskId), prefixAlreadyWritten);
                     }
                     else
                     {
@@ -994,7 +994,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// <param name="e">event arguments</param>
         public override void TaskFinishedHandler(object sender, TaskFinishedEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
             if (this.showPerfSummary)
             {
                 // Stop the task performance counter which was started in the task started event
@@ -1011,7 +1011,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     setColor(ConsoleColor.DarkCyan);
                     if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || _showEventId)
                     {
-                        WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskMessageWithId", e.Message, e.BuildEventContext.TaskId), prefixAlreadyWritten);
+                        WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskMessageWithId, e.Message, e.BuildEventContext.TaskId), prefixAlreadyWritten);
                     }
                     else
                     {
@@ -1044,7 +1044,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         public override void ErrorHandler(object sender, BuildErrorEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
             // Keep track of the number of error events raised
             errorCount++;
 
@@ -1090,7 +1090,7 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         public override void WarningHandler(object sender, BuildWarningEventArgs e)
         {
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
             // Keep track of the number of warning events raised during the build
             warningCount++;
 
@@ -1147,7 +1147,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 return;
             }
 
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
             bool print = false;
             bool lightenText = false;
 
@@ -1271,7 +1271,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
             if (e is EnvironmentVariableReadEventArgs environmentPropertyReadEventArgs)
             {
-                nonNullMessage = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("EnvironmentDerivedPropertyRead", environmentPropertyReadEventArgs.EnvironmentVariableName, e.Message);
+                nonNullMessage = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.EnvironmentDerivedPropertyRead, environmentPropertyReadEventArgs.EnvironmentVariableName, e.Message);
             }
 
             // Include file information if present.
@@ -1304,7 +1304,7 @@ namespace Microsoft.Build.BackEnd.Logging
             if ((IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || _showEventId) && e.BuildEventContext.TaskId != BuildEventContext.InvalidTaskId)
             {
                 bool prefixAlreadyWritten = WriteTargetMessagePrefix(e, e.BuildEventContext, e.Timestamp);
-                WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskMessageWithId", nonNullMessage, e.BuildEventContext.TaskId), prefixAlreadyWritten, prefixAdjustment);
+                WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskMessageWithId, nonNullMessage, e.BuildEventContext.TaskId), prefixAlreadyWritten, prefixAdjustment);
             }
             else
             {
@@ -1361,7 +1361,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     setColor(ConsoleColor.Cyan);
                     if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || _showEventId)
                     {
-                        WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetMessageWithId", targetName, e.BuildEventContext.TargetId), prefixAlreadyWritten);
+                        WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetMessageWithId, targetName, e.BuildEventContext.TargetId), prefixAlreadyWritten);
                     }
                     else
                     {
@@ -1456,7 +1456,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 string targetName;
                 if (IsVerbosityAtLeast(LoggerVerbosity.Diagnostic) || _showEventId)
                 {
-                    targetName = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetMessageWithId", targetStartedEvent.TargetName, targetStartedEvent.ProjectBuildEventContext.TargetId);
+                    targetName = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetMessageWithId, targetStartedEvent.TargetName, targetStartedEvent.ProjectBuildEventContext.TargetId);
                 }
                 else
                 {
@@ -1469,28 +1469,28 @@ namespace Microsoft.Build.BackEnd.Logging
                     {
                         if (!String.IsNullOrEmpty(targetStartedEvent.ParentTarget))
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetStartedProjectDepends", targetName, currentProjectFile, targetStartedEvent.ParentTarget), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetStartedProjectDepends, targetName, currentProjectFile, targetStartedEvent.ParentTarget), true);
                         }
                         else
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetStartedProjectEntry", targetName, currentProjectFile), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetStartedProjectEntry, targetName, currentProjectFile), true);
                         }
                     }
                     else
                     {
                         if (!String.IsNullOrEmpty(targetStartedEvent.ParentTarget))
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetStartedFileProjectDepends", targetName, targetStartedEvent.TargetFile, currentProjectFile, targetStartedEvent.ParentTarget), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetStartedFileProjectDepends, targetName, targetStartedEvent.TargetFile, currentProjectFile, targetStartedEvent.ParentTarget), true);
                         }
                         else
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetStartedFileProjectEntry", targetName, targetStartedEvent.TargetFile, currentProjectFile), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetStartedFileProjectEntry, targetName, targetStartedEvent.TargetFile, currentProjectFile), true);
                         }
                     }
                 }
                 else
                 {
-                    WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetStartedFileProjectEntry", targetName, targetStartedEvent.TargetFile, currentProjectFile), true);
+                    WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetStartedFileProjectEntry, targetName, targetStartedEvent.TargetFile, currentProjectFile), true);
                 }
 
                 resetColor();
@@ -1539,11 +1539,11 @@ namespace Microsoft.Build.BackEnd.Logging
                         string message;
                         if (string.IsNullOrEmpty(targetNames))
                         {
-                            message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStartedTopLevelProjectWithDefaultTargets", current, currentProjectNodeId);
+                            message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectStartedTopLevelProjectWithDefaultTargets, current, currentProjectNodeId);
                         }
                         else
                         {
-                            message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStartedTopLevelProjectWithTargetNames", current, currentProjectNodeId, targetNames);
+                            message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectStartedTopLevelProjectWithTargetNames, current, currentProjectNodeId, targetNames);
                         }
 
                         WriteMessageAligned(message, true);
@@ -1555,11 +1555,11 @@ namespace Microsoft.Build.BackEnd.Logging
                         setColor(ConsoleColor.Cyan);
                         if (string.IsNullOrEmpty(targetNames))
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStartedWithDefaultTargetsMultiProc", previous, parentStartedEvent.FullProjectKey, current, projectStartedEvent.FullProjectKey, currentProjectNodeId), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectStartedWithDefaultTargetsMultiProc, previous, parentStartedEvent.FullProjectKey, current, projectStartedEvent.FullProjectKey, currentProjectNodeId), true);
                         }
                         else
                         {
-                            WriteMessageAligned(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStartedWithTargetsMultiProc", previous, parentStartedEvent.FullProjectKey, current, projectStartedEvent.FullProjectKey, currentProjectNodeId, targetNames), true);
+                            WriteMessageAligned(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectStartedWithTargetsMultiProc, previous, parentStartedEvent.FullProjectKey, current, projectStartedEvent.FullProjectKey, currentProjectNodeId, targetNames), true);
                         }
                         resetColor();
                     }
@@ -1581,7 +1581,7 @@ namespace Microsoft.Build.BackEnd.Logging
                 return;
             }
 
-            ArgumentNullException.ThrowIfNull(e.BuildEventContext, "BuildEventContext");
+            ArgumentNullException.ThrowIfNull(e.BuildEventContext, nameof(e.BuildEventContext));
             if (IsVerbosityAtLeast(LoggerVerbosity.Detailed))
             {
                 // ignore custom events with null messages -- some other
@@ -1624,11 +1624,11 @@ namespace Microsoft.Build.BackEnd.Logging
 
             if (!isMessagePrefix || IsVerbosityAtLeast(LoggerVerbosity.Detailed))
             {
-                prefixString = $"{ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildEventContext", context, key)}>";
+                prefixString = $"{ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.BuildEventContext, context, key)}>";
             }
             else
             {
-                prefixString = $"{ResourceUtilities.FormatResourceStringStripCodeAndKeyword("BuildEventContext", context, string.Empty)} ";
+                prefixString = $"{ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.BuildEventContext, context, string.Empty)} ";
             }
 
             WritePretty(prefixString);
@@ -1767,7 +1767,7 @@ namespace Microsoft.Build.BackEnd.Logging
 
                 WriteLinePrettyFromResource(
                     MessageIndentLevel,
-                    "PerformanceLine",
+                    BuildStrings.PerformanceLine,
                     time,
                     $"{scopeName,-40}", // pad to 40 align left
                     $"{calls,3}");

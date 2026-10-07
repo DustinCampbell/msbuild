@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.IO;
 #endif
 using Microsoft.Build.Collections;
-using Microsoft.Build.Shared;
 
 #if FEATURE_MSIOREDIST
 using Path = Microsoft.IO.Path;
@@ -20,8 +19,8 @@ internal sealed class ExecCliBuildCheck : Check
     public static CheckRule SupportedRule = new CheckRule(
         "BC0302",
         "ExecCliBuild",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0302_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0302_MessageFmt")!,
+        ResourceStringUtilities.GetResourceString(BuildStrings.BuildCheck_BC0302_Title)!,
+        ResourceStringUtilities.GetResourceString(BuildStrings.BuildCheck_BC0302_MessageFmt)!,
         new CheckConfiguration() { Severity = CheckResultSeverity.Warning });
 
     private const string ExecTaskName = "Exec";

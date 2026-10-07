@@ -356,7 +356,7 @@ namespace Microsoft.Build.BackEnd
             {
                 _taskLoggingContext.LogComment(
                     MessageImportance.Low,
-                    "ExecutingTaskInTaskHost",
+                    BuildStrings.ExecutingTaskInTaskHost,
                     _taskType.Type.Name,
                     _taskType.Assembly.AssemblyLocation,
                     _taskHostParameters.Runtime,
@@ -442,7 +442,7 @@ namespace Microsoft.Build.BackEnd
                     {
                         _taskLoggingContext.LogComment(
                             MessageImportance.Low,
-                            "TaskHostDetails",
+                            BuildStrings.TaskHostDetails,
                             _taskType.Type.Name,
                             hostProcessId,
                             Process.GetCurrentProcess().Id,
@@ -603,7 +603,7 @@ namespace Microsoft.Build.BackEnd
             ParameterConversionRequirement requirement = _parameterConversionRequirement.Value;
             _taskLoggingContext.LogError(
                 new BuildEventFileInfo(requirement.Location),
-                "UnsupportedTaskParameterTypeError",
+                BuildStrings.UnsupportedTaskParameterTypeError,
                 requirement.ParameterType,
                 requirement.ParameterName,
                 requirement.TaskName);
@@ -694,22 +694,27 @@ namespace Microsoft.Build.BackEnd
             // from the inproc case insofar as ContinueOnError is now respected, instead of forcing a stop here.
             if (taskHostTaskComplete.TaskResult == TaskCompleteType.CrashedDuringInitialization)
             {
-                string exceptionMessage;
+                ResourceString exceptionMessage;
                 string[] exceptionMessageArgs;
 
                 if (taskHostTaskComplete.TaskExceptionMessage != null)
                 {
-                    exceptionMessage = taskHostTaskComplete.TaskExceptionMessage;
+                    exceptionMessage = BuildStrings.GetResourceString(taskHostTaskComplete.TaskExceptionMessage);
                     exceptionMessageArgs = taskHostTaskComplete.TaskExceptionMessageArgs;
                 }
                 else
                 {
+                    exceptionMessage = BuildStrings.FatalTaskError;
                     exceptionMessageArgs = [_taskType.Type.Name,
                         _taskType.Type.Assembly.Location,
                         string.Empty];
                 }
 
-                _taskLoggingContext.LogFatalError(taskHostTaskComplete.TaskException, new BuildEventFileInfo(_taskLocation), taskHostTaskComplete.TaskExceptionMessage, taskHostTaskComplete.TaskExceptionMessageArgs);
+                _taskLoggingContext.LogFatalError(
+                    taskHostTaskComplete.TaskException,
+                    new BuildEventFileInfo(_taskLocation),
+                    exceptionMessage,
+                    exceptionMessageArgs);
             }
 
             // Set the output parameters for later
@@ -733,7 +738,7 @@ namespace Microsoft.Build.BackEnd
                 // nothing much else to say.
                 _taskExecutionSucceeded = false;
 
-                _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), "TaskHostExitedPrematurely", (nodeShutdown.Exception == null) ? String.Empty : nodeShutdown.Exception.ToString());
+                _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), BuildStrings.TaskHostExitedPrematurely, (nodeShutdown.Exception == null) ? String.Empty : nodeShutdown.Exception.ToString());
             }
         }
 
@@ -912,13 +917,13 @@ namespace Microsoft.Build.BackEnd
 
             if (e == null)
             {
-                _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), "TaskHostAcquireFailed", _taskType.Type.Name, runtime, architecture, msbuildLocation);
+                _taskLoggingContext.LogError(new BuildEventFileInfo(_taskLocation), BuildStrings.TaskHostAcquireFailed, _taskType.Type.Name, runtime, architecture, msbuildLocation);
             }
             else
             {
                 _taskLoggingContext.LogError(
                     new BuildEventFileInfo(_taskLocation),
-                    "TaskHostNodeFailedToLaunch",
+                    BuildStrings.TaskHostNodeFailedToLaunch,
                     _taskType.Type.Name,
                     runtime,
                     architecture,

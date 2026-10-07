@@ -10,6 +10,7 @@ using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Experimental.BuildCheck.Infrastructure;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
+using Microsoft.Build.Framework.Resources;
 using Microsoft.Build.Logging;
 using Microsoft.Build.Shared;
 using InvalidProjectFileException = Microsoft.Build.Exceptions.InvalidProjectFileException;
@@ -331,11 +332,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// </summary>
         /// <param name="buildEventContext">The context</param>
         /// <param name="importance">The importance</param>
-        /// <param name="messageResourceName">The resource for the message</param>
+        /// <param name="messageResource">The resource for the message</param>
         /// <param name="messageArgs">The args for the message</param>
-        public void LogComment(BuildEventContext buildEventContext, MessageImportance importance, string messageResourceName, params object[] messageArgs)
+        public void LogComment(BuildEventContext buildEventContext, MessageImportance importance, ResourceString messageResource, params object[] messageArgs)
         {
-            _writer(messageResourceName);
+            _writer(messageResource.Resolve().OriginalText);
             foreach (object o in messageArgs)
             {
                 _writer((string)o);
@@ -377,11 +378,11 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// </summary>
         /// <param name="buildEventContext">The event context</param>
         /// <param name="file">The file from which the error is logged</param>
-        /// <param name="messageResourceName">The message resource</param>
+        /// <param name="messageResource">The message resource</param>
         /// <param name="messageArgs">The message args</param>
-        public void LogError(BuildEventContext buildEventContext, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        public void LogError(BuildEventContext buildEventContext, BuildEventFileInfo file, ResourceString messageResource, params object[] messageArgs)
         {
-            _writer(messageResourceName);
+            _writer(messageResource.Resolve().OriginalText);
             foreach (object o in messageArgs)
             {
                 _writer((string)o);
@@ -392,13 +393,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Logs an error with a subcategory
         /// </summary>
         /// <param name="buildEventContext">The build event context</param>
-        /// <param name="subcategoryResourceName">The subcategory resource</param>
+        /// <param name="subcategoryResource">The subcategory resource</param>
         /// <param name="file">The file</param>
-        /// <param name="messageResourceName">The message resource</param>
+        /// <param name="messageResource">The message resource</param>
         /// <param name="messageArgs">The message args</param>
-        public void LogError(BuildEventContext buildEventContext, string subcategoryResourceName, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        public void LogError(
+            BuildEventContext buildEventContext,
+            ResourceString subcategoryResource,
+            BuildEventFileInfo file,
+            ResourceString messageResource,
+            params object[] messageArgs)
         {
-            _writer(messageResourceName);
+            _writer(messageResource.Resolve().OriginalText);
             foreach (object o in messageArgs)
             {
                 _writer((string)o);
@@ -409,12 +415,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Logs a text error
         /// </summary>
         /// <param name="buildEventContext">The event context</param>
-        /// <param name="subcategoryResourceName">The subcategory resource</param>
+        /// <param name="subcategory">The subcategory text</param>
         /// <param name="errorCode">The error code</param>
         /// <param name="helpKeyword">A help keyword</param>
         /// <param name="file">The file</param>
         /// <param name="message">The message</param>
-        public void LogErrorFromText(BuildEventContext buildEventContext, string subcategoryResourceName, string errorCode, string helpKeyword, BuildEventFileInfo file, string message)
+        public void LogErrorFromText(BuildEventContext buildEventContext, string subcategory, string errorCode, string helpKeyword, BuildEventFileInfo file, string message)
         {
             _writer(message);
         }
@@ -456,9 +462,14 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// <param name="buildEventContext">The build context</param>
         /// <param name="exception">The exception</param>
         /// <param name="file">The file</param>
-        /// <param name="messageResourceName">The message resource</param>
+        /// <param name="messageResource">The message resource</param>
         /// <param name="messageArgs">The message args</param>
-        public void LogFatalError(BuildEventContext buildEventContext, Exception exception, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        public void LogFatalError(
+            BuildEventContext buildEventContext,
+            Exception exception,
+            BuildEventFileInfo file,
+            ResourceString messageResource,
+            params object[] messageArgs)
         {
         }
 
@@ -477,13 +488,18 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Logs a warning
         /// </summary>
         /// <param name="buildEventContext">The event context</param>
-        /// <param name="subcategoryResourceName">The subcategory resource</param>
+        /// <param name="subcategoryResource">The subcategory resource</param>
         /// <param name="file">The file</param>
-        /// <param name="messageResourceName">The message resource</param>
+        /// <param name="messageResource">The message resource</param>
         /// <param name="messageArgs">The message args</param>
-        public void LogWarning(BuildEventContext buildEventContext, string subcategoryResourceName, BuildEventFileInfo file, string messageResourceName, params object[] messageArgs)
+        public void LogWarning(
+            BuildEventContext buildEventContext,
+            ResourceString subcategoryResource,
+            BuildEventFileInfo file,
+            ResourceString messageResource,
+            params object[] messageArgs)
         {
-            _writer(messageResourceName);
+            _writer(messageResource.Resolve().OriginalText);
             foreach (object o in messageArgs)
             {
                 _writer((string)o);
@@ -494,12 +510,12 @@ namespace Microsoft.Build.UnitTests.BackEnd
         /// Logs a text warning
         /// </summary>
         /// <param name="buildEventContext">The build context</param>
-        /// <param name="subcategoryResourceName">The subcategory resource</param>
+        /// <param name="subcategory">The subcategory text</param>
         /// <param name="warningCode">The warning code</param>
         /// <param name="helpKeyword">A help keyword</param>
         /// <param name="file">The file</param>
         /// <param name="message">The message</param>
-        public void LogWarningFromText(BuildEventContext buildEventContext, string subcategoryResourceName, string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
+        public void LogWarningFromText(BuildEventContext buildEventContext, string subcategory, string warningCode, string helpKeyword, BuildEventFileInfo file, string message)
         {
             _writer(message);
         }

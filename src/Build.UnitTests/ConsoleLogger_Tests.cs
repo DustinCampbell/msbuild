@@ -392,7 +392,7 @@ namespace Microsoft.Build.UnitTests
 
                 ObjectModelHelpers.BuildTempProjectFileWithTargets(tempProjectPath, null, null, logger);
 
-                string targetStartedMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetStartedProjectEntry", "YYY", tempProjectPath);
+                string targetStartedMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetStartedProjectEntry, "YYY", tempProjectPath);
 
                 sc.ToString().ShouldContain(targetStartedMessage);
             }
@@ -612,7 +612,7 @@ namespace Microsoft.Build.UnitTests
 
             if (loggerVerbosity == LoggerVerbosity.Diagnostic)
             {
-                message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskMessageWithId", "my 1337 message", be.BuildEventContext.TaskId);
+                message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskMessageWithId, "my 1337 message", be.BuildEventContext.TaskId);
             }
 
             if (shouldPrint)
@@ -1578,8 +1578,8 @@ namespace Microsoft.Build.UnitTests
             // error and warning string for 1 error and 1 warning
             // errorString = 1 Error(s)
             // warningString = 1 Warning(s)
-            string errorString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ErrorCount", 1);
-            string warningString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("WarningCount", 1);
+            string errorString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ErrorCount, 1);
+            string warningString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.WarningCount, 1);
 
             // Create a ConsoleLogger with Normal verbosity
             ConsoleLogger L = new ConsoleLogger(LoggerVerbosity.Normal,
@@ -1644,8 +1644,8 @@ namespace Microsoft.Build.UnitTests
 
             // errorString = 0 Error(s)
             // warningString = 0 Warning(s)
-            errorString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ErrorCount", 0);
-            warningString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("WarningCount", 0);
+            errorString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ErrorCount, 0);
+            warningString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.WarningCount, 0);
 
             // Verify that the log has correct error and warning string
             actualLog.ShouldContain(errorString);
@@ -1666,8 +1666,8 @@ namespace Microsoft.Build.UnitTests
             // error and warning string for 1 error and 1 warning
             // errorString = 1 Error(s)
             // warningString = 1 Warning(s)
-            string errorString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ErrorCount", 1);
-            string warningString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("WarningCount", 1);
+            string errorString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ErrorCount, 1);
+            string warningString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.WarningCount, 1);
 
             // Create a ConsoleLogger with Normal verbosity
             ConsoleLogger L = new ConsoleLogger(LoggerVerbosity.Normal, sc.Write, sc.SetColor, sc.ResetColor);
@@ -1728,9 +1728,9 @@ namespace Microsoft.Build.UnitTests
             actualLog.ShouldNotContain("<yellow>");
 
             // errorString = 0 Error(s)
-            errorString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ErrorCount", 0);
+            errorString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ErrorCount, 0);
             // warningString = 0 Warning(s)
-            warningString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("WarningCount", 0);
+            warningString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.WarningCount, 0);
 
             // Verify that the log has correct error and warning string
             actualLog.ShouldContain(errorString);
@@ -1752,11 +1752,11 @@ namespace Microsoft.Build.UnitTests
             L.Parameters = "Performancesummary";
             L.Initialize(es);
             // prjPerfString = Project Performance Summary:
-            string prjPerfString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectPerformanceSummary");
+            string prjPerfString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectPerformanceSummary);
             // targetPerfString = Target Performance Summary:
-            string targetPerfString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TargetPerformanceSummary");
+            string targetPerfString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TargetPerformanceSummary);
             // taskPerfString = Task Performance Summary:
-            string taskPerfString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("TaskPerformanceSummary");
+            string taskPerfString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.TaskPerformanceSummary);
 
             // BuildStarted Event
             es.Consume(new BuildStartedEventArgs("bs", null));
@@ -1880,7 +1880,7 @@ namespace Microsoft.Build.UnitTests
             es.Consume(messsage1);
             es.Consume(new BuildFinishedEventArgs("bf", null, true));
             string actualLog = sc.ToString();
-            actualLog.ShouldContain(ResourceUtilities.GetResourceString("DeferredMessages"));
+            actualLog.ShouldContain(ResourceStringUtilities.GetResourceString(BuildStrings.DeferredMessages));
 
             es = new EventSourceSink();
             sc = new SimulatedConsole();
@@ -1894,7 +1894,7 @@ namespace Microsoft.Build.UnitTests
             es.Consume(messsage2);
             es.Consume(new BuildFinishedEventArgs("bf", null, true));
             actualLog = sc.ToString();
-            actualLog.ShouldContain(ResourceUtilities.GetResourceString("DeferredMessages"));
+            actualLog.ShouldContain(ResourceStringUtilities.GetResourceString(BuildStrings.DeferredMessages));
 
             es = new EventSourceSink();
             sc = new SimulatedConsole();
@@ -1950,7 +1950,7 @@ namespace Microsoft.Build.UnitTests
                 messsage1.BuildEventContext = context;
                 es.Consume(messsage1);
                 string actualLog = sc.ToString();
-                string resourceString = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ProjectStartedTopLevelProjectWithTargetNames", "None", 1, "Build");
+                string resourceString = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ProjectStartedTopLevelProjectWithTargetNames, "None", 1, "Build");
                 actualLog.ShouldContain(resourceString);
             }
         }

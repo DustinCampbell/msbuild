@@ -26,21 +26,21 @@ internal readonly struct CheckLoggingContext(ILoggingService loggingService, Bui
         => loggingService
             .LogBuildEvent(buildEvent);
 
-    public void DispatchAsComment(MessageImportance importance, string messageResourceName, params object?[] messageArgs)
+    public void DispatchAsComment(MessageImportance importance, ResourceString messageResource, params object?[] messageArgs)
         => loggingService
-            .LogComment(eventContext, importance, messageResourceName, messageArgs);
+            .LogComment(eventContext, importance, messageResource, messageArgs);
 
     public void DispatchAsCommentFromText(MessageImportance importance, string message)
         => loggingService
             .LogCommentFromText(eventContext, importance, message);
 
-    public void DispatchAsErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsErrorFromText(string? subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
         => loggingService
-            .LogErrorFromText(eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            .LogErrorFromText(eventContext, subcategory, errorCode, helpKeyword, file, message);
 
-    public void DispatchAsWarningFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsWarningFromText(string? subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
         => loggingService
-            .LogWarningFromText(eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+            .LogWarningFromText(eventContext, subcategory, errorCode, helpKeyword, file, message);
 
     public void DispatchFailedAcquisitionTelemetry(string assemblyName, Exception exception)
     {

@@ -5,7 +5,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging
 {
@@ -27,7 +26,7 @@ namespace Microsoft.Build.Logging
 
             if (!stream.CanRead)
             {
-                throw new InvalidOperationException(ResourceUtilities.GetResourceString("Binlog_StreamUtils_MustBeReadable"));
+                throw new InvalidOperationException(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_StreamUtils_MustBeReadable));
             }
 
             return new TransparentReadStream(stream);
@@ -42,7 +41,7 @@ namespace Microsoft.Build.Logging
 
             if (!stream.CanRead)
             {
-                throw new InvalidOperationException(ResourceUtilities.GetResourceString("Binlog_StreamUtils_MustBeReadable"));
+                throw new InvalidOperationException(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_StreamUtils_MustBeReadable));
             }
 
             return new TransparentReadStream(stream);
@@ -157,7 +156,7 @@ namespace Microsoft.Build.Logging
         {
             if (origin != SeekOrigin.Current)
             {
-                throw new NotSupportedException(ResourceUtilities.GetResourceString("Binlog_StreamUtils_SeekNonOrigin"));
+                throw new NotSupportedException(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_StreamUtils_SeekNonOrigin));
             }
 
             this.SkipBytes(offset);
@@ -167,12 +166,12 @@ namespace Microsoft.Build.Logging
 
         public override void SetLength(long value)
         {
-            throw new NotSupportedException(ResourceUtilities.GetResourceString("Binlog_StreamUtils_SetLengthUnsupported"));
+            throw new NotSupportedException(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_StreamUtils_SetLengthUnsupported));
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotSupportedException(ResourceUtilities.GetResourceString("Binlog_StreamUtils_WriteUnsupported"));
+            throw new NotSupportedException(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_StreamUtils_WriteUnsupported));
         }
 
         public override void Close() => _stream.Close();

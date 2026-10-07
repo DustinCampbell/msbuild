@@ -259,7 +259,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(projectCollection);
             ProjectCollection = projectCollection;
             var defaultImplementation = new ProjectImpl(this, xml, globalProperties, toolsVersion, subToolsetVersion, loadSettings);
@@ -353,7 +353,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(xmlReader);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(projectCollection);
             ProjectCollection = projectCollection;
             var defaultImplementation = new ProjectImpl(this, xmlReader, globalProperties, toolsVersion, subToolsetVersion, loadSettings, evaluationContext);
@@ -449,7 +449,7 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext evaluationContext, IDirectoryCacheFactory directoryCacheFactory, bool interactive)
         {
             ArgumentNullException.ThrowIfNull(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(projectCollection);
 
             ProjectCollection = projectCollection;
@@ -550,7 +550,7 @@ namespace Microsoft.Build.Evaluation
 
             if (options.EvaluationStage != ProjectEvaluationStage.Full)
             {
-                ErrorUtilities.ThrowArgument("OM_PartialEvaluationNotSupportedForProject", options.EvaluationStage);
+                FrameworkErrorUtilities.ThrowArgument(BuildStrings.OM_PartialEvaluationNotSupportedForProject, options.EvaluationStage);
             }
         }
 
@@ -1697,7 +1697,7 @@ namespace Microsoft.Build.Evaluation
                 return false;
             }
 
-            ErrorUtilities.VerifyThrowInvalidOperation(!ThrowInsteadOfSplittingItemElement, "OM_CannotSplitItemElementWhenSplittingIsDisabled", itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(!ThrowInsteadOfSplittingItemElement, BuildStrings.OM_CannotSplitItemElementWhenSplittingIsDisabled, itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
 
             var relevantItems = new List<ProjectItem>();
 
@@ -1829,7 +1829,7 @@ namespace Microsoft.Build.Evaluation
         internal void VerifyThrowInvalidOperationNotImported(ProjectRootElement otherXml)
         {
             Assumed.NotNull(otherXml);
-            ErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(Xml, otherXml), "OM_CannotModifyEvaluatedObjectInImportedFile", otherXml.Location.File);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(Xml, otherXml), BuildStrings.OM_CannotModifyEvaluatedObjectInImportedFile, otherXml.Location.File);
         }
 
         /// <summary>
@@ -1903,7 +1903,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, ProjectRootElement xml, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings)
             {
                 ArgumentNullException.ThrowIfNull(xml);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Xml = xml;
@@ -1927,7 +1927,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, XmlReader xmlReader, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings, EvaluationContext evaluationContext)
             {
                 ArgumentNullException.ThrowIfNull(xmlReader);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Owner = owner;
@@ -1962,7 +1962,7 @@ namespace Microsoft.Build.Evaluation
             public ProjectImpl(Project owner, string projectFile, IDictionary<string, string> globalProperties, string toolsVersion, string subToolsetVersion, ProjectLoadSettings loadSettings, EvaluationContext evaluationContext)
             {
                 ArgumentNullException.ThrowIfNull(projectFile);
-                ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+                FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
                 ArgumentNullException.ThrowIfNull(owner);
 
                 Owner = owner;
@@ -2267,7 +2267,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     if (!(_data.ShouldEvaluateForDesignTime && _data.CanEvaluateElementsWithFalseConditions))
                     {
-                        ErrorUtilities.ThrowInvalidOperation("OM_NotEvaluatedBecauseShouldEvaluateForDesignTimeIsFalse", nameof(ItemsIgnoringCondition));
+                        FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_NotEvaluatedBecauseShouldEvaluateForDesignTimeIsFalse, nameof(ItemsIgnoringCondition));
                     }
 
                     return new ReadOnlyCollection<ProjectItem>(_data.ItemsIgnoringCondition);
@@ -2309,7 +2309,7 @@ namespace Microsoft.Build.Evaluation
             {
                 get
                 {
-                    ErrorUtilities.VerifyThrowInvalidOperation((_loadSettings & ProjectLoadSettings.RecordDuplicateButNotCircularImports) != 0, "OM_MustSetRecordDuplicateInputs");
+                    FrameworkErrorUtilities.VerifyThrowInvalidOperation((_loadSettings & ProjectLoadSettings.RecordDuplicateButNotCircularImports) != 0, BuildStrings.OM_MustSetRecordDuplicateInputs);
 
                     var imports = new List<ResolvedImport>(_data.ImportClosureWithDuplicates.Count - 1 /* outer project */);
 
@@ -2809,8 +2809,8 @@ namespace Microsoft.Build.Evaluation
 
                 ProjectProperty property = _data.Properties[name];
 
-                ErrorUtilities.VerifyThrowInvalidOperation(property?.IsReservedProperty != true, "OM_ReservedName", name);
-                ErrorUtilities.VerifyThrowInvalidOperation(property?.IsGlobalProperty != true, "OM_GlobalProperty", name);
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(property?.IsReservedProperty != true, BuildStrings.OM_ReservedName, name);
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(property?.IsGlobalProperty != true, BuildStrings.OM_GlobalProperty, name);
 
                 // If there's an existing regular property, we can reuse it, unless it's not attached to its XML any more
                 if (property?.IsEnvironmentProperty == false &&
@@ -3033,9 +3033,9 @@ namespace Microsoft.Build.Evaluation
             public override bool RemoveProperty(ProjectProperty property)
             {
                 ArgumentNullException.ThrowIfNull(property);
-                ErrorUtilities.VerifyThrowInvalidOperation(!property.IsReservedProperty, "OM_ReservedName", property.Name);
-                ErrorUtilities.VerifyThrowInvalidOperation(!property.IsGlobalProperty, "OM_GlobalProperty", property.Name);
-                ErrorUtilities.VerifyThrowArgument(property.Xml.Parent != null, "OM_IncorrectObjectAssociation", "ProjectProperty", "Project");
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(!property.IsReservedProperty, BuildStrings.OM_ReservedName, property.Name);
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(!property.IsGlobalProperty, BuildStrings.OM_GlobalProperty, property.Name);
+                FrameworkErrorUtilities.VerifyThrowArgument(property.Xml.Parent != null, BuildStrings.OM_IncorrectObjectAssociation, "ProjectProperty", "Project");
                 VerifyThrowInvalidOperationNotImported(property.Xml.ContainingProject);
 
                 ProjectElementContainer parent = property.Xml.Parent;
@@ -3095,7 +3095,7 @@ namespace Microsoft.Build.Evaluation
             public override bool RemoveItem(ProjectItem item)
             {
                 ArgumentNullException.ThrowIfNull(item);
-                ErrorUtilities.VerifyThrowArgument(item.Project == Owner, "OM_IncorrectObjectAssociation", "ProjectItem", "Project");
+                FrameworkErrorUtilities.VerifyThrowArgument(item.Project == Owner, BuildStrings.OM_IncorrectObjectAssociation, "ProjectItem", "Project");
 
                 bool result = RemoveItemHelper(item);
 
@@ -3211,7 +3211,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (!IsBuildEnabled)
                 {
-                    LoggingService.LogError(s_buildEventContext, new BuildEventFileInfo(FullPath), "SecurityProjectBuildDisabled");
+                    LoggingService.LogError(s_buildEventContext, new BuildEventFileInfo(FullPath), BuildStrings.SecurityProjectBuildDisabled);
                     if (LoggingService is LoggingService defaultLoggingService)
                     {
                         defaultLoggingService.WaitForLoggingToProcessEvents();
@@ -3276,7 +3276,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                ErrorUtilities.VerifyThrowInvalidOperation(!ThrowInsteadOfSplittingItemElement, "OM_CannotSplitItemElementWhenSplittingIsDisabled", itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(!ThrowInsteadOfSplittingItemElement, BuildStrings.OM_CannotSplitItemElementWhenSplittingIsDisabled, itemElement.Location, $"{nameof(Project)}.{nameof(ThrowInsteadOfSplittingItemElement)}");
 
                 var relevantItems = new List<ProjectItem>();
 
@@ -3463,7 +3463,7 @@ namespace Microsoft.Build.Evaluation
             internal void VerifyThrowInvalidOperationNotImported(ProjectRootElement otherXml)
             {
                 Assumed.NotNull(otherXml);
-                ErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(Xml, otherXml), "OM_CannotModifyEvaluatedObjectInImportedFile", otherXml.Location.File);
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(ReferenceEquals(Xml, otherXml), BuildStrings.OM_CannotModifyEvaluatedObjectInImportedFile, otherXml.Location.File);
             }
 
             /// <summary>
@@ -3523,7 +3523,7 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
 
-                ErrorUtilities.VerifyThrowArgument(item.Project == Owner, "OM_IncorrectObjectAssociation", "ProjectItem", "Project");
+                FrameworkErrorUtilities.VerifyThrowArgument(item.Project == Owner, BuildStrings.OM_IncorrectObjectAssociation, "ProjectItem", "Project");
 
                 VerifyThrowInvalidOperationNotImported(item.Xml.ContainingProject);
 
@@ -4194,7 +4194,11 @@ namespace Microsoft.Build.Evaluation
                 if (Toolset == null)
                 {
                     string toolsVersionList = Utilities.CreateToolsVersionListString(Project.ProjectCollection.Toolsets);
-                    ProjectErrorUtilities.ThrowInvalidProject(toolsVersionLocation, "UnrecognizedToolsVersion", toolsVersionToUse, toolsVersionList);
+                    ProjectErrorUtilities.ThrowInvalidProject(
+                        toolsVersionLocation,
+                        FrameworkStrings.UnrecognizedToolsVersion,
+                        toolsVersionToUse,
+                        toolsVersionList);
                 }
 
                 if (ExplicitSubToolsetVersion != null)

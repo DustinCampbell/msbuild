@@ -92,7 +92,7 @@ namespace Microsoft.Build.Evaluation
                         if (toolset.toolsVersion?.Length == 0)
                         {
                             InvalidToolsetDefinitionException.Throw(
-                                "InvalidToolsetValueInConfigFileValue",
+                                BuildStrings.InvalidToolsetValueInConfigFileValue,
                                 location.LocationString);
                         }
 
@@ -138,7 +138,7 @@ namespace Microsoft.Build.Evaluation
                         // ConfigurationException is obsolete, but we catch it rather than
                         // ConfigurationErrorsException (which is what we throw below) because it is more
                         // general and we don't want to miss catching some other derived exception.
-                        InvalidToolsetDefinitionException.Throw(ex, "ConfigFileReadError", ElementLocation.Create(ex.Source, ex.Line, 0).LocationString, ex.BareMessage);
+                        InvalidToolsetDefinitionException.Throw(ex, BuildStrings.ConfigFileReadError, ElementLocation.Create(ex.Source, ex.Line, 0).LocationString, ex.BareMessage);
                     }
                     finally
                     {
@@ -168,7 +168,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (propertyElement.Name?.Length == 0)
                 {
-                    InvalidToolsetDefinitionException.Throw("InvalidToolsetValueInConfigFileValue", location.LocationString);
+                    InvalidToolsetDefinitionException.Throw(BuildStrings.InvalidToolsetValueInConfigFileValue, location.LocationString);
                 }
 
                 yield return new ToolsetPropertyDefinition(propertyElement.Name, propertyElement.Value, location);

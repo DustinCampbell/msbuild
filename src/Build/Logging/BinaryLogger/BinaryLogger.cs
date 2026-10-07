@@ -206,7 +206,7 @@ namespace Microsoft.Build.Logging
         {
             if (parametersString == null)
             {
-                throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerParameters", ""));
+                throw new LoggerException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.InvalidBinaryLoggerParameters, ""));
             }
 
             var result = new BinaryLoggerParameters();
@@ -218,7 +218,7 @@ namespace Microsoft.Build.Logging
                 {
                     if (result.ExcludedEventKinds.Count != 0)
                     {
-                        throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerEventFilter", parameter));
+                        throw new LoggerException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.InvalidBinaryLoggerEventFilter, parameter));
                     }
 
                     result.ExcludedEventKinds = ParseExcludedEventKinds(parameter);
@@ -242,7 +242,7 @@ namespace Microsoft.Build.Logging
                     continue;
                 }
 
-                throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerParameters", parameter));
+                throw new LoggerException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.InvalidBinaryLoggerParameters, parameter));
             }
 
             return result;
@@ -258,7 +258,7 @@ namespace Microsoft.Build.Logging
                     || !string.Equals(Enum.GetName(typeof(BinaryLogRecordKind), kind), name, StringComparison.OrdinalIgnoreCase)
                     || !CanExclude(kind))
                 {
-                    throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerEventFilter", parameter));
+                    throw new LoggerException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.InvalidBinaryLoggerEventFilter, parameter));
                 }
 
                 excludedKinds.Add(kind);
@@ -266,7 +266,7 @@ namespace Microsoft.Build.Logging
 
             if (excludedKinds.Contains(BinaryLogRecordKind.ProjectEvaluationStarted) != excludedKinds.Contains(BinaryLogRecordKind.ProjectEvaluationFinished))
             {
-                throw new LoggerException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("InvalidBinaryLoggerEventFilter", parameter));
+                throw new LoggerException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.InvalidBinaryLoggerEventFilter, parameter));
             }
 
             return excludedKinds.ToFrozenSet();
@@ -499,7 +499,7 @@ namespace Microsoft.Build.Logging
             {
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidFileLoggerFile", FilePath, e.Message);
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, BuildStrings.InvalidFileLoggerFile, FilePath, e.Message);
                 throw new LoggerException(message, e, errorCode, helpKeyword);
             }
 
@@ -692,10 +692,10 @@ namespace Microsoft.Build.Logging
                     {
                         // Log the error but don't fail the build
                         // Note: We can't use LogMessage here since the stream is already closed
-                        string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                        string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
                             out _,
                             out _,
-                            "ErrorCopyingBinaryLog",
+                            BuildStrings.ErrorCopyingBinaryLog,
                             FilePath,
                             additionalPath,
                             ex.Message);
@@ -845,7 +845,7 @@ namespace Microsoft.Build.Logging
             {
                 string errorCode;
                 string helpKeyword;
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, "InvalidFileLoggerFile", FilePath, e.Message);
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, BuildStrings.InvalidFileLoggerFile, FilePath, e.Message);
                 throw new LoggerException(message, e, errorCode, helpKeyword);
             }
         }

@@ -33,7 +33,7 @@ namespace Microsoft.Build.Evaluation
         // What we found instead of what we were looking for
         private string _unexpectedlyFound = null;
         private ParserOptions _options;
-        private string _errorResource = null;
+        private ResourceString _errorResource = null;
         private static string s_endOfInput = null;
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace Microsoft.Build.Evaluation
             {
                 if (s_endOfInput == null)
                 {
-                    s_endOfInput = ResourceUtilities.GetResourceString("EndOfInputTokenName");
+                    s_endOfInput = ResourceStringUtilities.GetResourceString(BuildStrings.EndOfInputTokenName);
                 }
 
                 return s_endOfInput;
@@ -76,14 +76,14 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <remarks>Intentionally not a property getter to avoid the debugger triggering the Assert dialog</remarks>
         /// <returns></returns>
-        internal string GetErrorResource()
+        internal ResourceString GetErrorResource()
         {
             if (_errorResource == null)
             {
                 // I do not believe this is reachable, but provide a reasonable default.
                 Debug.Assert(false, "What code path did not set an appropriate error resource? Expression: " + _expression);
                 _unexpectedlyFound = EndOfInput;
-                return "UnexpectedCharacterInCondition";
+                return BuildStrings.UnexpectedCharacterInCondition;
             }
             else
             {
@@ -190,7 +190,7 @@ namespace Microsoft.Build.Evaluation
                             {
                                 _errorPosition = start + 1;
                                 _errorState = true;
-                                _errorResource = "ItemListNotAllowedInThisConditional";
+                                _errorResource = BuildStrings.ItemListNotAllowedInThisConditional;
                                 return false;
                             }
                         }
@@ -248,7 +248,7 @@ namespace Microsoft.Build.Evaluation
                         else
                         {
                             _errorPosition = _parsePoint + 2; // expression[parsePoint + 1], counting from 1
-                            _errorResource = "IllFormedEqualsInCondition";
+                            _errorResource = BuildStrings.IllFormedEqualsInCondition;
                             if ((_parsePoint + 1) < _expression.Length)
                             {
                                 // store the char we found instead
@@ -298,7 +298,7 @@ namespace Microsoft.Build.Evaluation
             {
                 _errorState = true;
                 _errorPosition = start + 1;
-                _errorResource = "IllFormedPropertyOpenParenthesisInCondition";
+                _errorResource = BuildStrings.IllFormedPropertyOpenParenthesisInCondition;
                 _unexpectedlyFound = Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture);
                 return null;
             }
@@ -308,7 +308,7 @@ namespace Microsoft.Build.Evaluation
             {
                 _errorState = true;
                 _errorPosition = indexResult;
-                _errorResource = "IllFormedPropertySpaceInCondition";
+                _errorResource = BuildStrings.IllFormedPropertySpaceInCondition;
                 _unexpectedlyFound = Convert.ToString(_expression[indexResult], CultureInfo.InvariantCulture);
                 return null;
             }
@@ -320,7 +320,7 @@ namespace Microsoft.Build.Evaluation
             {
                 _errorState = true;
                 _errorPosition = start + 1;
-                _errorResource = "IllFormedPropertyCloseParenthesisInCondition";
+                _errorResource = BuildStrings.IllFormedPropertyCloseParenthesisInCondition;
                 _unexpectedlyFound = EndOfInput;
                 return null;
             }
@@ -435,7 +435,7 @@ namespace Microsoft.Build.Evaluation
                 // cycle, we're not allowed to add new string resources, so I can't add a new
                 // resource specific to item metadata, so here, we just change the error to
                 // the generic "UnexpectedCharacter".
-                _errorResource = "UnexpectedCharacterInCondition";
+                _errorResource = BuildStrings.UnexpectedCharacterInCondition;
                 return false;
             }
 
@@ -481,7 +481,7 @@ namespace Microsoft.Build.Evaluation
             {
                 _errorPosition = _parsePoint;
                 _errorState = true;
-                _errorResource = "BuiltInMetadataNotAllowedInThisConditional";
+                _errorResource = BuildStrings.BuiltInMetadataNotAllowedInThisConditional;
                 _unexpectedlyFound = expression;
                 return false;
             }
@@ -491,7 +491,7 @@ namespace Microsoft.Build.Evaluation
             {
                 _errorPosition = _parsePoint;
                 _errorState = true;
-                _errorResource = "CustomMetadataNotAllowedInThisConditional";
+                _errorResource = BuildStrings.CustomMetadataNotAllowedInThisConditional;
                 _unexpectedlyFound = expression;
                 return false;
             }
@@ -508,7 +508,7 @@ namespace Microsoft.Build.Evaluation
             {
                 // @ was not followed by (
                 _errorPosition = start + 1;
-                _errorResource = "IllFormedItemListOpenParenthesisInCondition";
+                _errorResource = BuildStrings.IllFormedItemListOpenParenthesisInCondition;
                 // Not useful to set unexpectedlyFound here. The message is going to be detailed enough.
                 _errorState = true;
                 return false;
@@ -544,12 +544,12 @@ namespace Microsoft.Build.Evaluation
                 if (fInReplacement)
                 {
                     // @( ... ' was never followed by a closing quote before the closing parenthesis
-                    _errorResource = "IllFormedItemListQuoteInCondition";
+                    _errorResource = BuildStrings.IllFormedItemListQuoteInCondition;
                 }
                 else
                 {
                     // @( was never followed by a )
-                    _errorResource = "IllFormedItemListCloseParenthesisInCondition";
+                    _errorResource = BuildStrings.IllFormedItemListCloseParenthesisInCondition;
                 }
                 // Not useful to set unexpectedlyFound here. The message is going to be detailed enough.
                 _errorState = true;
@@ -616,7 +616,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         _errorPosition = start + 1;
                         _errorState = true;
-                        _errorResource = "ItemListNotAllowedInThisConditional";
+                        _errorResource = BuildStrings.ItemListNotAllowedInThisConditional;
                         return false;
                     }
 
@@ -645,7 +645,7 @@ namespace Microsoft.Build.Evaluation
                 // Quoted string wasn't closed
                 _errorState = true;
                 _errorPosition = start; // The message is going to say "expected after position n" so don't add 1 here.
-                _errorResource = "IllFormedQuotedStringInCondition";
+                _errorResource = BuildStrings.IllFormedQuotedStringInCondition;
                 // Not useful to set unexpectedlyFound here. By definition it got to the end of the string.
                 return false;
             }
@@ -678,7 +678,7 @@ namespace Microsoft.Build.Evaluation
                 // Something that wasn't a number or a letter, like a newline (%0a)
                 _errorState = true;
                 _errorPosition = start + 1;
-                _errorResource = "UnexpectedCharacterInCondition";
+                _errorResource = BuildStrings.UnexpectedCharacterInCondition;
                 _unexpectedlyFound = Convert.ToString(_expression[_parsePoint], CultureInfo.InvariantCulture);
                 return false;
             }

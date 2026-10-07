@@ -479,12 +479,12 @@ namespace Microsoft.Build.Evaluation
 
             if (!XMakeAttributes.IsValidMSBuildRuntimeValue(runtime))
             {
-                ErrorUtilities.ThrowArgument("InvalidTaskHostFactoryParameter", runtime, "Runtime", XMakeAttributes.MSBuildRuntimeValues.clr2, XMakeAttributes.MSBuildRuntimeValues.clr4, XMakeAttributes.MSBuildRuntimeValues.currentRuntime, XMakeAttributes.MSBuildRuntimeValues.any);
+                FrameworkErrorUtilities.ThrowArgument(BuildStrings.InvalidTaskHostFactoryParameter, runtime, "Runtime", XMakeAttributes.MSBuildRuntimeValues.clr2, XMakeAttributes.MSBuildRuntimeValues.clr4, XMakeAttributes.MSBuildRuntimeValues.currentRuntime, XMakeAttributes.MSBuildRuntimeValues.any);
             }
 
             if (!XMakeAttributes.IsValidMSBuildArchitectureValue(architecture))
             {
-                ErrorUtilities.ThrowArgument("InvalidTaskHostFactoryParameter", architecture, "Architecture", XMakeAttributes.MSBuildArchitectureValues.x86, XMakeAttributes.MSBuildArchitectureValues.x64, XMakeAttributes.MSBuildArchitectureValues.currentArchitecture, XMakeAttributes.MSBuildArchitectureValues.any);
+                FrameworkErrorUtilities.ThrowArgument(BuildStrings.InvalidTaskHostFactoryParameter, architecture, "Architecture", XMakeAttributes.MSBuildArchitectureValues.x86, XMakeAttributes.MSBuildArchitectureValues.x64, XMakeAttributes.MSBuildArchitectureValues.currentArchitecture, XMakeAttributes.MSBuildArchitectureValues.any);
             }
 
             runtime = XMakeAttributes.GetExplicitMSBuildRuntime(runtime);
@@ -767,7 +767,7 @@ namespace Microsoft.Build.Evaluation
                 return true;
             }
 
-            loggingContext.LogComment(MessageImportance.Low, "CustomCheckAssemblyNotExist", pathToAssembly);
+            loggingContext.LogComment(MessageImportance.Low, BuildStrings.CustomCheckAssemblyNotExist, pathToAssembly);
 
             return false;
         }
@@ -838,7 +838,7 @@ namespace Microsoft.Build.Evaluation
                     break;
 #endif
                 default:
-                    ErrorUtilities.ThrowArgument(keyName);
+                    FrameworkErrorUtilities.ThrowArgument(BuildStrings.GetResourceString(keyName));
                     break;
             }
 

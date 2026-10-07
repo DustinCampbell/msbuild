@@ -21,7 +21,6 @@ using LoggerMode = Microsoft.Build.BackEnd.Logging.LoggerMode;
 using LoggingService = Microsoft.Build.BackEnd.Logging.LoggingService;
 using Project = Microsoft.Build.Evaluation.Project;
 using ProjectCollection = Microsoft.Build.Evaluation.ProjectCollection;
-using ResourceUtilities = Microsoft.Build.Shared.ResourceUtilities;
 using Toolset = Microsoft.Build.Evaluation.Toolset;
 using XMakeElements = Microsoft.Build.Shared.XMakeElements;
 
@@ -332,16 +331,29 @@ namespace Microsoft.Build.UnitTests.Construction
             projectXml.DefaultTargets = "Build";
             projectXml.ToolsVersion = ObjectModelHelpers.MSBuildDefaultToolsVersion;
 
-            SolutionProjectGenerator.AddErrorWarningMessageElement(target, XMakeElements.message, true, "SolutionVenusProjectNoClean");
-            SolutionProjectGenerator.AddErrorWarningMessageElement(target, XMakeElements.warning, true, "SolutionParseUnknownProjectType", "proj1.csproj");
-            SolutionProjectGenerator.AddErrorWarningMessageElement(target, XMakeElements.error, true, "SolutionInvalidSolutionConfiguration");
+            SolutionProjectGenerator.AddErrorWarningMessageElement(target, XMakeElements.message, true, BuildStrings.SolutionVenusProjectNoClean);
+            SolutionProjectGenerator.AddErrorWarningMessageElement(
+                target,
+                XMakeElements.warning,
+                true,
+                BuildStrings.SolutionParseUnknownProjectType,
+                "proj1.csproj");
+            SolutionProjectGenerator.AddErrorWarningMessageElement(
+                target,
+                XMakeElements.error,
+                true,
+                BuildStrings.SolutionInvalidSolutionConfiguration);
 
             Project project = new Project(projectXml);
 
             project.Build(logger);
             string code;
             string keyword;
-            string text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out code, out keyword, "SolutionParseUnknownProjectType", "proj1.csproj");
+            string text = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out code,
+                out keyword,
+                BuildStrings.SolutionParseUnknownProjectType,
+                "proj1.csproj");
 
             // check the error event
             Assert.Single(logger.Warnings);
@@ -350,7 +362,10 @@ namespace Microsoft.Build.UnitTests.Construction
             Assert.Equal(text, warning.Message);
             Assert.Equal(code, warning.Code);
             Assert.Equal(keyword, warning.HelpKeyword);
-            text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out code, out keyword, "SolutionInvalidSolutionConfiguration");
+            text = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out code,
+                out keyword,
+                BuildStrings.SolutionInvalidSolutionConfiguration);
 
             // check the warning event
             Assert.Single(logger.Errors);
@@ -359,7 +374,10 @@ namespace Microsoft.Build.UnitTests.Construction
             Assert.Equal(text, error.Message);
             Assert.Equal(code, error.Code);
             Assert.Equal(keyword, error.HelpKeyword);
-            text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out code, out keyword, "SolutionVenusProjectNoClean");
+            text = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out code,
+                out keyword,
+                BuildStrings.SolutionVenusProjectNoClean);
 
             // check the message event
             Assert.Contains(text, logger.FullLog); // "Log should contain the regular message"
@@ -2388,7 +2406,10 @@ EndGlobal
 
 #if FEATURE_ASPNET_COMPILER
                 Version ver = new Version("4.34");
-                string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("AspNetCompiler.TargetingHigherFrameworksDefaultsTo40", solution.ProjectsInOrder[0].ProjectName, ver.ToString());
+                string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    BuildStrings.AspNetCompiler_TargetingHigherFrameworksDefaultsTo40,
+                    solution.ProjectsInOrder[0].ProjectName,
+                    ver.ToString());
                 logger.AssertLogContains(message);
 #endif
                 }

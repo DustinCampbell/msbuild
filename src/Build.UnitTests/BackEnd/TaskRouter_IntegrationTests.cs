@@ -469,8 +469,8 @@ namespace Microsoft.Build.Engine.UnitTests.BackEnd
             // Assert on the localized text preceding the first format argument so the test is locale-safe
             // and does not depend on the exact paths that would have been reported.
             const string ArgumentSentinel = "<<arg>>";
-            string mismatchMessage = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                "TaskAssemblyLocationMismatch",
+            string mismatchMessage = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                BuildStrings.TaskAssemblyLocationMismatch,
                 ArgumentSentinel,
                 ArgumentSentinel);
             string mismatchMessagePrefix = mismatchMessage.Substring(0, mismatchMessage.IndexOf(ArgumentSentinel, StringComparison.Ordinal));

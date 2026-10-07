@@ -323,7 +323,7 @@ namespace Microsoft.Build.BackEnd.Logging
                     throw;
                 }
 
-                InternalLoggerException.Throw(exception, buildEvent, "FatalErrorWhileLogging", false);
+                InternalLoggerException.Throw(exception, buildEvent, BuildStrings.FatalErrorWhileLogging, false);
             }
 
             switch (buildEvent)
@@ -437,7 +437,7 @@ namespace Microsoft.Build.BackEnd.Logging
                         throw;
                     }
 
-                    InternalLoggerException.Throw(exception, buildEvent, "FatalErrorWhileLogging", false);
+                    InternalLoggerException.Throw(exception, buildEvent, BuildStrings.FatalErrorWhileLogging, false);
                 }
             }
         }

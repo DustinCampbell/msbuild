@@ -25,6 +25,22 @@ internal static class AssemblyResources
     /// <summary>
     ///  Loads the specified resource string, either from the assembly's primary resources, or its shared resources.
     /// </summary>
+    /// <param name="resource">The resource to load.</param>
+    /// <param name="culture">
+    ///  The culture to use when looking up the resource. If <see langword="null"/>, the current UI culture is used.
+    /// </param>
+    /// <returns>
+    ///  The resource string.
+    /// </returns>
+    /// <exception cref="InternalErrorException">Thrown if the resource is not found.</exception>
+    internal static string GetString(ResourceString resource, CultureInfo? culture = null)
+    {
+        return resource.Resolve(culture ?? CultureInfo.CurrentUICulture).OriginalText;
+    }
+
+    /// <summary>
+    ///  Loads the specified dynamically named resource string.
+    /// </summary>
     /// <param name="name">The name of the resource to load.</param>
     /// <param name="culture">
     ///  The culture to use when looking up the resource. If <see langword="null"/>, the current UI culture is used.

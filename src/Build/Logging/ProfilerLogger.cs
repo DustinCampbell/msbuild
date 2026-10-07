@@ -11,7 +11,6 @@ using System.Security;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -285,7 +284,7 @@ namespace Microsoft.Build.Logging
         {
             try
             {
-                Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("WritingProfilerReport", FileToLog));
+                Console.WriteLine(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.WritingProfilerReport, FileToLog));
 
                 // If the extension of the file is 'md', markdown content is produced. For any other case,
                 // a tab separated format is generated
@@ -295,7 +294,7 @@ namespace Microsoft.Build.Logging
 
                 File.WriteAllText(FileToLog, content);
 
-                Console.WriteLine(ResourceUtilities.GetResourceString("WritingProfilerReportDone"));
+                Console.WriteLine(ResourceStringUtilities.GetResourceString(BuildStrings.WritingProfilerReportDone));
             }
             catch (Exception ex) when (ex is
                 DirectoryNotFoundException or
@@ -304,7 +303,7 @@ namespace Microsoft.Build.Logging
                 SecurityException or
                 ArgumentException)
             {
-                Console.WriteLine(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("ErrorWritingProfilerReport", ex.Message));
+                Console.WriteLine(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.ErrorWritingProfilerReport, ex.Message));
             }
         }
     }

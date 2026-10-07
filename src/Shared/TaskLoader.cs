@@ -26,7 +26,12 @@ namespace Microsoft.Build.Shared
         /// <summary>
         /// Delegate for logging task loading errors.
         /// </summary>
-        internal delegate void LogError(string taskLocation, int taskLine, int taskColumn, string message, params object[] messageArgs);
+        internal delegate void LogError(
+            string taskLocation,
+            int taskLine,
+            int taskColumn,
+            Microsoft.Build.Framework.Resources.ResourceString message,
+            params object[] messageArgs);
 
         /// <summary>
         /// Creates an ITask instance and returns it.
@@ -69,7 +74,7 @@ namespace Microsoft.Build.Shared
                             taskLocation,
                             taskLine,
                             taskColumn,
-                            "TaskNotMarshalByRef",
+                            Microsoft.Build.Framework.Resources.FrameworkStrings.TaskNotMarshalByRef,
                             taskName);
 
                         return null;
@@ -141,7 +146,7 @@ namespace Microsoft.Build.Shared
                         taskLocation,
                         taskLine,
                         taskColumn,
-                        "ConflictingTaskAssembly",
+                        Microsoft.Build.Framework.Resources.FrameworkStrings.ConflictingTaskAssembly,
                         loadedType.Assembly.AssemblyFile,
                         loadedType.Type.Assembly.Location);
 

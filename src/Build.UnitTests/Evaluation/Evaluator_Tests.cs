@@ -4722,7 +4722,7 @@ namespace Microsoft.Build.UnitTests.Evaluation
 
             project.Build(logger);
             logger.AssertLogContains(
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OM_GlobalProperty", "Foo"));
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OM_GlobalProperty, "Foo"));
         }
 
         [Fact]
@@ -5095,8 +5095,8 @@ namespace Microsoft.Build.UnitTests.Evaluation
                       .ShouldContain(r => r.PropertyName == propertyName
                       && r.PreviousValue == propertyOldValue
                       && r.NewValue == propertyNewValue
-                      && r.Message.StartsWith($"{ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                              "PropertyReassignment", propertyName, propertyNewValue, propertyOldValue, string.Empty)}"));
+                      && r.Message.StartsWith($"{ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                              BuildStrings.PropertyReassignment, propertyName, propertyNewValue, propertyOldValue, string.Empty)}"));
             }
         }
 

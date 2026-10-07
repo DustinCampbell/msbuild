@@ -95,7 +95,7 @@ namespace Microsoft.Build.Evaluation
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     state.ElementLocation,
-                    "UndefinedFunctionCall",
+                    BuildStrings.UndefinedFunctionCall,
                     state.Condition,
                     _functionName);
 
@@ -140,7 +140,7 @@ namespace Microsoft.Build.Evaluation
                 // We only allow a single item to be passed into a scalar parameter.
                 ProjectErrorUtilities.ThrowInvalidProject(
                     state.ElementLocation,
-                    "CannotPassMultipleItemsIntoScalarFunction", function, argument,
+                    BuildStrings.CannotPassMultipleItemsIntoScalarFunction, function, argument,
                     state.ExpandIntoString(argument));
             }
 
@@ -190,7 +190,7 @@ namespace Microsoft.Build.Evaluation
             ProjectErrorUtilities.VerifyThrowInvalidProject(
                 _arguments.Count == expected,
                  state.ElementLocation,
-                 "IncorrectNumberOfFunctionArguments",
+                 BuildStrings.IncorrectNumberOfFunctionArguments,
                  state.Condition,
                  _arguments.Count,
                  expected);

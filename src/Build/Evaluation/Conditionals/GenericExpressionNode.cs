@@ -64,7 +64,7 @@ namespace Microsoft.Build.Evaluation
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     state.ElementLocation,
-                    "ConditionNotBooleanDetail",
+                    BuildStrings.ConditionNotBooleanDetail,
                     state.Condition,
                     GetExpandedValue(state));
             }

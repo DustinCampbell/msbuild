@@ -138,7 +138,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         {
             string projectFile = "test.csproj";
             var result = new ProjectEvaluationStartedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationStarted"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationStarted),
                 projectFile)
             {
                 ProjectFile = projectFile
@@ -152,7 +152,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
         {
             string projectFile = "test.csproj";
             var result = new ProjectEvaluationFinishedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationFinished"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationFinished),
                 projectFile)
             {
                 ProjectFile = projectFile,

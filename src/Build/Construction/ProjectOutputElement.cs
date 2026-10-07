@@ -90,7 +90,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(PropertyName), "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(PropertyName), BuildStrings.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
                 SetOrRemoveAttribute(XMakeAttributes.itemName, value, "Set Output ItemType {0}", value);
             }
         }
@@ -110,7 +110,7 @@ namespace Microsoft.Build.Construction
 
             set
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(ItemType), "OM_EitherAttributeButNotBoth", ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(String.IsNullOrEmpty(ItemType), BuildStrings.OM_EitherAttributeButNotBoth, ElementName, XMakeAttributes.itemName, XMakeAttributes.propertyName);
                 SetOrRemoveAttribute(XMakeAttributes.propertyName, value, "Set Output PropertyName {0}", value);
             }
         }
@@ -138,9 +138,9 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectOutputElement CreateDisconnected(string taskParameter, string itemType, string propertyName, ProjectRootElement containingProject)
         {
-            ErrorUtilities.VerifyThrowArgument(
+            FrameworkErrorUtilities.VerifyThrowArgument(
                 String.IsNullOrEmpty(itemType) ^ String.IsNullOrEmpty(propertyName),
-                "OM_EitherAttributeButNotBoth",
+                BuildStrings.OM_EitherAttributeButNotBoth,
                 XMakeElements.output,
                 XMakeAttributes.propertyName,
                 XMakeAttributes.itemName);
@@ -167,7 +167,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectTaskElement, "OM_CannotAcceptParent");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(parent is ProjectTaskElement, BuildStrings.OM_CannotAcceptParent);
         }
 
         /// <inheritdoc />

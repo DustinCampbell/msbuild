@@ -32,13 +32,13 @@ namespace Microsoft.Build.BackEnd
         /// </summary>
         internal static int parameterLimit = 200;
 
-        internal static string ItemGroupIncludeLogMessagePrefix = ResourceUtilities.GetResourceString("ItemGroupIncludeLogMessagePrefix");
-        internal static string ItemGroupRemoveLogMessage = ResourceUtilities.GetResourceString("ItemGroupRemoveLogMessage");
-        internal static string OutputItemParameterMessagePrefix = ResourceUtilities.GetResourceString("OutputItemParameterMessagePrefix");
-        internal static string OutputPropertyLogMessagePrefix = ResourceUtilities.GetResourceString("OutputPropertyLogMessagePrefix");
-        internal static string TaskParameterPrefix = ResourceUtilities.GetResourceString("TaskParameterPrefix");
-        internal static string SkipTargetUpToDateInputs = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SkipTargetUpToDateInputs", string.Empty);
-        internal static string SkipTargetUpToDateOutputs = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("SkipTargetUpToDateOutputs", string.Empty);
+        internal static string ItemGroupIncludeLogMessagePrefix = ResourceStringUtilities.GetResourceString(BuildStrings.ItemGroupIncludeLogMessagePrefix);
+        internal static string ItemGroupRemoveLogMessage = ResourceStringUtilities.GetResourceString(BuildStrings.ItemGroupRemoveLogMessage);
+        internal static string OutputItemParameterMessagePrefix = ResourceStringUtilities.GetResourceString(BuildStrings.OutputItemParameterMessagePrefix);
+        internal static string OutputPropertyLogMessagePrefix = ResourceStringUtilities.GetResourceString(BuildStrings.OutputPropertyLogMessagePrefix);
+        internal static string TaskParameterPrefix = ResourceStringUtilities.GetResourceString(BuildStrings.TaskParameterPrefix);
+        internal static string SkipTargetUpToDateInputs = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.SkipTargetUpToDateInputs, string.Empty);
+        internal static string SkipTargetUpToDateOutputs = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.SkipTargetUpToDateOutputs, string.Empty);
 
         /// <summary>
         /// <see cref="TaskParameterEventArgs"/> by itself doesn't have the implementation
@@ -49,9 +49,43 @@ namespace Microsoft.Build.BackEnd
         static ItemGroupLoggingHelper()
 #pragma warning restore CA1810 // Initialize reference type static fields inline
         {
-            BuildEventArgs.ResourceStringFormatter = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword;
+            BuildEventArgs.ResourceStringFormatter = FormatBuildEventResource;
             TaskParameterEventArgs.MessageGetter = GetTaskParameterText;
             TaskParameterEventArgs.DictionaryFactory = ArrayDictionary<string, string>.Create;
+        }
+
+        private static string FormatBuildEventResource(BuildEventResourceString resource, string[] arguments)
+        {
+            ResourceString resourceString = resource switch
+            {
+                BuildEventResourceString.ProjectFinishedFailure => BuildStrings.ProjectFinishedFailure,
+                BuildEventResourceString.ProjectFinishedSuccess => BuildStrings.ProjectFinishedSuccess,
+                BuildEventResourceString.ProjectStartedPrefixForTopLevelProjectWithDefaultTargets =>
+                    BuildStrings.ProjectStartedPrefixForTopLevelProjectWithDefaultTargets,
+                BuildEventResourceString.ProjectStartedPrefixForTopLevelProjectWithTargetNames =>
+                    BuildStrings.ProjectStartedPrefixForTopLevelProjectWithTargetNames,
+                BuildEventResourceString.PropertyAssignment => BuildStrings.PropertyAssignment,
+                BuildEventResourceString.PropertyReassignment => BuildStrings.PropertyReassignment,
+                BuildEventResourceString.SkipTargetBecauseOutputsUpToDate => BuildStrings.SkipTargetBecauseOutputsUpToDate,
+                BuildEventResourceString.TargetAlreadyCompleteFailure => BuildStrings.TargetAlreadyCompleteFailure,
+                BuildEventResourceString.TargetAlreadyCompleteSuccess => BuildStrings.TargetAlreadyCompleteSuccess,
+                BuildEventResourceString.TargetFinishedFailure => BuildStrings.TargetFinishedFailure,
+                BuildEventResourceString.TargetFinishedSuccess => BuildStrings.TargetFinishedSuccess,
+                BuildEventResourceString.TargetSkippedFalseCondition => BuildStrings.TargetSkippedFalseCondition,
+                BuildEventResourceString.TargetStartedFileProjectDepends => BuildStrings.TargetStartedFileProjectDepends,
+                BuildEventResourceString.TargetStartedFileProjectEntry => BuildStrings.TargetStartedFileProjectEntry,
+                BuildEventResourceString.TargetStartedProjectDepends => BuildStrings.TargetStartedProjectDepends,
+                BuildEventResourceString.TargetStartedProjectEntry => BuildStrings.TargetStartedProjectEntry,
+                BuildEventResourceString.TaskAssemblyLoaded => BuildStrings.TaskAssemblyLoaded,
+                BuildEventResourceString.TaskAssemblyLoadedWithAssemblyLoadContext => BuildStrings.TaskAssemblyLoadedWithAssemblyLoadContext,
+                BuildEventResourceString.TaskFinishedFailure => BuildStrings.TaskFinishedFailure,
+                BuildEventResourceString.TaskFinishedSuccess => BuildStrings.TaskFinishedSuccess,
+                BuildEventResourceString.TaskStarted => BuildStrings.TaskStarted,
+                BuildEventResourceString.UninitializedPropertyRead => BuildStrings.UninitializedPropertyRead,
+                _ => throw new ArgumentOutOfRangeException(nameof(resource)),
+            };
+
+            return Microsoft.Build.Framework.Utilities.MessageFormatter.Format(resourceString.Resolve().OriginalText, arguments);
         }
 
         /// <summary>
@@ -143,7 +177,7 @@ namespace Microsoft.Build.BackEnd
 
                     if (truncateTaskInputs && (sb.Length >= parameterCharacterLimit || i > parameterLimit))
                     {
-                        sb.Append(ResourceUtilities.GetResourceString("LogTaskInputs.Truncated"));
+                        sb.Append(ResourceStringUtilities.GetResourceString(BuildStrings.LogTaskInputs_Truncated));
                         break;
                     }
                 }

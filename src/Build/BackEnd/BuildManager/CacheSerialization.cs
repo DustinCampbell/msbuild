@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using Microsoft.Build.BackEnd;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -26,7 +25,7 @@ namespace Microsoft.Build.Execution
             {
                 if (string.IsNullOrWhiteSpace(outputCacheFile))
                 {
-                    return ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("EmptyOutputCacheFile");
+                    return ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.EmptyOutputCacheFile);
                 }
 
                 var fullPath = FileUtilities.NormalizePath(outputCacheFile);
@@ -92,7 +91,7 @@ namespace Microsoft.Build.Execution
             }
             catch (Exception e)
             {
-                return ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ErrorWritingCacheFile", outputCacheFile, e.Message);
+                return ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.ErrorWritingCacheFile, outputCacheFile, e.Message);
             }
 
             return null;

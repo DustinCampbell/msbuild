@@ -149,10 +149,10 @@ internal class BuildCheckBuildEventHandler
             // (documentation/aot/managing-trimming-and-aot.md), do NOT silently drop it: fail the
             // build with an error so a host such as the AOT dotnet CLI can detect the failure and fall
             // back to a JIT-based MSBuild that can load the check. This branch performs no reflection.
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
                 out string? errorCode,
                 out string? helpKeyword,
-                "BuildCheckCustomCheckNotSupportedInTrimmedHost",
+                BuildStrings.BuildCheckCustomCheckNotSupportedInTrimmedHost,
                 acquisitionData.AssemblyPath);
 
             checkContext.DispatchAsErrorFromText(

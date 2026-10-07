@@ -17,7 +17,6 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Experimental.BuildCheck;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.Profiler;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Logging
 {
@@ -127,7 +126,7 @@ namespace Microsoft.Build.Logging
             if (_fileFormatVersion < BinaryLogger.ForwardCompatibilityMinimalVersion)
             {
                 throw new InvalidOperationException(
-                    ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Binlog_FwdCompatUnsupported",
+                    ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.Binlog_FwdCompatUnsupported,
                         _fileFormatVersion));
             }
         }
@@ -205,7 +204,7 @@ namespace Microsoft.Build.Logging
             if ((_skipUnknownEvents || _skipUnknownEventParts) && RecoverableReadError == null)
             {
                 throw new InvalidOperationException(
-                    ResourceUtilities.GetResourceString("Binlog_MissingRecoverableErrorSubscribeError"));
+                    ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_MissingRecoverableErrorSubscribeError));
             }
         }
 
@@ -345,9 +344,9 @@ namespace Microsoft.Build.Logging
                     int localSerializedEventLength = serializedEventLength;
                     Exception localException = e;
                     string ErrorFactory() =>
-                        ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Binlog_ReaderMismatchedRead",
+                        ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.Binlog_ReaderMismatchedRead,
                             _recordNumber, localSerializedEventLength, localException.GetType(), localException.Message) + (_skipUnknownEvents
-                            ? " " + ResourceUtilities.GetResourceString("Binlog_ReaderSkippingRecord")
+                            ? " " + ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_ReaderSkippingRecord)
                             : string.Empty);
 
                     HandleError(ErrorFactory, _skipUnknownEvents, ReaderErrorType.UnknownFormatOfEventData, recordKind, e);
@@ -358,9 +357,9 @@ namespace Microsoft.Build.Logging
                     int localSerializedEventLength = serializedEventLength;
                     BinaryLogRecordKind localRecordKind = recordKind;
                     string ErrorFactory() =>
-                        ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Binlog_ReaderUnknownType",
+                        ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.Binlog_ReaderUnknownType,
                             _recordNumber, localSerializedEventLength, localRecordKind) + (_skipUnknownEvents
-                            ? " " + ResourceUtilities.GetResourceString("Binlog_ReaderSkippingRecord")
+                            ? " " + ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_ReaderSkippingRecord)
                             : string.Empty);
 
                     HandleError(ErrorFactory, _skipUnknownEvents, ReaderErrorType.UnknownEventType, recordKind);
@@ -369,8 +368,8 @@ namespace Microsoft.Build.Logging
                 if (_readStream.BytesCountAllowedToReadRemaining > 0)
                 {
                     int localSerializedEventLength = serializedEventLength;
-                    string ErrorFactory() => ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                        "Binlog_ReaderUnderRead", _recordNumber, localSerializedEventLength,
+                    string ErrorFactory() => ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                        BuildStrings.Binlog_ReaderUnderRead, _recordNumber, localSerializedEventLength,
                         localSerializedEventLength - _readStream.BytesCountAllowedToReadRemaining);
 
                     HandleError(ErrorFactory, _skipUnknownEventParts, ReaderErrorType.UnknownEventData, recordKind);
@@ -946,7 +945,7 @@ namespace Microsoft.Build.Logging
             var projectFile = ReadDeduplicatedString() ?? string.Empty;
 
             var e = new ProjectEvaluationStartedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationStarted"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationStarted),
                 projectFile)
             {
                 ProjectFile = projectFile
@@ -962,7 +961,7 @@ namespace Microsoft.Build.Logging
             var projectFile = ReadDeduplicatedString() ?? string.Empty;
 
             var e = new ProjectEvaluationFinishedEventArgs(
-                ResourceUtilities.GetResourceString("EvaluationFinished"),
+                ResourceStringUtilities.GetResourceString(BuildStrings.EvaluationFinished),
                 projectFile)
             {
                 ProjectFile = projectFile

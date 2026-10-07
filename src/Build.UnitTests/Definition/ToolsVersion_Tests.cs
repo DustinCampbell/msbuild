@@ -88,8 +88,8 @@ namespace Microsoft.Build.UnitTests.Definition
             TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
-            string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", "msbuildoverridetasks");
-            mockLogger.AssertLogContains(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTasksFileFailure", rootedPathMessage));
+            string rootedPathMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTaskNotRootedPath, "msbuildoverridetasks");
+            mockLogger.AssertLogContains(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTasksFileFailure, rootedPathMessage));
         }
 
         [WindowsFullFrameworkOnlyFact]
@@ -126,8 +126,8 @@ namespace Microsoft.Build.UnitTests.Definition
             TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
-            string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", tooLong);
-            mockLogger.AssertLogContains(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTasksFileFailure", rootedPathMessage));
+            string rootedPathMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTaskNotRootedPath, tooLong);
+            mockLogger.AssertLogContains(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTasksFileFailure, rootedPathMessage));
         }
 
         [Fact]
@@ -146,8 +146,8 @@ namespace Microsoft.Build.UnitTests.Definition
             TaskRegistry taskoverrideRegistry = (TaskRegistry)t.GetOverrideTaskRegistry(loggingContext, e.ProjectRootElementCache);
             Assert.NotNull(taskoverrideRegistry);
             Assert.Empty(taskoverrideRegistry.TaskRegistrations);
-            string rootedPathMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTaskNotRootedPath", "k:\\Thecatinthehat");
-            mockLogger.AssertLogContains(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("OverrideTasksFileFailure", rootedPathMessage));
+            string rootedPathMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTaskNotRootedPath, "k:\\Thecatinthehat");
+            mockLogger.AssertLogContains(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.OverrideTasksFileFailure, rootedPathMessage));
         }
 
         [Fact]
@@ -245,13 +245,13 @@ namespace Microsoft.Build.UnitTests.Definition
                 loggingContext,
                 "*.tasks",
                 dir,
-                String.Empty);
+                BuildStrings.DefaultTasksFileLoadFailureWarning);
             string[] foundoverrideFiles = Toolset.GetTaskFiles(
                 new DirectoryGetFiles(this.getFiles),
                 loggingContext,
                 "*.overridetasks",
                 overrideDir,
-                String.Empty);
+                BuildStrings.OverrideTasksFileLoadFailureWarning);
 
             List<string> sortedTasksExpectedPaths = new List<string>();
             List<string> sortedOverrideExpectedPaths = new List<string>();

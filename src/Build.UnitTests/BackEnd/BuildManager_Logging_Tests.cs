@@ -114,7 +114,7 @@ namespace Microsoft.Build.Engine.UnitTests.BackEnd
 
                 allEvents.OfType<T>().ShouldHaveSingleItem();
                 allEvents.First(x => x is T).Message.ShouldContain(
-                    string.Format(ResourceUtilities.GetResourceString("DeprecatedEventSerialization"),
+                    string.Format(ResourceStringUtilities.GetResourceString(BuildStrings.DeprecatedEventSerialization),
                     "MyCustomBuildEventArgs"));
             }
             finally

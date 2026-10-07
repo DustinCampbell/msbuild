@@ -262,7 +262,7 @@ namespace Microsoft.Build.ProjectCache
             // In practice, the underlying type of the ICollection is a List<string> so attempt to cast first
             IReadOnlyList<string> requestedTargetsList = requestedTargets as List<string> ?? requestedTargets.ToList();
 
-            _loggingService.LogComment(buildEventContext, MessageImportance.High, "LoadingProjectCachePlugin", pluginTypeName);
+            _loggingService.LogComment(buildEventContext, MessageImportance.High, BuildStrings.LoadingProjectCachePlugin, pluginTypeName);
             MSBuildEventSource.Log.ProjectCacheBeginBuildStart(pluginTypeName);
 
             try
@@ -298,7 +298,7 @@ namespace Microsoft.Build.ProjectCache
 
                 if (pluginLogger.HasLoggedErrors || experimentalPluginLogger.HasLoggedErrors)
                 {
-                    ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache("ProjectCacheInitializationFailed");
+                    ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache(BuildStrings.ProjectCacheInitializationFailed);
                 }
 
 #if FEATURE_REPORTFILEACCESSES
@@ -441,7 +441,7 @@ namespace Microsoft.Build.ProjectCache
 #pragma warning restore CS0618 // Type or member is obsolete
             if (type == null)
             {
-                ProjectCacheException.ThrowForMSBuildIssueWithTheProjectCache("NoProjectCachePluginFoundInAssembly", pluginAssemblyPath);
+                ProjectCacheException.ThrowForMSBuildIssueWithTheProjectCache(BuildStrings.NoProjectCachePluginFoundInAssembly, pluginAssemblyPath);
             }
 
             return type!;
@@ -601,11 +601,11 @@ namespace Microsoft.Build.ProjectCache
                 : null;
             if (string.IsNullOrEmpty(targetNames))
             {
-                _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheQueryStartedWithDefaultTargets", buildRequest.ProjectFullPath);
+                _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheQueryStartedWithDefaultTargets, buildRequest.ProjectFullPath);
             }
             else
             {
-                _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheQueryStartedWithTargetNames", buildRequest.ProjectFullPath, targetNames);
+                _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheQueryStartedWithTargetNames, buildRequest.ProjectFullPath, targetNames);
             }
 
             HashSet<ProjectCacheDescriptor> queriedCaches = new(ProjectCacheDescriptorEqualityComparer.Instance);
@@ -647,7 +647,7 @@ namespace Microsoft.Build.ProjectCache
 
                     if (pluginLogger.HasLoggedErrors || experimentalPluginLogger.HasLoggedErrors || cacheResult.ResultType == CacheResultType.None)
                     {
-                        ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache("ProjectCacheQueryFailed", buildRequest.ProjectFullPath);
+                        ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache(BuildStrings.ProjectCacheQueryFailed, buildRequest.ProjectFullPath);
                     }
 
                     if (cacheResult.ResultType == CacheResultType.CacheHit)
@@ -678,40 +678,40 @@ namespace Microsoft.Build.ProjectCache
                 case CacheResultType.CacheHit:
                     if (string.IsNullOrEmpty(targetNames))
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheHitWithDefaultTargets", buildRequest.ProjectFullPath);
+                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheHitWithDefaultTargets, buildRequest.ProjectFullPath);
                     }
                     else
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheHitWithTargetNames", buildRequest.ProjectFullPath, targetNames);
+                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheHitWithTargetNames, buildRequest.ProjectFullPath, targetNames);
                     }
 
                     // Similar to CopyFilesToOutputDirectory from Microsoft.Common.CurrentVersion.targets, so that progress can be seen.
                     // TODO: This should be indented by the console logger. That requires making these log events structured.
                     if (!buildRequestConfiguration.IsTraversal)
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.High, "ProjectCacheHitWithOutputs", buildRequest.ProjectInstance!.GetPropertyValue(ReservedPropertyNames.projectName));
+                        _loggingService.LogComment(buildEventContext, MessageImportance.High, BuildStrings.ProjectCacheHitWithOutputs, buildRequest.ProjectInstance!.GetPropertyValue(ReservedPropertyNames.projectName));
                     }
 
                     break;
                 case CacheResultType.CacheMiss:
                     if (string.IsNullOrEmpty(targetNames))
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheMissWithDefaultTargets", buildRequest.ProjectFullPath);
+                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheMissWithDefaultTargets, buildRequest.ProjectFullPath);
                     }
                     else
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheMissWithTargetNames", buildRequest.ProjectFullPath, targetNames);
+                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheMissWithTargetNames, buildRequest.ProjectFullPath, targetNames);
                     }
 
                     break;
                 case CacheResultType.CacheNotApplicable:
                     if (string.IsNullOrEmpty(targetNames))
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheNotApplicableWithDefaultTargets", buildRequest.ProjectFullPath);
+                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheNotApplicableWithDefaultTargets, buildRequest.ProjectFullPath);
                     }
                     else
                     {
-                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, "ProjectCacheNotApplicableWithTargetNames", buildRequest.ProjectFullPath, targetNames);
+                        _loggingService.LogComment(buildEventContext, MessageImportance.Normal, BuildStrings.ProjectCacheNotApplicableWithTargetNames, buildRequest.ProjectFullPath, targetNames);
                     }
 
                     break;
@@ -934,7 +934,7 @@ namespace Microsoft.Build.ProjectCache
 
             if (pluginLogger.HasLoggedErrors)
             {
-                ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache("ProjectCacheHandleBuildResultFailed", fileAccessContext.ProjectFullPath);
+                ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache(BuildStrings.ProjectCacheHandleBuildResultFailed, fileAccessContext.ProjectFullPath);
             }
         }
 
@@ -964,7 +964,7 @@ namespace Microsoft.Build.ProjectCache
                 buildEventContext,
                 buildEventFileInfo);
 
-            _loggingService.LogComment(buildEventContext, MessageImportance.Low, "ProjectCacheEndBuild");
+            _loggingService.LogComment(buildEventContext, MessageImportance.Low, BuildStrings.ProjectCacheEndBuild);
 
             Task[] cleanupTasks = new Task[_projectCachePlugins.Count];
             int idx = 0;
@@ -1018,7 +1018,7 @@ namespace Microsoft.Build.ProjectCache
 
             if (pluginLogger.HasLoggedErrors || experimentalPluginLogger.HasLoggedErrors)
             {
-                ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache("ProjectCacheShutdownFailed");
+                ProjectCacheException.ThrowForErrorLoggedInsideTheProjectCache(BuildStrings.ProjectCacheShutdownFailed);
             }
         }
 
@@ -1039,7 +1039,7 @@ namespace Microsoft.Build.ProjectCache
 
             ProjectCacheException.ThrowAsUnhandledException(
                 e,
-                "ProjectCacheException",
+                BuildStrings.ProjectCacheException,
                 apiExceptionWasThrownFrom);
         }
 
@@ -1075,7 +1075,7 @@ namespace Microsoft.Build.ProjectCache
             {
                 _loggingService.LogWarningFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
+                    subcategory: null,
                     warningCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,
@@ -1088,7 +1088,7 @@ namespace Microsoft.Build.ProjectCache
 
                 _loggingService.LogErrorFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
+                    subcategory: null,
                     errorCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,
@@ -1130,7 +1130,7 @@ namespace Microsoft.Build.ProjectCache
             {
                 _loggingService.LogWarningFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
+                    subcategory: null,
                     warningCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,
@@ -1143,7 +1143,7 @@ namespace Microsoft.Build.ProjectCache
 
                 _loggingService.LogErrorFromText(
                     _buildEventContext,
-                    subcategoryResourceName: null,
+                    subcategory: null,
                     errorCode: null,
                     helpKeyword: null,
                     _buildEventFileInfo,

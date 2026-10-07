@@ -141,7 +141,7 @@ namespace Microsoft.Build.BackEnd
             _uniqueTargetOutputs.Clear();
 
             ProjectErrorUtilities.VerifyThrowInvalidProject((TargetOutputSpecification.Length > 0) || (TargetInputSpecification.Length == 0),
-                _targetToAnalyze.InputsLocation, "TargetInputsSpecifiedWithoutOutputs", TargetToAnalyze.Name);
+                _targetToAnalyze.InputsLocation, BuildStrings.TargetInputsSpecifiedWithoutOutputs, TargetToAnalyze.Name);
 
             DependencyAnalysisResult result = DependencyAnalysisResult.SkipUpToDate;
 
@@ -274,12 +274,12 @@ namespace Microsoft.Build.BackEnd
                 {
                     if (question)
                     {
-                        _loggingService.LogError(_buildEventContext, new BuildEventFileInfo(String.Empty), "BuildTargetCompletely", _targetToAnalyze.Name);
+                        _loggingService.LogError(_buildEventContext, new BuildEventFileInfo(String.Empty), BuildStrings.BuildTargetCompletely, _targetToAnalyze.Name);
                     }
                     else
                     {
                         // For the full build decision, there are three possible outcomes
-                        _loggingService.LogComment(_buildEventContext, MessageImportance.Low, "BuildTargetCompletely", _targetToAnalyze.Name);
+                        _loggingService.LogComment(_buildEventContext, MessageImportance.Low, BuildStrings.BuildTargetCompletely, _targetToAnalyze.Name);
                     }
 
                     foreach (DependencyAnalysisLogDetail logDetail in _dependencyAnalysisDetail)
@@ -292,12 +292,12 @@ namespace Microsoft.Build.BackEnd
                 {
                     if (question)
                     {
-                        _loggingService.LogError(_buildEventContext, new BuildEventFileInfo(String.Empty), "BuildTargetPartially", _targetToAnalyze.Name);
+                        _loggingService.LogError(_buildEventContext, new BuildEventFileInfo(String.Empty), BuildStrings.BuildTargetPartially, _targetToAnalyze.Name);
                     }
                     else
                     {
                         // For the partial build decision the are three possible outcomes
-                        _loggingService.LogComment(_buildEventContext, MessageImportance.Normal, "BuildTargetPartially", _targetToAnalyze.Name);
+                        _loggingService.LogComment(_buildEventContext, MessageImportance.Normal, BuildStrings.BuildTargetPartially, _targetToAnalyze.Name);
                     }
                     foreach (DependencyAnalysisLogDetail logDetail in _dependencyAnalysisDetail)
                     {
@@ -318,17 +318,17 @@ namespace Microsoft.Build.BackEnd
             if (logDetail.Reason == OutofdateReason.NewerInput)
             {
                 // One of the inputs was newer than all of the outputs
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetCompletelyInputNewer", logDetail.Input, logDetail.Output);
+                reason = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.BuildTargetCompletelyInputNewer, logDetail.Input, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingOutput)
             {
                 // One of the outputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetCompletelyOutputDoesntExist", logDetail.Output);
+                reason = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.BuildTargetCompletelyOutputDoesntExist, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingInput)
             {
                 // One of the inputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetCompletelyInputDoesntExist", logDetail.Input);
+                reason = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.BuildTargetCompletelyInputDoesntExist, logDetail.Input);
             }
 
             return reason;
@@ -344,17 +344,17 @@ namespace Microsoft.Build.BackEnd
             if (logDetail.Reason == OutofdateReason.NewerInput)
             {
                 // One of the inputs was newer than its corresponding output
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetPartiallyInputNewer", logDetail.InputItemName, logDetail.Input, logDetail.Output);
+                reason = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.BuildTargetPartiallyInputNewer, logDetail.InputItemName, logDetail.Input, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingOutput)
             {
                 // One of the outputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetPartiallyOutputDoesntExist", logDetail.OutputItemName, logDetail.Input, logDetail.Output);
+                reason = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.BuildTargetPartiallyOutputDoesntExist, logDetail.OutputItemName, logDetail.Input, logDetail.Output);
             }
             else if (logDetail.Reason == OutofdateReason.MissingInput)
             {
                 // One of the inputs was missing
-                reason = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("BuildTargetPartiallyInputDoesntExist", logDetail.InputItemName, logDetail.Input, logDetail.Output);
+                reason = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.BuildTargetPartiallyInputDoesntExist, logDetail.InputItemName, logDetail.Input, logDetail.Output);
             }
 
             return reason;
@@ -454,10 +454,10 @@ namespace Microsoft.Build.BackEnd
             if (TargetInputSpecification.Length > 0)
             {
                 _loggingService.LogComment(_buildEventContext, MessageImportance.Normal,
-                    "SkipTargetBecauseNoInputs", TargetToAnalyze.Name);
+                    BuildStrings.SkipTargetBecauseNoInputs, TargetToAnalyze.Name);
                 // detailed reason is low importance to keep log clean
                 _loggingService.LogComment(_buildEventContext, MessageImportance.Low,
-                    "SkipTargetBecauseNoInputsDetail");
+                    BuildStrings.SkipTargetBecauseNoInputsDetail);
 
                 // don't build the target
                 result = DependencyAnalysisResult.SkipNoInputs;
@@ -465,8 +465,8 @@ namespace Microsoft.Build.BackEnd
             else
             {
                 // There were no inputs specified, so build completely
-                _loggingService.LogComment(_buildEventContext, MessageImportance.Low, "BuildTargetCompletely", _targetToAnalyze.Name);
-                _loggingService.LogComment(_buildEventContext, MessageImportance.Low, "BuildTargetCompletelyNoInputsSpecified");
+                _loggingService.LogComment(_buildEventContext, MessageImportance.Low, BuildStrings.BuildTargetCompletely, _targetToAnalyze.Name);
+                _loggingService.LogComment(_buildEventContext, MessageImportance.Low, BuildStrings.BuildTargetCompletelyNoInputsSpecified);
 
                 // otherwise, do a full build
                 result = DependencyAnalysisResult.FullBuild;
@@ -495,10 +495,10 @@ namespace Microsoft.Build.BackEnd
             else
             {
                 _loggingService.LogComment(_buildEventContext, MessageImportance.Normal,
-                    "SkipTargetBecauseNoOutputs", TargetToAnalyze.Name);
+                    BuildStrings.SkipTargetBecauseNoOutputs, TargetToAnalyze.Name);
                 // detailed reason is low importance to keep log clean
                 _loggingService.LogComment(_buildEventContext, MessageImportance.Low,
-                    "SkipTargetBecauseNoOutputsDetail");
+                    BuildStrings.SkipTargetBecauseNoOutputsDetail);
             }
 
             return result;
@@ -976,7 +976,7 @@ namespace Microsoft.Build.BackEnd
             //         in the cases I've seen, and adding this optimization would make the code hard to read.
 
             string oldestOutput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(outputs[0].ToString()));
-            ErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[0]);
+            FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[0]);
 
             DateTime oldestOutputFileTime = DateTime.MinValue;
             try
@@ -994,7 +994,7 @@ namespace Microsoft.Build.BackEnd
             {
                 // First output is missing: we must build the target
                 string arbitraryInput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(inputs[0].ToString()));
-                ErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
+                FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
                 dependencyAnalysisDetailEntry = new DependencyAnalysisLogDetail(arbitraryInput, oldestOutput, null, null, OutofdateReason.MissingOutput);
                 return true;
             }
@@ -1002,7 +1002,7 @@ namespace Microsoft.Build.BackEnd
             for (int i = 1; i < outputs.Count; i++)
             {
                 string candidateOutput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(outputs[i].ToString()));
-                ErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[i]);
+                FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(outputs[i]);
                 DateTime candidateOutputFileTime = DateTime.MinValue;
                 try
                 {
@@ -1020,7 +1020,7 @@ namespace Microsoft.Build.BackEnd
                     // An output is missing: we must build the target
                     string arbitraryInput =
                         EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(inputs[0].ToString()));
-                    ErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
+                    FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(inputs[0]);
                     dependencyAnalysisDetailEntry = new DependencyAnalysisLogDetail(arbitraryInput, candidateOutput, null, null, OutofdateReason.MissingOutput);
                     return true;
                 }
@@ -1037,7 +1037,7 @@ namespace Microsoft.Build.BackEnd
             foreach (T input in inputs)
             {
                 string unescapedInput = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(input.ToString()));
-                ErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
+                FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
                 DateTime inputFileTime = DateTime.MaxValue;
                 try
                 {
@@ -1093,7 +1093,7 @@ namespace Microsoft.Build.BackEnd
             {
                 foreach (T input in inputs)
                 {
-                    ErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
+                    FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(input);
                     if (!_uniqueTargetInputs.ContainsKey(input.ToString()))
                     {
                         _uniqueTargetInputs.Add(input.ToString(), null);
@@ -1101,7 +1101,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 foreach (T output in outputs)
                 {
-                    ErrorUtilities.ThrowIfTypeDoesNotImplementToString(output);
+                    FrameworkErrorUtilities.ThrowIfTypeDoesNotImplementToString(output);
                     if (!_uniqueTargetOutputs.ContainsKey(output.ToString()))
                     {
                         _uniqueTargetOutputs.Add(output.ToString(), null);
@@ -1126,8 +1126,8 @@ namespace Microsoft.Build.BackEnd
         {
             input = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(input));
             output = EscapingUtilities.UnescapeAll(FileUtilities.FixFilePath(output));
-            ProjectErrorUtilities.VerifyThrowInvalidProject(input.AsSpan().IndexOfAny(MSBuildConstants.InvalidPathChars) < 0, _project.ProjectFileLocation, "IllegalCharactersInFileOrDirectory", input, inputItemName);
-            ProjectErrorUtilities.VerifyThrowInvalidProject(output.AsSpan().IndexOfAny(MSBuildConstants.InvalidPathChars) < 0, _project.ProjectFileLocation, "IllegalCharactersInFileOrDirectory", output, outputItemName);
+            ProjectErrorUtilities.VerifyThrowInvalidProject(input.AsSpan().IndexOfAny(MSBuildConstants.InvalidPathChars) < 0, _project.ProjectFileLocation, BuildStrings.IllegalCharactersInFileOrDirectory, input, inputItemName);
+            ProjectErrorUtilities.VerifyThrowInvalidProject(output.AsSpan().IndexOfAny(MSBuildConstants.InvalidPathChars) < 0, _project.ProjectFileLocation, BuildStrings.IllegalCharactersInFileOrDirectory, output, outputItemName);
             bool outOfDate = (CompareLastWriteTimes(input, output, out bool inputDoesNotExist, out bool outputDoesNotExist) == 1) || inputDoesNotExist;
 
             // Only if we are not logging just critical events should we be gathering full details

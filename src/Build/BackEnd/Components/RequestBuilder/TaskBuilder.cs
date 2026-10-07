@@ -171,7 +171,7 @@ namespace Microsoft.Build.BackEnd
                     loggingContext.LogWarning(
                         null,
                         new BuildEventFileInfo(taskInstance.Location),
-                        "HostObjectFailure",
+                        BuildStrings.HostObjectFailure,
                         _taskNode.Name,
                         ex.Message);
                     _taskHostObject = null;
@@ -674,7 +674,7 @@ namespace Microsoft.Build.BackEnd
                         // at the point where the task appears in the project.
                         _targetLoggingContext.LogComment(
                             MessageImportance.Low,
-                            "TaskSkippedFalseCondition",
+                            BuildStrings.TaskSkippedFalseCondition,
                             _taskNode.Name,
                             _targetChildInstance.Condition,
                             expanded);
@@ -707,7 +707,7 @@ namespace Microsoft.Build.BackEnd
             {
                 if (!_taskExecutionHost.InitializeForBatch(taskLoggingContext, bucket, taskIdentityParameters, _buildRequestEntry.Request.ScheduledNodeId))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(_targetChildInstance.Location, "TaskDeclarationOrUsageError", _taskNode.Name);
+                    ProjectErrorUtilities.ThrowInvalidProject(_targetChildInstance.Location, BuildStrings.TaskDeclarationOrUsageError, _taskNode.Name);
                 }
 
                 assemblyLoadsTracker = AssemblyLoadsTracker.StartTracking(taskLoggingContext, AssemblyLoadingContext.TaskRun, _taskExecutionHost?.TaskInstance?.GetType());
@@ -770,7 +770,7 @@ namespace Microsoft.Build.BackEnd
                 catch (ArgumentException e)
                 {
                     // handle errors in string-->bool conversion
-                    ProjectErrorUtilities.ThrowInvalidProject(_taskNode.ContinueOnErrorLocation, "InvalidContinueOnErrorAttribute", _taskNode.Name, e.Message);
+                    ProjectErrorUtilities.ThrowInvalidProject(_taskNode.ContinueOnErrorLocation, BuildStrings.InvalidContinueOnErrorAttribute, _taskNode.Name, e.Message);
                 }
             }
 
@@ -801,7 +801,7 @@ namespace Microsoft.Build.BackEnd
             if (!taskExecutionHost.SetTaskParameters(_taskNode.ParametersForBuild))
             {
                 // The task cannot be initialized.
-                ProjectErrorUtilities.ThrowInvalidProject(_targetChildInstance.Location, "TaskParametersError", _taskNode.Name, String.Empty);
+                ProjectErrorUtilities.ThrowInvalidProject(_targetChildInstance.Location, BuildStrings.TaskParametersError, _taskNode.Name, String.Empty);
             }
             else
             {
@@ -824,7 +824,7 @@ namespace Microsoft.Build.BackEnd
                             && (_buildRequestEntry.Request.BuildRequestDataFlags & BuildRequestDataFlags.SkipNonexistentTargets) == BuildRequestDataFlags.SkipNonexistentTargets)
                         {
                             msbuildTask.SkipNonexistentTargets = true;
-                            taskLoggingContext.LogComment(MessageImportance.Low, "MSBuildTaskInheritedSkipNonexistentTargets");
+                            taskLoggingContext.LogComment(MessageImportance.Low, BuildStrings.MSBuildTaskInheritedSkipNonexistentTargets);
                         }
 
                         var undeclaredProjects = GetUndeclaredProjects(msbuildTask);
@@ -839,8 +839,8 @@ namespace Microsoft.Build.BackEnd
                                 taskHost.ColumnNumberOfTaskNode,
                                 0,
                                 0,
-                                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                    "UndeclaredMSBuildTasksNotAllowedInIsolatedGraphBuilds",
+                                ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                                    BuildStrings.UndeclaredMSBuildTasksNotAllowedInIsolatedGraphBuilds,
                                     string.Join(";", undeclaredProjects.Select(p => $"\"{p}\"")),
                                     taskExecutionHost.ProjectInstance.FullPath),
                                 null,
@@ -943,7 +943,7 @@ namespace Microsoft.Build.BackEnd
                     else if (type == typeof(CircularDependencyException))
                     {
                         _continueOnError = ContinueOnError.ErrorAndStop;
-                        ProjectErrorUtilities.ThrowInvalidProject(taskLoggingContext.Task.Location, "CircularDependency", taskLoggingContext.TargetLoggingContext.Target.Name);
+                        ProjectErrorUtilities.ThrowInvalidProject(taskLoggingContext.Task.Location, BuildStrings.CircularDependency, taskLoggingContext.TargetLoggingContext.Target.Name);
                     }
                     else if (type == typeof(InvalidProjectFileException))
                     {
@@ -955,7 +955,7 @@ namespace Microsoft.Build.BackEnd
                         if (_continueOnError != ContinueOnError.ErrorAndStop)
                         {
                             taskLoggingContext.LogInvalidProjectFileError(ipex);
-                            taskLoggingContext.LogComment(MessageImportance.Normal, "ErrorConvertedIntoWarning");
+                            taskLoggingContext.LogComment(MessageImportance.Normal, BuildStrings.ErrorConvertedIntoWarning);
                         }
                         else
                         {
@@ -993,7 +993,7 @@ namespace Microsoft.Build.BackEnd
                                 _taskNode.Name);
 
                             // Log a message explaining why we converted the previous error into a warning.
-                            taskLoggingContext.LogComment(MessageImportance.Normal, "ErrorConvertedIntoWarning");
+                            taskLoggingContext.LogComment(MessageImportance.Normal, BuildStrings.ErrorConvertedIntoWarning);
                         }
                         else
                         {
@@ -1023,21 +1023,21 @@ namespace Microsoft.Build.BackEnd
                     if (be is IBuildEngine7 be7 && be7.AllowFailureWithoutError)
                     {
                         // If it's allowed to fail without error, log as a message
-                        taskLoggingContext.LogComment(MessageImportance.Normal, "TaskReturnedFalseButDidNotLogError", _taskNode.Name);
+                        taskLoggingContext.LogComment(MessageImportance.Normal, BuildStrings.TaskReturnedFalseButDidNotLogError, _taskNode.Name);
                     }
                     else if (_continueOnError == ContinueOnError.WarnAndContinue)
                     {
                         taskLoggingContext.LogWarning(null,
                             new BuildEventFileInfo(_targetChildInstance.Location),
-                            "TaskReturnedFalseButDidNotLogError",
+                            BuildStrings.TaskReturnedFalseButDidNotLogError,
                             _taskNode.Name);
 
-                        taskLoggingContext.LogComment(MessageImportance.Normal, "ErrorConvertedIntoWarning");
+                        taskLoggingContext.LogComment(MessageImportance.Normal, BuildStrings.ErrorConvertedIntoWarning);
                     }
                     else
                     {
                         taskLoggingContext.LogError(new BuildEventFileInfo(_targetChildInstance.Location),
-                            "TaskReturnedFalseButDidNotLogError",
+                            BuildStrings.TaskReturnedFalseButDidNotLogError,
                             _taskNode.Name);
                     }
                 }
@@ -1071,7 +1071,7 @@ namespace Microsoft.Build.BackEnd
 
                         taskLoggingContext.LogComment(
                             MessageImportance.Normal,
-                            "TaskContinuedDueToContinueOnError",
+                            BuildStrings.TaskContinuedDueToContinueOnError,
                             "ContinueOnError",
                             _taskNode.Name,
                             settingString);
@@ -1170,7 +1170,7 @@ namespace Microsoft.Build.BackEnd
                         ProjectErrorUtilities.VerifyThrowInvalidProject(
                             outputTargetName.Length > 0,
                             taskOutputItemInstance.ItemTypeLocation,
-                            "InvalidEvaluatedAttributeValue",
+                            BuildStrings.InvalidEvaluatedAttributeValue,
                             outputTargetName,
                             taskOutputItemInstance.ItemType,
                             XMakeAttributes.itemName,
@@ -1188,7 +1188,7 @@ namespace Microsoft.Build.BackEnd
                         ProjectErrorUtilities.VerifyThrowInvalidProject(
                             outputTargetName.Length > 0,
                             taskOutputPropertyInstance.PropertyNameLocation,
-                            "InvalidEvaluatedAttributeValue",
+                            BuildStrings.InvalidEvaluatedAttributeValue,
                             outputTargetName,
                             taskOutputPropertyInstance.PropertyName,
                             XMakeAttributes.propertyName,
@@ -1201,7 +1201,7 @@ namespace Microsoft.Build.BackEnd
                     ProjectErrorUtilities.VerifyThrowInvalidProject(
                         taskParameterName.Length > 0,
                         taskOutputSpecification.TaskParameterLocation,
-                        "InvalidEvaluatedAttributeValue",
+                        BuildStrings.InvalidEvaluatedAttributeValue,
                         taskParameterName,
                         unexpandedTaskParameterName,
                         XMakeAttributes.taskParameter,

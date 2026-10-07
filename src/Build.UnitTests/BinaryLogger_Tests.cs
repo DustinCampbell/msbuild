@@ -1277,8 +1277,8 @@ namespace Microsoft.Build.UnitTests
             error.ErrorType.ShouldBe(ReaderErrorType.UnknownEventType);
             error.RecordKind.ShouldBe((BinaryLogRecordKind)127);
             errorMessages.ShouldHaveSingleItem().ShouldBe(
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword("Binlog_ReaderUnknownType", 0, 10, (BinaryLogRecordKind)127)
-                + " " + ResourceUtilities.GetResourceString("Binlog_ReaderSkippingRecord"));
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.Binlog_ReaderUnknownType, 0, 10, (BinaryLogRecordKind)127)
+                + " " + ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_ReaderSkippingRecord));
             if (includeFollowingEvent && acceptEvent.HasValue)
             {
                 BinaryLogEventMetadata metadata = metadataSeen.ShouldHaveSingleItem();
@@ -1328,8 +1328,8 @@ namespace Microsoft.Build.UnitTests
             using var stream = CreateUnknownEventFilterTestStream(BinaryLogger.FileFormatVersion, includeFollowingEvent: true);
             using var reader = new BinaryReader(stream);
             Should.Throw<InvalidDataException>(() => replayEventSource.Replay(reader, CancellationToken.None))
-                .Message.ShouldBe(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                    "Binlog_ReaderUnknownType", 0, 10, (BinaryLogRecordKind)127));
+                .Message.ShouldBe(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    BuildStrings.Binlog_ReaderUnknownType, 0, 10, (BinaryLogRecordKind)127));
 
             filterCalls.ShouldBe(0);
             errors.ShouldBeEmpty();
@@ -1578,8 +1578,8 @@ namespace Microsoft.Build.UnitTests
             exception.OriginalBuildEventContext.ShouldBeSameAs(failedMetadata.OriginalBuildEventContext);
             exception.RecordNumber.ShouldBe(recordNumber);
             exception.FileFormatVersion.ShouldBe(fileFormatVersion);
-            exception.Message.ShouldBe(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                "Binlog_EventFilterThrewWithContext", recordNumber, recordKind, fileFormatVersion,
+            exception.Message.ShouldBe(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                BuildStrings.Binlog_EventFilterThrewWithContext, recordNumber, recordKind, fileFormatVersion,
                 failedMetadata.BuildEventContext, failedMetadata.OriginalBuildEventContext));
             exception.ToString().ShouldContain(expected.ToString());
             expected.StackTrace.ShouldNotBeNullOrEmpty();
@@ -1628,7 +1628,7 @@ namespace Microsoft.Build.UnitTests
             var exception = new BinaryLogEventFilterException(expected);
 
             exception.InnerException.ShouldBeSameAs(expected);
-            exception.Message.ShouldBe(ResourceUtilities.GetResourceString("Binlog_EventFilterThrew"));
+            exception.Message.ShouldBe(ResourceStringUtilities.GetResourceString(BuildStrings.Binlog_EventFilterThrew));
             exception.RecordKind.ShouldBeNull();
             exception.BuildEventContext.ShouldBeNull();
             exception.OriginalBuildEventContext.ShouldBeNull();

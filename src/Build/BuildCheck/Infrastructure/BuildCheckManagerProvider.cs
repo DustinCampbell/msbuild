@@ -114,7 +114,7 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                 }
                 else
                 {
-                    checkContext.DispatchAsComment(MessageImportance.Normal, "CustomCheckFailedAcquisition", acquisitionData.AssemblyPath);
+                    checkContext.DispatchAsComment(MessageImportance.Normal, BuildStrings.CustomCheckFailedAcquisition, acquisitionData.AssemblyPath);
                 }
             }
             else
@@ -227,7 +227,7 @@ internal sealed class BuildCheckManagerProvider : IBuildCheckManagerProvider
                             try
                             {
                                 SetupSingleCheck(checkFactoryContext, projectPath);
-                                checkContext.DispatchAsComment(MessageImportance.Normal, "CustomCheckSuccessfulAcquisition", instance.FriendlyName);
+                                checkContext.DispatchAsComment(MessageImportance.Normal, BuildStrings.CustomCheckSuccessfulAcquisition, instance.FriendlyName);
                             }
                             catch (BuildCheckConfigurationException e)
                             {

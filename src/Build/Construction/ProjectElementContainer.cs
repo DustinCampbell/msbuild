@@ -294,7 +294,7 @@ namespace Microsoft.Build.Construction
         {
             ArgumentNullException.ThrowIfNull(child);
 
-            ErrorUtilities.VerifyThrowArgument(child.Parent == this, "OM_NodeNotAlreadyParentedByThis");
+            FrameworkErrorUtilities.VerifyThrowArgument(child.Parent == this, BuildStrings.OM_NodeNotAlreadyParentedByThis);
 
             if (Link != null)
             {
@@ -352,7 +352,7 @@ namespace Microsoft.Build.Construction
         public virtual void DeepCopyFrom(ProjectElementContainer element)
         {
             ArgumentNullException.ThrowIfNull(element);
-            ErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), "CannotCopyFromElementOfThatType");
+            FrameworkErrorUtilities.VerifyThrowArgument(GetType().IsEquivalentTo(element.GetType()), BuildStrings.CannotCopyFromElementOfThatType);
 
             if (this == element)
             {
@@ -500,7 +500,7 @@ namespace Microsoft.Build.Construction
 
                 // Make sure we're not trying to add multiple attributes with the same name
                 ProjectErrorUtilities.VerifyThrowInvalidProject(!XmlElement.HasAttribute(child.XmlElement.Name),
-                    XmlElement.Location, "InvalidChildElementDueToDuplication", child.XmlElement.Name, ElementName);
+                    XmlElement.Location, BuildStrings.InvalidChildElementDueToDuplication, child.XmlElement.Name, ElementName);
 
                 SetElementAsAttributeValue(child);
             }
@@ -681,10 +681,10 @@ namespace Microsoft.Build.Construction
         /// </summary>
         private void VerifyForInsertBeforeAfterFirst(ProjectElement child, ProjectElement reference)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(Parent != null || ContainingProject == this, "OM_ParentNotParented");
-            ErrorUtilities.VerifyThrowInvalidOperation(reference == null || reference.Parent == this, "OM_ReferenceDoesNotHaveThisParent");
-            ErrorUtilities.VerifyThrowInvalidOperation(child.Parent == null, "OM_NodeAlreadyParented");
-            ErrorUtilities.VerifyThrowInvalidOperation(child.ContainingProject == ContainingProject, "OM_MustBeSameProject");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(Parent != null || ContainingProject == this, BuildStrings.OM_ParentNotParented);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(reference == null || reference.Parent == this, BuildStrings.OM_ReferenceDoesNotHaveThisParent);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(child.Parent == null, BuildStrings.OM_NodeAlreadyParented);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(child.ContainingProject == ContainingProject, BuildStrings.OM_MustBeSameProject);
 
             // In RemoveChild() we do not update the victim's NextSibling (or PreviousSibling) to null, to allow RemoveChild to be
             // called within an enumeration. So we can't expect these to be null if the child was previously removed. However, we
@@ -704,7 +704,7 @@ namespace Microsoft.Build.Construction
 
             while (ancestor != null)
             {
-                ErrorUtilities.VerifyThrowInvalidOperation(ancestor != element, "OM_SelfAncestor");
+                FrameworkErrorUtilities.VerifyThrowInvalidOperation(ancestor != element, BuildStrings.OM_SelfAncestor);
                 ancestor = ancestor.Parent;
             }
         }
@@ -836,9 +836,9 @@ namespace Microsoft.Build.Construction
                 }
             }
 
-            public void Add(T item) => ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            public void Add(T item) => FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_NotSupportedReadOnlyCollection);
 
-            public void Clear() => ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+            public void Clear() => FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_NotSupportedReadOnlyCollection);
 
             public bool Contains(T item) => RealizedElements.Contains(item);
 
@@ -863,7 +863,7 @@ namespace Microsoft.Build.Construction
 
             public bool Remove(T item)
             {
-                ErrorUtilities.ThrowInvalidOperation("OM_NotSupportedReadOnlyCollection");
+                FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_NotSupportedReadOnlyCollection);
                 return false;
             }
 

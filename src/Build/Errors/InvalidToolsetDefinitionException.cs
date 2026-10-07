@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Microsoft.Build.Framework.BuildException;
-using Microsoft.Build.Shared;
 #if FEATURE_SECURITY_PERMISSIONS
 using System.Security.Permissions;
 #endif
@@ -144,13 +143,13 @@ namespace Microsoft.Build.Exceptions
         /// is expensive, because memory is allocated for the array of arguments -- do
         /// not call this method repeatedly in performance-critical scenarios
         /// </summary>
-        /// <param name="resourceName"></param>
+        /// <param name="resource"></param>
         /// <param name="args"></param>
         internal static void Throw(
-            string resourceName,
+            ResourceString resource,
             params string[] args)
         {
-            Throw(null, resourceName, args);
+            Throw(null, resource, args);
         }
 
         /// <summary>
@@ -163,13 +162,17 @@ namespace Microsoft.Build.Exceptions
         /// </summary>
         internal static void Throw(
             Exception innerException,
-            string resourceName,
+            ResourceString resource,
             params string[] args)
         {
-            ResourceUtilities.VerifyResourceStringExists(resourceName);
+            ResourceStringUtilities.VerifyResourceStringExists(resource);
             string errorCode;
             string helpKeyword;
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, resourceName, (object[])args);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out errorCode,
+                out helpKeyword,
+                resource,
+                (object[])args);
 
             throw new InvalidToolsetDefinitionException(message, errorCode, innerException);
         }

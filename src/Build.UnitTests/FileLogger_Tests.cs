@@ -418,7 +418,7 @@ namespace Microsoft.Build.UnitTests
                 project.ProjectCollection.UnregisterAllLoggers();
 
                 string log = File.ReadAllText(logFile.Path);
-                var message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("LogLoggerVerbosity", loggerVerbosity);
+                var message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.LogLoggerVerbosity, loggerVerbosity);
                 if (shouldContain)
                 {
                     Assert.Contains(message, log);

@@ -208,11 +208,18 @@ namespace Microsoft.Build.Utilities
         public virtual string FormatResourceString(string resourceName, params object[] args)
         {
             ArgumentNullException.ThrowIfNull(resourceName);
-            ErrorUtilities.VerifyThrowInvalidOperation(TaskResources != null, "TaskResourcesNotRegistered", TaskName);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                TaskResources != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.TaskResourcesNotRegistered,
+                TaskName);
 
             string resourceString = TaskResources.GetString(resourceName, CultureInfo.CurrentUICulture);
 
-            ErrorUtilities.VerifyThrowArgument(resourceString != null, "TaskResourceNotFound", resourceName, TaskName);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgument(
+                resourceString != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.TaskResourceNotFound,
+                resourceName,
+                TaskName);
 
             return FormatString(resourceString, args);
         }
@@ -323,7 +330,9 @@ namespace Microsoft.Build.Utilities
             if (BuildEngine == null)
             {
                 // Do not use Verify[...] as it would read e.Message ahead of time
-                ErrorUtilities.ThrowInvalidOperation("LoggingBeforeTaskInitialization", e.Message);
+                Microsoft.Build.Framework.FrameworkErrorUtilities.ThrowInvalidOperation(
+                    Microsoft.Build.Framework.Resources.FrameworkStrings.LoggingBeforeTaskInitialization,
+                    e.Message);
             }
 
             BuildEngine.LogMessageEvent(e);
@@ -376,7 +385,10 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                BuildEngine != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.LoggingBeforeTaskInitialization,
+                message);
 
             // If the task has missed out all location information, add the location of the task invocation;
             // that gives the user something.
@@ -433,7 +445,10 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                BuildEngine != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.LoggingBeforeTaskInitialization,
+                message);
 
             // If the task has missed out all location information, add the location of the task invocation;
             // that gives the user something.
@@ -508,6 +523,21 @@ namespace Microsoft.Build.Utilities
                 MessageParser.TryGetMSBuildCode(message, out string code),
                 $"This message contains an error code ({code}), yet it was logged as a regular message: {message}");
 #endif
+        }
+
+        internal void LogMessageFromResources(
+            MessageImportance importance,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            if (LogsMessagesOfImportance(importance))
+            {
+                LogMessage(
+                    importance,
+                    Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(messageResource, messageArgs));
+            }
         }
 
         /// <summary>
@@ -622,7 +652,9 @@ namespace Microsoft.Build.Utilities
             if (BuildEngine == null)
             {
                 // Do not use Verify[...] as it would read e.Message ahead of time
-                ErrorUtilities.ThrowInvalidOperation("LoggingBeforeTaskInitialization", e.Message);
+                Microsoft.Build.Framework.FrameworkErrorUtilities.ThrowInvalidOperation(
+                    Microsoft.Build.Framework.Resources.FrameworkStrings.LoggingBeforeTaskInitialization,
+                    e.Message);
             }
 
             BuildEngine.LogMessageEvent(e);
@@ -709,7 +741,10 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                BuildEngine != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.LoggingBeforeTaskInitialization,
+                message);
 
             // All of our errors should have an error code, so the user has something
             // to look up in the documentation. To help find errors without error codes,
@@ -750,6 +785,21 @@ namespace Microsoft.Build.Utilities
         public void LogErrorFromResources(string messageResourceName, params object[] messageArgs)
         {
             LogErrorFromResources(null, null, null, null, 0, 0, 0, 0, messageResourceName, messageArgs);
+        }
+
+        internal void LogErrorFromResources(Microsoft.Build.Framework.Resources.ResourceString messageResource, params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+            LogError(
+                null,
+                null,
+                null,
+                null,
+                0,
+                0,
+                0,
+                0,
+                Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(messageResource, messageArgs));
         }
 
         /// <summary>
@@ -831,6 +881,40 @@ namespace Microsoft.Build.Utilities
         public void LogErrorWithCodeFromResources(string messageResourceName, params object[] messageArgs)
         {
             LogErrorWithCodeFromResources(null, null, 0, 0, 0, 0, messageResourceName, messageArgs);
+        }
+
+        internal void LogErrorWithCodeFromResources(Microsoft.Build.Framework.Resources.ResourceString messageResource, params object[] messageArgs)
+            => LogErrorWithCodeFromResources(null, null, 0, 0, 0, 0, messageResource, messageArgs);
+
+        internal void LogErrorWithCodeFromResources(
+            Microsoft.Build.Framework.Resources.ResourceString subcategoryResource,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            string subcategory = subcategoryResource?.Resolve().OriginalText;
+            string message = Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out string errorCode,
+                out string helpKeyword,
+                messageResource,
+                messageArgs);
+
+            LogError(
+                subcategory,
+                errorCode,
+                helpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                message);
         }
 
         /// <summary>
@@ -1037,7 +1121,10 @@ namespace Microsoft.Build.Utilities
             // If BuildEngine is null, task attempted to log before it was set on it,
             // presumably in its constructor. This is not allowed, and all
             // we can do is throw.
-            ErrorUtilities.VerifyThrowInvalidOperation(BuildEngine != null, "LoggingBeforeTaskInitialization", message);
+            Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                BuildEngine != null,
+                Microsoft.Build.Framework.Resources.FrameworkStrings.LoggingBeforeTaskInitialization,
+                message);
 
             // All of our warnings should have an error code, so the user has something
             // to look up in the documentation. To help find warnings without error codes,
@@ -1097,6 +1184,21 @@ namespace Microsoft.Build.Utilities
         public void LogWarningFromResources(string messageResourceName, params object[] messageArgs)
         {
             LogWarningFromResources(null, null, null, null, 0, 0, 0, 0, messageResourceName, messageArgs);
+        }
+
+        internal void LogWarningFromResources(Microsoft.Build.Framework.Resources.ResourceString messageResource, params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+            LogWarning(
+                null,
+                null,
+                null,
+                null,
+                0,
+                0,
+                0,
+                0,
+                Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(messageResource, messageArgs));
         }
 
         /// <summary>
@@ -1178,6 +1280,40 @@ namespace Microsoft.Build.Utilities
         public void LogWarningWithCodeFromResources(string messageResourceName, params object[] messageArgs)
         {
             LogWarningWithCodeFromResources(null, null, 0, 0, 0, 0, messageResourceName, messageArgs);
+        }
+
+        internal void LogWarningWithCodeFromResources(Microsoft.Build.Framework.Resources.ResourceString messageResource, params object[] messageArgs)
+            => LogWarningWithCodeFromResources(null, null, 0, 0, 0, 0, messageResource, messageArgs);
+
+        internal void LogWarningWithCodeFromResources(
+            Microsoft.Build.Framework.Resources.ResourceString subcategoryResource,
+            string file,
+            int lineNumber,
+            int columnNumber,
+            int endLineNumber,
+            int endColumnNumber,
+            Microsoft.Build.Framework.Resources.ResourceString messageResource,
+            params object[] messageArgs)
+        {
+            ArgumentNullException.ThrowIfNull(messageResource);
+
+            string subcategory = subcategoryResource?.Resolve().OriginalText;
+            string message = Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out string warningCode,
+                out string helpKeyword,
+                messageResource,
+                messageArgs);
+
+            LogWarning(
+                subcategory,
+                warningCode,
+                helpKeyword,
+                file,
+                lineNumber,
+                columnNumber,
+                endLineNumber,
+                endColumnNumber,
+                message);
         }
 
         /// <summary>

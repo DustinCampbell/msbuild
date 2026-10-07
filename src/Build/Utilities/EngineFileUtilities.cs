@@ -17,8 +17,6 @@ namespace Microsoft.Build.Internal
 {
     internal static class EngineFileUtilities
     {
-        private const string DriveEnumeratingWildcardMessageResourceName = "WildcardResultsInDriveEnumeration";
-
         // Regexes for wildcard filespecs that should not get expanded
         // By default all wildcards are expanded.
         private static List<Regex>? s_lazyWildCardExpansionRegexes;
@@ -283,8 +281,8 @@ namespace Microsoft.Build.Internal
                             break;
 
                         default:
-                            InternalError.Throw(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                "UnknownLoggingType",
+                            InternalError.Throw(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                                BuildStrings.UnknownLoggingType,
                                 loggingMechanism?.GetType(),
                                 nameof(GetFileList)));
 
@@ -326,8 +324,8 @@ namespace Microsoft.Build.Internal
                             break;
 
                         default:
-                            InternalError.Throw(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                "UnknownLoggingType",
+                            InternalError.Throw(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                                BuildStrings.UnknownLoggingType,
                                 loggingMechanism?.GetType(),
                                 nameof(GetFileList)));
 
@@ -358,8 +356,8 @@ namespace Microsoft.Build.Internal
                                 evaluationLoggingContext.LogCommentFromText(MessageImportance.Low, globFailure);
                                 break;
                             default:
-                                InternalError.Throw(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                                    "UnknownLoggingType",
+                                InternalError.Throw(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                                    BuildStrings.UnknownLoggingType,
                                     loggingMechanism.GetType(),
                                     nameof(GetFileList)));
 
@@ -404,7 +402,7 @@ namespace Microsoft.Build.Internal
                 ((includeLocation == null) && (excludeLocation != null)))
             {
                 targetLoggingContext.LogWarning(
-                        DriveEnumeratingWildcardMessageResourceName,
+                        FrameworkStrings.WildcardResultsInDriveEnumeration,
                         fileSpec,
                         XMakeAttributes.exclude,
                         XMakeElements.itemGroup,
@@ -417,7 +415,7 @@ namespace Microsoft.Build.Internal
             else if (excludeFileSpecIsEmpty && (includeLocation != null))
             {
                 targetLoggingContext.LogWarning(
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     fileSpec,
                     XMakeAttributes.include,
                     XMakeElements.itemGroup,
@@ -431,9 +429,9 @@ namespace Microsoft.Build.Internal
             {
                 loggingService.LogWarning(
                     buildEventContext,
-                    string.Empty,
+                    null,
                     new BuildEventFileInfo(buildEventFileInfoFullPath),
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     filespecUnescaped,
                     XMakeAttributes.include,
                     XMakeElements.itemGroup,
@@ -446,7 +444,7 @@ namespace Microsoft.Build.Internal
             if (importLocation != null)
             {
                 evaluationLoggingContext.LogWarning(
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     filespecUnescaped,
                     XMakeAttributes.project,
                     XMakeElements.import,
@@ -455,7 +453,7 @@ namespace Microsoft.Build.Internal
             else if (excludeFileSpecIsEmpty && includeLocation != null)
             {
                 evaluationLoggingContext.LogWarning(
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     fileSpec,
                     XMakeAttributes.include,
                     XMakeElements.itemGroup,
@@ -464,7 +462,7 @@ namespace Microsoft.Build.Internal
             else if (excludeLocation != null)
             {
                 evaluationLoggingContext.LogWarning(
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     fileSpec,
                     XMakeAttributes.exclude,
                     XMakeElements.itemGroup,
@@ -482,7 +480,7 @@ namespace Microsoft.Build.Internal
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     includeLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     filespecUnescaped,
                     XMakeAttributes.include,
                     XMakeElements.itemGroup,
@@ -497,7 +495,7 @@ namespace Microsoft.Build.Internal
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                         excludeLocation,
-                        DriveEnumeratingWildcardMessageResourceName,
+                        FrameworkStrings.WildcardResultsInDriveEnumeration,
                         fileSpec,
                         XMakeAttributes.exclude,
                         XMakeElements.itemGroup,
@@ -509,7 +507,7 @@ namespace Microsoft.Build.Internal
         {
             ProjectErrorUtilities.ThrowInvalidProject(
                 includeLocation,
-                DriveEnumeratingWildcardMessageResourceName,
+                FrameworkStrings.WildcardResultsInDriveEnumeration,
                 filespecUnescaped,
                 XMakeAttributes.include,
                 XMakeElements.itemGroup,
@@ -522,7 +520,7 @@ namespace Microsoft.Build.Internal
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     importLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     filespecUnescaped,
                     XMakeAttributes.project,
                     XMakeElements.import,
@@ -532,7 +530,7 @@ namespace Microsoft.Build.Internal
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     includeLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     fileSpec,
                     XMakeAttributes.include,
                     XMakeElements.itemGroup,
@@ -542,7 +540,7 @@ namespace Microsoft.Build.Internal
             {
                 ProjectErrorUtilities.ThrowInvalidProject(
                     excludeLocation,
-                    DriveEnumeratingWildcardMessageResourceName,
+                    FrameworkStrings.WildcardResultsInDriveEnumeration,
                     fileSpec,
                     XMakeAttributes.exclude,
                     XMakeElements.itemGroup,

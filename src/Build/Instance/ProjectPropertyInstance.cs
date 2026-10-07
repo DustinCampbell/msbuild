@@ -325,14 +325,14 @@ namespace Microsoft.Build.Execution
             ArgumentNullException.ThrowIfNull(escapedValue);
             if (location == null)
             {
-                ErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(name), "OM_ReservedName", name);
-                ErrorUtilities.VerifyThrowArgument(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), "OM_CannotCreateReservedProperty", name);
+                FrameworkErrorUtilities.VerifyThrowArgument(!XMakeElements.ReservedItemNames.Contains(name), BuildStrings.OM_ReservedName, name);
+                FrameworkErrorUtilities.VerifyThrowArgument(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), BuildStrings.OM_CannotCreateReservedProperty, name);
                 XmlUtilities.VerifyThrowArgumentValidElementName(name);
             }
             else
             {
-                ProjectErrorUtilities.VerifyThrowInvalidProject(!XMakeElements.ReservedItemNames.Contains(name), location, "CannotModifyReservedProperty", name);
-                ProjectErrorUtilities.VerifyThrowInvalidProject(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), location, "CannotModifyReservedProperty", name);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(!XMakeElements.ReservedItemNames.Contains(name), location, BuildStrings.CannotModifyReservedProperty, name);
+                ProjectErrorUtilities.VerifyThrowInvalidProject(mayBeReserved || !ReservedPropertyNames.IsReservedProperty(name), location, BuildStrings.CannotModifyReservedProperty, name);
                 XmlUtilities.VerifyThrowProjectValidElementName(name, location);
             }
 

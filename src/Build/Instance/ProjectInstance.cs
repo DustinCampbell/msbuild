@@ -311,7 +311,7 @@ namespace Microsoft.Build.Execution
             ProjectEvaluationStage evaluationStage = ProjectEvaluationStage.Full)
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
 
             // We do not control the current directory at this point, but assume that if we were
             // passed a relative path, the caller assumes we will prepend the current directory.
@@ -656,7 +656,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(string projectFile, IDictionary<string, string> globalProperties, string toolsVersion, BuildParameters buildParameters, ILoggingService loggingService, BuildEventContext buildEventContext, ISdkResolverService sdkResolverService, int submissionId, ProjectLoadSettings? projectLoadSettings)
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(buildParameters);
 
             ProjectRootElement xml = ProjectRootElement.OpenProjectOrSolution(projectFile, globalProperties, toolsVersion, buildParameters.ProjectRootElementCache, false /*Not explicitly loaded*/);
@@ -672,7 +672,7 @@ namespace Microsoft.Build.Execution
         internal ProjectInstance(ProjectRootElement xml, IDictionary<string, string> globalProperties, string toolsVersion, BuildParameters buildParameters, ILoggingService loggingService, BuildEventContext buildEventContext, ISdkResolverService sdkResolverService, int submissionId)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(buildParameters);
             Initialize(xml, globalProperties, toolsVersion, null, 0 /* no solution version specified */, buildParameters, loggingService, buildEventContext, sdkResolverService, submissionId);
         }
@@ -685,7 +685,7 @@ namespace Microsoft.Build.Execution
         {
             Assumed.NotNull(data);
             Assumed.NotNullOrEmpty(directory);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(fullPath, nameof(fullPath));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(fullPath, nameof(fullPath));
 
             _directory = directory;
             _projectFileLocation = ElementLocation.Create(fullPath);
@@ -1247,7 +1247,7 @@ namespace Microsoft.Build.Execution
         {
             if (_evaluationStage < requiredStage)
             {
-                ErrorUtilities.ThrowInvalidOperation("OM_PartialEvaluationMemberUnavailable", memberName, _evaluationStage, requiredStage);
+                FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_PartialEvaluationMemberUnavailable, memberName, _evaluationStage, requiredStage);
             }
         }
 
@@ -1452,7 +1452,7 @@ namespace Microsoft.Build.Execution
             // If another SDK already set it, we do not overwrite it.
             if (_sdkResolvedEnvironmentVariableProperties?.Contains(name) == true)
             {
-                LogIfValueDiffers(_sdkResolvedEnvironmentVariableProperties, name, value, "SdkEnvironmentVariableAlreadySetBySdk");
+                LogIfValueDiffers(_sdkResolvedEnvironmentVariableProperties, name, value, BuildStrings.SdkEnvironmentVariableAlreadySetBySdk);
                 return;
             }
 
@@ -1467,7 +1467,7 @@ namespace Microsoft.Build.Execution
             if (overridingAmbient)
             {
                 // Log before removing so LogIfValueDiffers can compare the old and new values.
-                LogIfValueDiffers(_environmentVariableProperties, name, value, "SdkEnvironmentVariableOverridingAmbient");
+                LogIfValueDiffers(_environmentVariableProperties, name, value, BuildStrings.SdkEnvironmentVariableOverridingAmbient);
                 _environmentVariableProperties.Remove(name);
             }
 
@@ -1484,12 +1484,16 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// Helper method to log a message if the attempted value differs from the existing value.
         /// </summary>
-        private void LogIfValueDiffers(PropertyDictionary<ProjectPropertyInstance> propertyDictionary, string name, string attemptedValue, string messageResourceName)
+        private void LogIfValueDiffers(
+            PropertyDictionary<ProjectPropertyInstance> propertyDictionary,
+            string name,
+            string attemptedValue,
+            ResourceString messageResource)
         {
             ProjectPropertyInstance existingProperty = propertyDictionary.GetProperty(name);
             if (existingProperty != null && !string.Equals(existingProperty.EvaluatedValue, attemptedValue, StringComparison.Ordinal))
             {
-                _loggingContext.LogComment(MessageImportance.Low, messageResourceName, name, attemptedValue, existingProperty.EvaluatedValue);
+                _loggingContext.LogComment(MessageImportance.Low, messageResource, name, attemptedValue, existingProperty.EvaluatedValue);
             }
         }
 
@@ -2697,7 +2701,7 @@ namespace Microsoft.Build.Execution
         {
             ArgumentException.ThrowIfNullOrEmpty(projectFile);
             ArgumentNullException.ThrowIfNull(globalPropertiesInstances);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(toolsVersion, nameof(toolsVersion));
             ArgumentNullException.ThrowIfNull(buildParameters);
             Assumed.True(FileUtilities.IsSolutionFilename(projectFile), $"Project file {projectFile} is not a solution.");
 
@@ -2719,7 +2723,7 @@ namespace Microsoft.Build.Execution
                        String.Equals(toolsVersion, "3.5", StringComparison.OrdinalIgnoreCase))
                 {
                     // Spawn the Orcas SolutionWrapperProject generator.
-                    loggingService.LogComment(projectBuildEventContext, MessageImportance.Low, "OldWrapperGeneratedExplicitToolsVersion", toolsVersion);
+                    loggingService.LogComment(projectBuildEventContext, MessageImportance.Low, BuildStrings.OldWrapperGeneratedExplicitToolsVersion, toolsVersion);
                     projectInstances = GenerateSolutionWrapperUsingOldOM(projectFile, globalProperties, toolsVersion, buildParameters.ProjectRootElementCache, buildParameters, loggingService, projectBuildEventContext, isExplicitlyLoaded, sdkResolverService, submissionId);
                 }
                 else
@@ -2783,12 +2787,12 @@ namespace Microsoft.Build.Execution
             // engine to generate the solution wrapper.
             if (solutionVersion <= 9) /* Whidbey or before */
             {
-                loggingService.LogComment(projectBuildEventContext, MessageImportance.Low, "OldWrapperGeneratedOldSolutionVersion", "2.0", solutionVersion);
+                loggingService.LogComment(projectBuildEventContext, MessageImportance.Low, BuildStrings.OldWrapperGeneratedOldSolutionVersion, "2.0", solutionVersion);
                 projectInstances = GenerateSolutionWrapperUsingOldOM(projectFile, globalProperties, "2.0", buildParameters.ProjectRootElementCache, buildParameters, loggingService, projectBuildEventContext, isExplicitlyLoaded, sdkResolverService, submissionId);
             }
             else if (solutionVersion == 10) /* Orcas */
             {
-                loggingService.LogComment(projectBuildEventContext, MessageImportance.Low, "OldWrapperGeneratedOldSolutionVersion", "3.5", solutionVersion);
+                loggingService.LogComment(projectBuildEventContext, MessageImportance.Low, BuildStrings.OldWrapperGeneratedOldSolutionVersion, "3.5", solutionVersion);
                 projectInstances = GenerateSolutionWrapperUsingOldOM(projectFile, globalProperties, "3.5", buildParameters.ProjectRootElementCache, buildParameters, loggingService, projectBuildEventContext, isExplicitlyLoaded, sdkResolverService, submissionId);
             }
             else
@@ -2835,7 +2839,7 @@ namespace Microsoft.Build.Execution
         {
             if (isImmutable)
             {
-                ErrorUtilities.ThrowInvalidOperation("OM_ProjectInstanceImmutable");
+                FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_ProjectInstanceImmutable);
             }
         }
 
@@ -3256,7 +3260,7 @@ namespace Microsoft.Build.Execution
             ProjectEvaluationStage evaluationStage = ProjectEvaluationStage.Full)
         {
             ArgumentNullException.ThrowIfNull(xml);
-            ErrorUtilities.VerifyThrowArgumentLengthIfNotNull(explicitToolsVersion, "toolsVersion");
+            FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(explicitToolsVersion, "toolsVersion");
             ArgumentNullException.ThrowIfNull(buildParameters);
 
             _directory = xml.DirectoryPath;
@@ -3300,7 +3304,11 @@ namespace Microsoft.Build.Execution
             if (this.Toolset == null)
             {
                 string toolsVersionList = Utilities.CreateToolsVersionListString(buildParameters.Toolsets);
-                ProjectErrorUtilities.ThrowInvalidProject(toolsVersionLocation, "UnrecognizedToolsVersion", toolsVersionToUse, toolsVersionList);
+                ProjectErrorUtilities.ThrowInvalidProject(
+                    toolsVersionLocation,
+                    FrameworkStrings.UnrecognizedToolsVersion,
+                    toolsVersionToUse,
+                    toolsVersionList);
             }
 
             if (explicitSubToolsetVersion != null)

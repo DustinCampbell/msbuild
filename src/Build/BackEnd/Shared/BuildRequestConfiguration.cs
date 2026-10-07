@@ -845,7 +845,7 @@ namespace Microsoft.Build.BackEnd
                         }
                         catch (Exception e) when (e is DirectoryNotFoundException or UnauthorizedAccessException)
                         {
-                            ErrorUtilities.ThrowInvalidOperation("CacheFileInaccessible", cacheFile, e);
+                            FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.CacheFileInaccessible, cacheFile, e);
                             throw;
                         }
 
@@ -884,7 +884,7 @@ namespace Microsoft.Build.BackEnd
                 }
                 catch (Exception e) when (e is DirectoryNotFoundException or UnauthorizedAccessException)
                 {
-                    ErrorUtilities.ThrowInvalidOperation("CacheFileInaccessible", cacheFile, e);
+                    FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.CacheFileInaccessible, cacheFile, e);
                     throw;
                 }
 
@@ -1197,7 +1197,7 @@ namespace Microsoft.Build.BackEnd
             }
             if (FileUtilities.IsVCProjFilename(data.ProjectFullPath))
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(data.ProjectFullPath), "ProjectUpgradeNeededToVcxProj", data.ProjectFullPath);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(data.ProjectFullPath), BuildStrings.ProjectUpgradeNeededToVcxProj, data.ProjectFullPath);
             }
 
             // We used to "sniff" the tools version from the project XML by opening it and reading the attribute.

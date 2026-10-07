@@ -26,18 +26,17 @@ internal static class EventsCreatorHelper
         return buildEvent;
     }
 
-    public static BuildErrorEventArgs CreateErrorEventFromText(BuildEventContext buildEventContext, string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public static BuildErrorEventArgs CreateErrorEventFromText(
+        BuildEventContext buildEventContext,
+        string? subcategory,
+        string? errorCode,
+        string? helpKeyword,
+        BuildEventFileInfo file,
+        string message)
     {
         Assumed.NotNull(buildEventContext);
         Assumed.NotNull(file);
         Assumed.NotNull(message);
-
-        string? subcategory = null;
-
-        if (subcategoryResourceName != null)
-        {
-            subcategory = AssemblyResources.GetString(subcategoryResourceName);
-        }
 
         BuildErrorEventArgs buildEvent =
         new BuildErrorEventArgs(
@@ -57,18 +56,17 @@ internal static class EventsCreatorHelper
         return buildEvent;
     }
 
-    public static BuildWarningEventArgs CreateWarningEventFromText(BuildEventContext buildEventContext, string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public static BuildWarningEventArgs CreateWarningEventFromText(
+        BuildEventContext buildEventContext,
+        string? subcategory,
+        string? errorCode,
+        string? helpKeyword,
+        BuildEventFileInfo file,
+        string message)
     {
         Assumed.NotNull(buildEventContext);
         Assumed.NotNull(file);
         Assumed.NotNull(message);
-
-        string? subcategory = null;
-
-        if (subcategoryResourceName != null)
-        {
-            subcategory = AssemblyResources.GetString(subcategoryResourceName);
-        }
 
         BuildWarningEventArgs buildEvent =
         new BuildWarningEventArgs(

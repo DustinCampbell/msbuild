@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Build.Framework;
 
 namespace Microsoft.Build.Shared;
 
@@ -42,9 +41,9 @@ internal static class ErrorUtilities
         Assumed.True(Monitor.IsEntered(locker), "Lock should already have been taken");
     }
 
-    /// <inheritdoc cref="FrameworkErrorUtilities.VerifyThrowInternalRooted(string)"/>
+    /// <inheritdoc cref="Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInternalRooted(string)"/>
     internal static void VerifyThrowInternalRooted(string value)
-        => FrameworkErrorUtilities.VerifyThrowInternalRooted(value);
+        => Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowInternalRooted(value);
 
     /// <summary>
     /// Throws an InvalidOperationException with the specified resource string
@@ -279,17 +278,17 @@ internal static class ErrorUtilities
         throw new ArgumentOutOfRangeException(parameterName);
     }
 
-    /// <inheritdoc cref="FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull{T}(IReadOnlyCollection{T}, string)"/>
+    /// <inheritdoc cref="Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull{T}(IReadOnlyCollection{T}, string)"/>
     internal static void VerifyThrowArgumentLengthIfNotNull<T>(IReadOnlyCollection<T>? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        => FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(parameter, parameterName);
+        => Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(parameter, parameterName);
 
-    /// <inheritdoc cref="FrameworkErrorUtilities.VerifyThrowArgumentInvalidPath(string, string)"/>
+    /// <inheritdoc cref="Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgumentInvalidPath(string, string)"/>
     internal static void VerifyThrowArgumentInvalidPath([NotNull] string? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        => FrameworkErrorUtilities.VerifyThrowArgumentInvalidPath(parameter, parameterName);
+        => Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgumentInvalidPath(parameter, parameterName);
 
-    /// <inheritdoc cref="FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(string, string)"/>
+    /// <inheritdoc cref="Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(string, string)"/>
     internal static void VerifyThrowArgumentLengthIfNotNull(string? parameter, [CallerArgumentExpression(nameof(parameter))] string? parameterName = null)
-        => FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(parameter, parameterName);
+        => Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyThrowArgumentLengthIfNotNull(parameter, parameterName);
 
     /// <summary>
     /// Throws an ArgumentNullException if the given parameter is null.
@@ -310,12 +309,17 @@ internal static class ErrorUtilities
         throw new ArgumentNullException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(resourceName, parameterName), (Exception?)null);
     }
 
-    /// <inheritdoc cref="FrameworkErrorUtilities.VerifyCollectionCopyToArguments{T}(ICollection{T}, int, int, string, string)"/>
+    /// <inheritdoc cref="Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyCollectionCopyToArguments{T}(ICollection{T}, int, int, string, string)"/>
     internal static void VerifyCollectionCopyToArguments<T>(
         [NotNull] ICollection<T>? collection,
         int index,
         int requiredCapacity,
         [CallerArgumentExpression(nameof(collection))] string? collectionParamName = null,
         [CallerArgumentExpression(nameof(index))] string? indexParamName = null)
-        => FrameworkErrorUtilities.VerifyCollectionCopyToArguments(collection, index, requiredCapacity, collectionParamName, indexParamName);
+        => Microsoft.Build.Framework.FrameworkErrorUtilities.VerifyCollectionCopyToArguments(
+            collection,
+            index,
+            requiredCapacity,
+            collectionParamName,
+            indexParamName);
 }

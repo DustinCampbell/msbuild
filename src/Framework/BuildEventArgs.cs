@@ -283,10 +283,10 @@ namespace Microsoft.Build.Framework
         /// This is used by the Message property overrides to reconstruct the
         /// message lazily on demand.
         /// </summary>
-        internal static Func<string, string?[], string> ResourceStringFormatter = (resourceName, arguments) =>
+        internal static Func<BuildEventResourceString, string?[], string> ResourceStringFormatter = (resource, arguments) =>
         {
             var sb = new StringBuilder();
-            sb.Append(resourceName);
+            sb.Append(resource);
             sb.Append('(');
 
             bool notFirst = false;
@@ -316,7 +316,7 @@ namespace Microsoft.Build.Framework
         /// <returns>The concatenated formatted string.</returns>
         internal static string FormatResourceStringIgnoreCodeAndKeyword(BuildEventResourceString resource, params string?[] arguments)
         {
-            return ResourceStringFormatter(resource.ToString(), arguments);
+            return ResourceStringFormatter(resource, arguments);
         }
     }
 }

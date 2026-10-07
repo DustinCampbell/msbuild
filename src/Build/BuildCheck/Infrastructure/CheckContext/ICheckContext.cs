@@ -20,7 +20,7 @@ internal interface ICheckContext
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as a comment.
     /// </summary>
-    void DispatchAsComment(MessageImportance importance, string messageResourceName, params object?[] messageArgs);
+    void DispatchAsComment(MessageImportance importance, ResourceString messageResource, params object?[] messageArgs);
 
     /// <summary>
     /// Dispatch a <see cref="BuildEventArgs"/>.
@@ -30,7 +30,7 @@ internal interface ICheckContext
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as an error message.
     /// </summary>
-    void DispatchAsErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
+    void DispatchAsErrorFromText(string? subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
 
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as a comment with provided text for the message.
@@ -40,7 +40,7 @@ internal interface ICheckContext
     /// <summary>
     /// Dispatch the instance of <see cref="BuildEventContext"/> as a warning message.
     /// </summary>
-    void DispatchAsWarningFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
+    void DispatchAsWarningFromText(string? subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message);
 
     /// <summary>
     /// Dispatch the telemetry data for a failed acquisition.

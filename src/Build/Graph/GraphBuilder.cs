@@ -273,12 +273,12 @@ namespace Microsoft.Build.Graph
             if (entryPoints.Count != 1)
             {
                 throw new ArgumentException(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "StaticGraphAcceptsSingleSolutionEntryPoint",
+                    ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                        BuildStrings.StaticGraphAcceptsSingleSolutionEntryPoint,
                         string.Join(";", entryPoints.Select(e => e.ProjectFile))));
             }
 
-            ErrorUtilities.VerifyThrowArgument(entryPoints.Count == 1, "StaticGraphAcceptsSingleSolutionEntryPoint");
+            FrameworkErrorUtilities.VerifyThrowArgument(entryPoints.Count == 1, BuildStrings.StaticGraphAcceptsSingleSolutionEntryPoint);
 
             ProjectGraphEntryPoint solutionEntryPoint = entryPoints.Single();
             ImmutableDictionary<string, string>.Builder solutionGlobalPropertiesBuilder = ImmutableDictionary.CreateBuilder(
@@ -295,8 +295,8 @@ namespace Microsoft.Build.Graph
             if (Solution.SolutionParserWarnings.Count != 0 || Solution.SolutionParserErrorCodes.Count != 0)
             {
                 throw new InvalidProjectFileException(
-                    ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "StaticGraphSolutionLoaderEncounteredSolutionWarningsAndErrors",
+                    ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                        BuildStrings.StaticGraphSolutionLoaderEncounteredSolutionWarningsAndErrors,
                         solutionEntryPoint.ProjectFile,
                         string.Join(";", Solution.SolutionParserWarnings),
                         string.Join(";", Solution.SolutionParserErrorCodes)));
@@ -365,9 +365,9 @@ namespace Microsoft.Build.Graph
                         if (!Solution.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                         {
                             ProjectFileErrorUtilities.ThrowInvalidProjectFile(
-                                "SubCategoryForSolutionParsingErrors",
+                                BuildStrings.SubCategoryForSolutionParsingErrors,
                                 new BuildEventFileInfo(Solution.FullPath),
-                                "SolutionParseProjectDepNotFoundError",
+                                BuildStrings.SolutionParseProjectDepNotFoundError,
                                 project.ProjectGuid,
                                 dependencyProjectGuid);
                         }
@@ -497,7 +497,7 @@ namespace Microsoft.Build.Graph
                                     FormatCircularDependencyError(new List<string> { node.ProjectInstance.FullPath, node.ProjectInstance.FullPath });
                                 throw new CircularDependencyException(
                                     string.Format(
-                                        ResourceUtilities.GetResourceString("CircularDependencyInProjectGraph"),
+                                        ResourceStringUtilities.GetResourceString(BuildStrings.CircularDependencyInProjectGraph),
                                         selfReferencingProjectString));
                             }
 
@@ -522,7 +522,7 @@ namespace Microsoft.Build.Graph
                                 var errorMessage = FormatCircularDependencyError(loadReference.projectsInCycle);
                                 throw new CircularDependencyException(
                                     string.Format(
-                                        ResourceUtilities.GetResourceString("CircularDependencyInProjectGraph"),
+                                        ResourceStringUtilities.GetResourceString(BuildStrings.CircularDependencyInProjectGraph),
                                         errorMessage));
                             }
 
@@ -557,8 +557,8 @@ namespace Microsoft.Build.Graph
                 // Enrich the exception with information about which project(s) referenced this project
                 string referrerList = string.Join(", ", referrers.Distinct().OrderBy(r => r));
 
-                string enrichedMessage = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                    "ProjectGraphProjectFileCannotBeLoadedWithReferrers",
+                string enrichedMessage = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                    BuildStrings.ProjectGraphProjectFileCannotBeLoadedWithReferrers,
                     configurationMetadata.ProjectFullPath,
                     referrerList);
 
@@ -585,7 +585,7 @@ namespace Microsoft.Build.Graph
 
             if (projectInstance == null)
             {
-                throw new InvalidOperationException(ResourceUtilities.GetResourceString("NullReferenceFromProjectInstanceFactory"));
+                throw new InvalidOperationException(ResourceStringUtilities.GetResourceString(BuildStrings.NullReferenceFromProjectInstanceFactory));
             }
 
             var graphNode = new ProjectGraphNode(projectInstance);
@@ -629,8 +629,8 @@ namespace Microsoft.Build.Graph
             {
                 if (FileUtilities.IsSolutionFilename(referenceInfo.ReferenceConfiguration.ProjectFullPath))
                 {
-                    throw new InvalidOperationException(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                        "StaticGraphDoesNotSupportSlnReferences",
+                    throw new InvalidOperationException(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                        BuildStrings.StaticGraphDoesNotSupportSlnReferences,
                         referenceInfo.ReferenceConfiguration.ProjectFullPath,
                         referenceInfo.ReferenceConfiguration.ProjectFullPath));
                 }

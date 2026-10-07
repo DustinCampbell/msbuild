@@ -231,7 +231,7 @@ namespace Microsoft.Build.Construction
                 bool preserveFormatting)
         {
             ArgumentException.ThrowIfNullOrEmpty(path);
-            ErrorUtilities.VerifyThrowInternalRooted(path);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(path);
             ArgumentNullException.ThrowIfNull(projectRootElementCache);
             ProjectRootElementCache = projectRootElementCache;
 
@@ -295,7 +295,7 @@ namespace Microsoft.Build.Construction
         public override string Condition
         {
             get => null;
-            set => ErrorUtilities.ThrowInvalidOperation("OM_CannotGetSetCondition");
+            set => FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_CannotGetSetCondition);
         }
 
         #region ChildEnumerators
@@ -1539,7 +1539,7 @@ namespace Microsoft.Build.Construction
                 return;
             }
 
-            ErrorUtilities.VerifyThrowInvalidOperation(_projectFileLocation != null, "OM_MustSetFileNameBeforeSave");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(_projectFileLocation != null, BuildStrings.OM_MustSetFileNameBeforeSave);
 
             Directory.CreateDirectory(DirectoryPath);
 
@@ -1647,7 +1647,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public void Reload(bool throwIfUnsavedChanges = true, bool? preserveFormatting = null)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(!string.IsNullOrEmpty(FullPath), "ValueNotSet", $"{nameof(ProjectRootElement)}.{nameof(FullPath)}");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(!string.IsNullOrEmpty(FullPath), BuildStrings.ValueNotSet, $"{nameof(ProjectRootElement)}.{nameof(FullPath)}");
 
             ReloadFrom(FullPath, throwIfUnsavedChanges, preserveFormatting);
         }
@@ -1660,7 +1660,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         public void ReloadFrom(string path, bool throwIfUnsavedChanges = true, bool? preserveFormatting = null)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(FileSystems.Default.FileExists(path), "FileToReloadFromDoesNotExist", path);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(FileSystems.Default.FileExists(path), BuildStrings.FileToReloadFromDoesNotExist, path);
 
             if (Link != null)
             {
@@ -1758,7 +1758,7 @@ namespace Microsoft.Build.Construction
         internal static ProjectRootElement Open(string path, ProjectRootElementCacheBase projectRootElementCache, bool isExplicitlyLoaded,
             bool? preserveFormatting)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(path);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(path);
 
             ProjectRootElement projectRootElement = projectRootElementCache.Get(path,
                 preserveFormatting ?? false ? s_openLoaderPreserveFormattingDelegate : s_openLoaderDelegate,
@@ -1790,7 +1790,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal static ProjectRootElement OpenProjectOrSolution(string fullPath, IDictionary<string, string> globalProperties, string toolsVersion, ProjectRootElementCacheBase projectRootElementCache, bool isExplicitlyLoaded)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(fullPath);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(fullPath);
 
             ProjectRootElement projectRootElement = projectRootElementCache.Get(
                 fullPath,
@@ -1827,7 +1827,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         internal override void VerifyThrowInvalidOperationAcceptableLocation(ProjectElementContainer parent, ProjectElement previousSibling, ProjectElement nextSibling)
         {
-            ErrorUtilities.ThrowInvalidOperation("OM_CannotAcceptParent");
+            FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_CannotAcceptParent);
         }
 
         /// <summary>
@@ -1941,7 +1941,7 @@ namespace Microsoft.Build.Construction
             {
                 if (!SdkReference.TryParse(sdk, out SdkReference sdkReference))
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(sdkLocation, "InvalidSdkFormat", sdks);
+                    ProjectErrorUtilities.ThrowInvalidProject(sdkLocation, BuildStrings.InvalidSdkFormat, sdks);
                 }
 
                 yield return sdkReference;
@@ -2048,13 +2048,13 @@ namespace Microsoft.Build.Construction
                 ProjectRootElementCacheBase projectRootElementCache,
                 bool preserveFormatting)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(projectFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(projectFile);
 
             try
             {
                 if (FileUtilities.IsVCProjFilename(projectFile))
                 {
-                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(projectFile), "ProjectUpgradeNeededToVcxProj", projectFile);
+                    ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(projectFile), BuildStrings.ProjectUpgradeNeededToVcxProj, projectFile);
                 }
 
                 // OK it's a regular project file, load it normally.
@@ -2066,7 +2066,7 @@ namespace Microsoft.Build.Construction
             }
             catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
             {
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(projectFile), ex, "InvalidProjectFile", ex.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(new BuildEventFileInfo(projectFile), ex, BuildStrings.InvalidProjectFile, ex.Message);
                 throw; // Without this there's a spurious CS0161 because csc 1.2.0.60317 can't see that the above is an unconditional throw.
             }
         }
@@ -2083,7 +2083,7 @@ namespace Microsoft.Build.Construction
         /// <param name="loadAsReadOnly">Whether to load the file in read-only mode.</param>
         private XmlDocumentWithLocation LoadDocument(string fullPath, bool preserveFormatting, bool loadAsReadOnly)
         {
-            ErrorUtilities.VerifyThrowInternalRooted(fullPath);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(fullPath);
 
             var document = new XmlDocumentWithLocation(loadAsReadOnly ? true : (bool?)null)
             {
@@ -2121,7 +2121,7 @@ namespace Microsoft.Build.Construction
                     ? new BuildEventFileInfo(fullPath, xmlException)
                     : new BuildEventFileInfo(fullPath);
 
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, "InvalidProjectFile", ex.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, ex, BuildStrings.InvalidProjectFile, ex.Message);
             }
             MSBuildEventSource.Log.LoadDocumentStop(fullPath);
 
@@ -2145,7 +2145,7 @@ namespace Microsoft.Build.Construction
             {
                 BuildEventFileInfo fileInfo = new BuildEventFileInfo(ex);
 
-                ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, "InvalidProjectFile", ex.Message);
+                ProjectFileErrorUtilities.ThrowInvalidProjectFile(fileInfo, BuildStrings.InvalidProjectFile, ex.Message);
             }
 
             return document;
@@ -2164,7 +2164,7 @@ namespace Microsoft.Build.Construction
         {
             if (HasUnsavedChanges && throwIfUnsavedChanges)
             {
-                ErrorUtilities.ThrowInvalidOperation("NoReloadOnUnsavedChanges");
+                FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.NoReloadOnUnsavedChanges);
             }
         }
     }

@@ -58,8 +58,8 @@ namespace Microsoft.Build.Engine.UnitTests
             testTaskOutput.ShouldContain($"Process path: {dotnetPath}", customMessage: testTaskOutput);
 
             var customTaskAssemblyLocation = Path.GetFullPath(Path.Combine(AssemblyLocation, "..", RunnerUtilities.LatestDotNetCoreForMSBuild, "ExampleTask.dll"));
-            var resource = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-               "TaskAssemblyLocationMismatch",
+            var resource = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+               BuildStrings.TaskAssemblyLocationMismatch,
 
                // Microsoft.Build.dll represents TaskHostTask wrapper for the custom task here.
                Path.Combine(RunnerUtilities.BootstrapRootPath, "net472", "MSBuild", "Current", "Bin", "Microsoft.Build.dll"),

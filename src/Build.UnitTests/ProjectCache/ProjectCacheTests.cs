@@ -814,11 +814,11 @@ namespace Microsoft.Build.Engine.UnitTests.ProjectCache
             {
                 if (string.IsNullOrEmpty(targets))
                 {
-                    mockLogger.FullLog.ShouldContain(string.Format(ResourceUtilities.GetResourceString("ProjectCacheQueryStartedWithDefaultTargets"), node.ProjectInstance.FullPath));
+                    mockLogger.FullLog.ShouldContain(string.Format(ResourceStringUtilities.GetResourceString(BuildStrings.ProjectCacheQueryStartedWithDefaultTargets), node.ProjectInstance.FullPath));
                 }
                 else
                 {
-                    mockLogger.FullLog.ShouldContain(string.Format(ResourceUtilities.GetResourceString("ProjectCacheQueryStartedWithTargetNames"), node.ProjectInstance.FullPath, targets));
+                    mockLogger.FullLog.ShouldContain(string.Format(ResourceStringUtilities.GetResourceString(BuildStrings.ProjectCacheQueryStartedWithTargetNames), node.ProjectInstance.FullPath, targets));
                 }
 
                 if (instanceMockCache != null)

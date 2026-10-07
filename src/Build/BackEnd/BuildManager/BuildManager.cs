@@ -544,9 +544,9 @@ namespace Microsoft.Build.Execution
         public void BeginBuild(BuildParameters parameters)
         {
 #if FEATURE_REPORTFILEACCESSES
-            ErrorUtilities.VerifyThrowInvalidOperation(
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(
                 !parameters.ReportFileAccesses || !parameters.MultiThreaded,
-                "ReportFileAccessesIncompatibleWithMultiThreaded");
+                BuildStrings.ReportFileAccessesIncompatibleWithMultiThreaded);
 #endif
 
 #if NETFRAMEWORK
@@ -601,7 +601,7 @@ namespace Microsoft.Build.Execution
                 AttachDebugger();
 
                 // Check for build in progress.
-                RequireState(BuildManagerState.Idle, "BuildInProgress");
+                RequireState(BuildManagerState.Idle, BuildStrings.BuildInProgress);
 
                 MSBuildEventSource.Log.BuildStart();
 
@@ -733,7 +733,7 @@ namespace Microsoft.Build.Execution
                 // Log if BuildCheck is enabled
                 if (_buildParameters.IsBuildCheckEnabled)
                 {
-                    loggingService.LogComment(buildEventContext: BuildEventContext.Invalid, MessageImportance.Normal, "BuildCheckEnabled");
+                    loggingService.LogComment(buildEventContext: BuildEventContext.Invalid, MessageImportance.Normal, BuildStrings.BuildCheckEnabled);
                 }
 
                 // Log known deferred telemetry
@@ -795,7 +795,7 @@ namespace Microsoft.Build.Execution
                         loggingService.LogComment(
                             BuildEventContext.Invalid,
                             MessageImportance.Low,
-                            "MultiThreadedStrictModeEnabled",
+                            BuildStrings.MultiThreadedStrictModeEnabled,
                             _multiThreadedStrictModeScope.SentinelDirectory);
                     }
                     catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))
@@ -844,12 +844,12 @@ namespace Microsoft.Build.Execution
 
                     if (_buildParameters.UsesInputCaches())
                     {
-                        loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "UsingInputCaches", string.Join(";", _buildParameters.InputResultsCacheFiles));
+                        loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, BuildStrings.UsingInputCaches, string.Join(";", _buildParameters.InputResultsCacheFiles));
                     }
 
                     if (_buildParameters.UsesOutputCache())
                     {
-                        loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, "WritingToOutputCache", _buildParameters.OutputResultsCacheFile);
+                        loggingService.LogComment(BuildEventContext.Invalid, MessageImportance.Normal, BuildStrings.WritingToOutputCache, _buildParameters.OutputResultsCacheFile);
                     }
                 }
                 catch (Exception)
@@ -932,7 +932,9 @@ namespace Microsoft.Build.Execution
         private void EnableDetouredNodeLauncher()
         {
             // Currently BuildXL only supports x64. Once this feature moves out of the experimental phase, this will need to be addressed.
-            ErrorUtilities.VerifyThrowInvalidOperation(NativeMethodsShared.ProcessorArchitecture == NativeMethodsShared.ProcessorArchitectures.X64, "ReportFileAccessesX64Only");
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(
+                NativeMethodsShared.ProcessorArchitecture == NativeMethodsShared.ProcessorArchitectures.X64,
+                BuildStrings.ReportFileAccessesX64Only);
 
             // To properly report file access, we need to disable the in-proc node which won't be detoured.
             _buildParameters!.DisableInProcNode = true;
@@ -1043,8 +1045,8 @@ namespace Microsoft.Build.Execution
         {
             lock (_syncLock)
             {
-                ErrorIfState(BuildManagerState.WaitingForBuildToComplete, "WaitingForEndOfBuild");
-                ErrorIfState(BuildManagerState.Building, "BuildInProgress");
+                ErrorIfState(BuildManagerState.WaitingForBuildToComplete, BuildStrings.WaitingForEndOfBuild);
+                ErrorIfState(BuildManagerState.Building, BuildStrings.BuildInProgress);
 
                 _configCache = ((IBuildComponentHost)this).GetComponent<IConfigCache>(BuildComponentType.ConfigCache);
                 _resultsCache = ((IBuildComponentHost)this).GetComponent<IResultsCache>(BuildComponentType.ResultsCache);
@@ -1106,8 +1108,8 @@ namespace Microsoft.Build.Execution
             lock (_syncLock)
             {
                 ArgumentNullException.ThrowIfNull(requestData);
-                ErrorIfState(BuildManagerState.WaitingForBuildToComplete, "WaitingForEndOfBuild");
-                ErrorIfState(BuildManagerState.Idle, "NoBuildInProgress");
+                ErrorIfState(BuildManagerState.WaitingForBuildToComplete, BuildStrings.WaitingForEndOfBuild);
+                ErrorIfState(BuildManagerState.Idle, BuildStrings.NoBuildInProgress);
                 VerifyStateInternal(BuildManagerState.Building);
 
                 var newSubmission = requestData.CreateSubmission(this, GetNextSubmissionId(), requestData,
@@ -1160,8 +1162,8 @@ namespace Microsoft.Build.Execution
         {
             lock (_syncLock)
             {
-                ErrorIfState(BuildManagerState.WaitingForBuildToComplete, "WaitingForEndOfBuild");
-                ErrorIfState(BuildManagerState.Idle, "NoBuildInProgress");
+                ErrorIfState(BuildManagerState.WaitingForBuildToComplete, BuildStrings.WaitingForEndOfBuild);
+                ErrorIfState(BuildManagerState.Idle, BuildStrings.NoBuildInProgress);
                 VerifyStateInternal(BuildManagerState.Building);
 
                 _buildManagerState = BuildManagerState.WaitingForBuildToComplete;
@@ -1234,12 +1236,12 @@ namespace Microsoft.Build.Execution
                         string? warningCode;
                         string? helpKeyword;
                         string message = recovered
-                            ? ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                            ? ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
                                 out warningCode, out helpKeyword,
-                                "MultiThreadedStrictModeSentinelMissing", _multiThreadedStrictModeScope.SentinelDirectory)
-                            : ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                                BuildStrings.MultiThreadedStrictModeSentinelMissing, _multiThreadedStrictModeScope.SentinelDirectory)
+                            : ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
                                 out warningCode, out helpKeyword,
-                                "MultiThreadedStrictModeUnresolvedPathWrite", entries, _multiThreadedStrictModeScope.SentinelDirectory);
+                                BuildStrings.MultiThreadedStrictModeUnresolvedPathWrite, entries, _multiThreadedStrictModeScope.SentinelDirectory);
                         Assumed.NotNull(warningCode, "The strict-mode warning must have a diagnostic code.");
                         loggingService.LogWarningFromText(
                             BuildEventContext.Invalid, null, warningCode, helpKeyword, BuildEventFileInfo.Empty, message);
@@ -1755,9 +1757,9 @@ namespace Microsoft.Build.Execution
                     {
                         if (_acquiredProjectRootElementCacheFromProjectInstance)
                         {
-                            ErrorUtilities.VerifyThrowArgument(
+                            FrameworkErrorUtilities.VerifyThrowArgument(
                                 _buildParameters!.ProjectRootElementCache == projectInstance.ProjectRootElementCache,
-                                "OM_BuildSubmissionsMultipleProjectCollections");
+                                BuildStrings.OM_BuildSubmissionsMultipleProjectCollections);
                         }
                         else
                         {
@@ -2412,8 +2414,8 @@ namespace Microsoft.Build.Execution
             }
 
             LogMessage(
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                    "StaticGraphConstructionStarted"));
+                ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                    BuildStrings.StaticGraphConstructionStarted));
 
             var projectGraph = submission.BuildRequestData.ProjectGraph;
             if (projectGraph == null)
@@ -2455,8 +2457,8 @@ namespace Microsoft.Build.Execution
             }
 
             LogMessage(
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                    "StaticGraphConstructionMetrics",
+                ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                    BuildStrings.StaticGraphConstructionMetrics,
                     Math.Round(projectGraph.ConstructionMetrics.ConstructionTime.TotalSeconds, 3),
                     projectGraph.ConstructionMetrics.NodeCount,
                     projectGraph.ConstructionMetrics.EdgeCount));
@@ -2476,7 +2478,7 @@ namespace Microsoft.Build.Execution
                 // the verification explicitly before the build even starts.
                 foreach (ProjectGraphNode entryPointNode in projectGraph.EntryPointNodes)
                 {
-                    ProjectErrorUtilities.VerifyThrowInvalidProject(entryPointNode.ProjectInstance.Targets.Count > 0, entryPointNode.ProjectInstance.ProjectFileLocation, "NoTargetSpecified");
+                    ProjectErrorUtilities.VerifyThrowInvalidProject(entryPointNode.ProjectInstance.Targets.Count > 0, entryPointNode.ProjectInstance.ProjectFileLocation, BuildStrings.NoTargetSpecified);
                 }
 
                 resultsPerNode = BuildGraph(projectGraph, targetsPerNode, submission.BuildRequestData);
@@ -2632,20 +2634,20 @@ namespace Microsoft.Build.Execution
         /// <summary>
         /// Errors if the BuildManager is in the specified state.
         /// </summary>
-        private void ErrorIfState(BuildManagerState disallowedState, string exceptionResouorce)
+        private void ErrorIfState(BuildManagerState disallowedState, ResourceString exceptionResource)
         {
             if (_buildManagerState == disallowedState)
             {
-                ErrorUtilities.ThrowInvalidOperation(exceptionResouorce);
+                FrameworkErrorUtilities.ThrowInvalidOperation(exceptionResource);
             }
         }
 
         /// <summary>
         /// Verifies the BuildManager is in the required state, and throws a <see cref="System.InvalidOperationException"/> if it is not.
         /// </summary>
-        private void RequireState(BuildManagerState requiredState, string exceptionResouorce)
+        private void RequireState(BuildManagerState requiredState, ResourceString exceptionResource)
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(_buildManagerState == requiredState, exceptionResouorce);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(_buildManagerState == requiredState, exceptionResource);
         }
 
         /// <summary>
@@ -3016,7 +3018,13 @@ namespace Microsoft.Build.Execution
                     {
                         BuildEventContext buildEventContext = new BuildEventContext(submission.SubmissionId, BuildEventContext.InvalidNodeId, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
                         string exception = DebugUtils.ReadAnyExceptionFromFile(_instantiationTimeUtc);
-                        loggingService?.LogError(buildEventContext, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, DebugUtils.DebugDumpPath, exception);
+                        loggingService?.LogError(
+                            buildEventContext,
+                            new BuildEventFileInfo(string.Empty),
+                            BuildStrings.ChildExitedPrematurely,
+                            node,
+                            DebugUtils.DebugDumpPath,
+                            exception);
                     }
                 }
                 else if (shutdownPacket.Reason == NodeShutdownReason.Error && _buildSubmissions.Values.Count == 0)
@@ -3025,7 +3033,13 @@ namespace Microsoft.Build.Execution
                     if (shutdownPacket.Exception != null)
                     {
                         ILoggingService loggingService = ((IBuildComponentHost)this).GetComponent<ILoggingService>(BuildComponentType.LoggingService);
-                        loggingService?.LogError(BuildEventContext.Invalid, new BuildEventFileInfo(string.Empty) /* no project file */, "ChildExitedPrematurely", node, DebugUtils.DebugDumpPath, shutdownPacket.Exception.ToString());
+                        loggingService?.LogError(
+                            BuildEventContext.Invalid,
+                            new BuildEventFileInfo(string.Empty),
+                            BuildStrings.ChildExitedPrematurely,
+                            node,
+                            DebugUtils.DebugDumpPath,
+                            shutdownPacket.Exception.ToString());
                         OnThreadException(shutdownPacket.Exception);
                     }
                 }
@@ -3171,9 +3185,9 @@ namespace Microsoft.Build.Execution
                         if (newNodes?.Count != response.NumberOfNodesToCreate || newNodes.Any(n => n == null))
                         {
                             BuildEventContext buildEventContext = new BuildEventContext(0, Scheduler.VirtualNode, BuildEventContext.InvalidProjectInstanceId, BuildEventContext.InvalidProjectContextId, BuildEventContext.InvalidTargetId, BuildEventContext.InvalidTaskId);
-                            ((IBuildComponentHost)this).LoggingService.LogError(buildEventContext, new BuildEventFileInfo(String.Empty), "UnableToCreateNode", response.RequiredNodeType.ToString("G"));
+                            ((IBuildComponentHost)this).LoggingService.LogError(buildEventContext, new BuildEventFileInfo(String.Empty), BuildStrings.UnableToCreateNode, response.RequiredNodeType.ToString("G"));
 
-                            throw new BuildAbortedException(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("UnableToCreateNode", response.RequiredNodeType.ToString("G")));
+                            throw new BuildAbortedException(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.UnableToCreateNode, response.RequiredNodeType.ToString("G")));
                         }
 
                         foreach (var node in newNodes)
@@ -3624,7 +3638,7 @@ namespace Microsoft.Build.Execution
                 {
                     loggingService.LogWarningFromText(
                         BuildEventContext.Invalid,
-                        subcategoryResourceName: null,
+                        subcategory: null,
                         warningCode: message.Code,
                         helpKeyword: null,
                         file: BuildEventFileInfo.Empty,
@@ -3703,7 +3717,7 @@ namespace Microsoft.Build.Execution
                     }
 
                     // We should always have finished cleaning up before calling Dispose.
-                    RequireState(BuildManagerState.Idle, "ShouldNotDisposeWhenBuildManagerActive");
+                    RequireState(BuildManagerState.Idle, BuildStrings.ShouldNotDisposeWhenBuildManagerActive);
 
                     _componentFactories?.ShutdownComponents();
 
@@ -3763,7 +3777,7 @@ namespace Microsoft.Build.Execution
 
                 if (inputCacheFiles.Any(f => !FileSystems.Default.FileExists(f)))
                 {
-                    LogErrorAndShutdown(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("InputCacheFilesDoNotExist", string.Join(";", inputCacheFiles.Where(f => !FileSystems.Default.FileExists(f)))));
+                    LogErrorAndShutdown(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.InputCacheFilesDoNotExist, string.Join(";", inputCacheFiles.Where(f => !FileSystems.Default.FileExists(f)))));
                     return false;
                 }
 
@@ -3775,7 +3789,7 @@ namespace Microsoft.Build.Execution
 
                     if (exception != null)
                     {
-                        LogErrorAndShutdown(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("ErrorReadingCacheFile", inputCacheFile, exception.Message));
+                        LogErrorAndShutdown(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.ErrorReadingCacheFile, inputCacheFile, exception.Message));
                         return false;
                     }
 

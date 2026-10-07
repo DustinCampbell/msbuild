@@ -34,11 +34,11 @@ internal class CheckDispatchingContext : ICheckContext
         _eventDispatcher.Dispatch(buildEvent);
     }
 
-    public void DispatchAsComment(MessageImportance importance, string messageResourceName, params object?[] messageArgs)
+    public void DispatchAsComment(MessageImportance importance, ResourceString messageResource, params object?[] messageArgs)
     {
-        Assumed.NotNullOrEmpty(messageResourceName);
+        Assumed.NotNull(messageResource);
 
-        DispatchAsCommentFromText(_eventContext, importance, ResourceUtilities.GetResourceString(messageResourceName), messageArgs);
+        DispatchAsCommentFromText(_eventContext, importance, ResourceStringUtilities.GetResourceString(messageResource), messageArgs);
     }
 
     public void DispatchAsCommentFromText(MessageImportance importance, string message)
@@ -51,16 +51,16 @@ internal class CheckDispatchingContext : ICheckContext
         _eventDispatcher.Dispatch(buildEvent);
     }
 
-    public void DispatchAsErrorFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsErrorFromText(string? subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
     {
-        BuildErrorEventArgs buildEvent = EventsCreatorHelper.CreateErrorEventFromText(_eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+        BuildErrorEventArgs buildEvent = EventsCreatorHelper.CreateErrorEventFromText(_eventContext, subcategory, errorCode, helpKeyword, file, message);
 
         _eventDispatcher.Dispatch(buildEvent);
     }
 
-    public void DispatchAsWarningFromText(string? subcategoryResourceName, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
+    public void DispatchAsWarningFromText(string? subcategory, string? errorCode, string? helpKeyword, BuildEventFileInfo file, string message)
     {
-        BuildWarningEventArgs buildEvent = EventsCreatorHelper.CreateWarningEventFromText(_eventContext, subcategoryResourceName, errorCode, helpKeyword, file, message);
+        BuildWarningEventArgs buildEvent = EventsCreatorHelper.CreateWarningEventFromText(_eventContext, subcategory, errorCode, helpKeyword, file, message);
 
         _eventDispatcher.Dispatch(buildEvent);
     }

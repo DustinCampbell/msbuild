@@ -94,9 +94,9 @@ namespace Microsoft.Build.Evaluation.Context
         public static EvaluationContext Create(SharingPolicy policy, MSBuildFileSystemBase fileSystem)
         {
             // Unsupported case: not-fully-shared context with non null file system.
-            ErrorUtilities.VerifyThrowArgument(
+            FrameworkErrorUtilities.VerifyThrowArgument(
                 policy == SharingPolicy.Shared || fileSystem == null,
-                "IsolatedContextDoesNotSupportFileSystem");
+                BuildStrings.IsolatedContextDoesNotSupportFileSystem);
 
             var context = new EvaluationContext(
                 policy,

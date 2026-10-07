@@ -62,7 +62,7 @@ namespace Microsoft.Build.Execution
 
             if (projectInstance.EvaluationStage != Evaluation.ProjectEvaluationStage.Full)
             {
-                Shared.ErrorUtilities.ThrowInvalidOperation("OM_PartialEvaluationCannotBuild", projectInstance.EvaluationStage);
+                FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.OM_PartialEvaluationCannotBuild, projectInstance.EvaluationStage);
             }
 
             foreach (string targetName in targetsToBuild)

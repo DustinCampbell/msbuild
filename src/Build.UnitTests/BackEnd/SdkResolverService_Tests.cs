@@ -65,9 +65,9 @@ namespace Microsoft.Build.Engine.UnitTests.BackEnd
             _logger.BuildMessageEvents.Select(i => i.Message).ShouldContain("MockSdkResolverWithResolvableSdkPattern2 running");
 
             // First error is a generic "we failed" message.
-            _logger.Errors[0].Message.ShouldBe(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("FailedToResolveSDK", "notfound", string.Join($"{Environment.NewLine}  ", new[] {
+            _logger.Errors[0].Message.ShouldBe(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.FailedToResolveSDK, "notfound", string.Join($"{Environment.NewLine}  ", new[] {
                 "ERROR4",
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword("SDKResolverReturnedNull", "MockResolverReturnsNull"),
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.SDKResolverReturnedNull, "MockResolverReturnsNull"),
                 "ERROR1",
                 "ERROR2",
                 "notfound"
@@ -245,8 +245,8 @@ namespace Microsoft.Build.Engine.UnitTests.BackEnd
             // Check that only the simplified error (no MSBuild wrapper) is logged
             _logger.Errors.Count.ShouldBe(1);
             _logger.Errors[0].Message.ShouldBe(
-                ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-                    "SingleResolverFailedToResolveSDK",
+                ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+                    BuildStrings.SingleResolverFailedToResolveSDK,
                     "notfound",
                     "MockSdkResolver1",
                     "ERROR1"));
@@ -400,10 +400,10 @@ namespace Microsoft.Build.Engine.UnitTests.BackEnd
             var result = service.ResolveSdk(BuildEventContext.InvalidSubmissionId, sdk, _loggingContext, new MockElementLocation("file"), "sln", "projectPath", interactive: false, isRunningInVisualStudio: false, failOnUnresolvedSdk: true);
 
             // First resolver attempted to resolve, but failed.
-            _logger.BuildMessageEvents.Select(i => i.Message).ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("SDKResolverAttempt", nameof(MockResolverReturnsNull), sdk.ToString(), "null",
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword("SDKResolverReturnedNull", nameof(MockResolverReturnsNull))));
+            _logger.BuildMessageEvents.Select(i => i.Message).ShouldContain(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.SDKResolverAttempt, nameof(MockResolverReturnsNull), sdk.ToString(), "null",
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.SDKResolverReturnedNull, nameof(MockResolverReturnsNull))));
             // Second resolver succeeded.
-            _logger.BuildMessageEvents.Select(i => i.Message).ShouldContain(ResourceUtilities.FormatResourceStringStripCodeAndKeyword("SucceededToResolveSDK", sdk.ToString(), nameof(MockSdkResolver1), result.Path, result.Version));
+            _logger.BuildMessageEvents.Select(i => i.Message).ShouldContain(ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.SucceededToResolveSDK, sdk.ToString(), nameof(MockSdkResolver1), result.Path, result.Version));
         }
 
         [Fact]

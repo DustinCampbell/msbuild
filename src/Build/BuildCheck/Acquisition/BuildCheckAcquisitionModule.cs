@@ -48,13 +48,13 @@ internal class BuildCheckAcquisitionModule : IBuildCheckAcquisitionModule
             foreach (Type checkCandidate in checkTypes)
             {
                 checksFactories.Add(() => (Check)Activator.CreateInstance(checkCandidate)!);
-                checkContext.DispatchAsComment(MessageImportance.Normal, "CustomCheckRegistered", checkCandidate.Name, checkCandidate.Assembly);
+                checkContext.DispatchAsComment(MessageImportance.Normal, BuildStrings.CustomCheckRegistered, checkCandidate.Name, checkCandidate.Assembly);
             }
 
             if (availableTypes.Length != checkTypes.Length)
             {
                 availableTypes.Except(checkTypes).ToList()
-                    .ForEach(t => checkContext.DispatchAsComment(MessageImportance.Normal, "CustomCheckBaseTypeNotAssignable", t.Name, t.Assembly));
+                    .ForEach(t => checkContext.DispatchAsComment(MessageImportance.Normal, BuildStrings.CustomCheckBaseTypeNotAssignable, t.Name, t.Assembly));
             }
         }
         catch (ReflectionTypeLoadException ex) when (ex.LoaderExceptions.Length != 0)
@@ -73,7 +73,7 @@ internal class BuildCheckAcquisitionModule : IBuildCheckAcquisitionModule
 
         void ReportLoadingError(Exception ex)
         {
-            checkContext.DispatchAsComment(MessageImportance.Normal, "CustomCheckFailedRuleLoading", ex.Message);
+            checkContext.DispatchAsComment(MessageImportance.Normal, BuildStrings.CustomCheckFailedRuleLoading, ex.Message);
             checkContext.DispatchFailedAcquisitionTelemetry(System.IO.Path.GetFileName(checkAcquisitionData.AssemblyPath), ex);
         }
     }

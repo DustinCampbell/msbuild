@@ -13,8 +13,8 @@ internal class PreferProjectReferenceCheck : Check
 {
     private const string RuleId = "BC0104";
     public static CheckRule SupportedRule = new CheckRule(RuleId, "PreferProjectReference",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0104_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0104_MessageFmt")!,
+        ResourceStringUtilities.GetResourceString(BuildStrings.BuildCheck_BC0104_Title)!,
+        ResourceStringUtilities.GetResourceString(BuildStrings.BuildCheck_BC0104_MessageFmt)!,
         new CheckConfiguration() { RuleId = RuleId, Severity = CheckResultSeverity.Warning });
 
     public override string FriendlyName => "MSBuild.PreferProjectReferenceCheck";

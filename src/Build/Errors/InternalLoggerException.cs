@@ -7,7 +7,6 @@ using System.Runtime.Serialization;
 using System.Security.Permissions;
 #endif
 
-using Microsoft.Build.Shared;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Framework.BuildException;
 using Microsoft.Build.Framework.Telemetry;
@@ -38,7 +37,7 @@ namespace Microsoft.Build.Exceptions
         /// <exception cref="InvalidOperationException"></exception>
         public InternalLoggerException()
         {
-            ErrorUtilities.ThrowInvalidOperation("InternalLoggerExceptionOnlyThrownByEngine");
+            FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.InternalLoggerExceptionOnlyThrownByEngine);
         }
 
         /// <summary>
@@ -52,7 +51,7 @@ namespace Microsoft.Build.Exceptions
         public InternalLoggerException(string message)
             : base(message)
         {
-            ErrorUtilities.ThrowInvalidOperation("InternalLoggerExceptionOnlyThrownByEngine");
+            FrameworkErrorUtilities.ThrowInvalidOperation(BuildStrings.InternalLoggerExceptionOnlyThrownByEngine);
         }
 
         /// <summary>
@@ -243,21 +242,25 @@ namespace Microsoft.Build.Exceptions
         /// </summary>
         /// <param name="innerException"></param>
         /// <param name="e">Can be null.</param>
-        /// <param name="messageResourceName"></param>
+        /// <param name="messageResource"></param>
         /// <param name="initializationException"></param>
         /// <param name="messageArgs"></param>
         internal static void Throw(
             Exception innerException,
             BuildEventArgs e,
-            string messageResourceName,
+            ResourceString messageResource,
             bool initializationException,
             params string[] messageArgs)
         {
-            Assumed.NotNull(messageResourceName, "Need error message.");
+            Assumed.NotNull(messageResource, "Need error message.");
 
             string errorCode;
             string helpKeyword;
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out errorCode, out helpKeyword, messageResourceName, messageArgs);
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                out errorCode,
+                out helpKeyword,
+                messageResource,
+                messageArgs);
 
             throw new InternalLoggerException(message, innerException, e, errorCode, helpKeyword, initializationException);
         }

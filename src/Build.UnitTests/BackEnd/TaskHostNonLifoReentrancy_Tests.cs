@@ -235,9 +235,9 @@ public sealed class TaskHostNonLifoReentrancy_Tests(ITestOutputHelper output)
     private static void AssertTaskHostIdentity(string log, int pid)
     {
         // Use the localized resources, including the diagnostic task-event suffix, rather than English text.
-        string details = ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword(
-            "TaskHostDetails", nameof(TaskHostNonLifoNestedBuild), "HOSTPID", "CALLERPID", "NEWFLAG", "SIDEFLAG", "REUSEFLAG");
-        string pattern = Regex.Escape(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TaskMessageWithId", details, "TASKID"))
+        string details = ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(
+            BuildStrings.TaskHostDetails, nameof(TaskHostNonLifoNestedBuild), "HOSTPID", "CALLERPID", "NEWFLAG", "SIDEFLAG", "REUSEFLAG");
+        string pattern = Regex.Escape(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.TaskMessageWithId, details, "TASKID"))
             .Replace("HOSTPID", "(?<host>[0-9]+)")
             .Replace("CALLERPID", "(?<caller>[0-9]+)")
             .Replace("TASKID", "(?<task>[0-9]+)")
@@ -258,7 +258,7 @@ public sealed class TaskHostNonLifoReentrancy_Tests(ITestOutputHelper output)
 
         // Within this shared host/caller, correlate each role's call and return to one dispatch task ID.
         // Full project/target event contexts remain in the binlog; parent result files are the ownership oracle.
-        string taskSuffix = Regex.Escape(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("TaskMessageWithId", "MESSAGE", "TASKID"))
+        string taskSuffix = Regex.Escape(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.TaskMessageWithId, "MESSAGE", "TASKID"))
             .Replace("MESSAGE", "PROBEMESSAGE").Replace("TASKID", "(?<task>[0-9]+)");
         string[] roleTaskIds = new string[2];
         for (int i = 0; i < 2; i++)

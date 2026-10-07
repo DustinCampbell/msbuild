@@ -492,7 +492,7 @@ namespace Microsoft.Build.Execution
                 {
                     foreach (ForwardingLoggerRecord logger in value)
                     {
-                        ErrorUtilities.VerifyThrowArgumentNull(logger, nameof(ForwardingLoggers), "NullLoggerNotAllowed");
+                        FrameworkErrorUtilities.VerifyThrowArgumentNull(logger, nameof(ForwardingLoggers), BuildStrings.NullLoggerNotAllowed);
                     }
                 }
 
@@ -552,7 +552,7 @@ namespace Microsoft.Build.Execution
                 {
                     foreach (ILogger logger in value)
                     {
-                        ErrorUtilities.VerifyThrowArgumentNull(logger, "Loggers", "NullLoggerNotAllowed");
+                        FrameworkErrorUtilities.VerifyThrowArgumentNull(logger, "Loggers", BuildStrings.NullLoggerNotAllowed);
                     }
                 }
 
@@ -569,7 +569,7 @@ namespace Microsoft.Build.Execution
 
             set
             {
-                ErrorUtilities.VerifyThrowArgument(value > 0, "InvalidMaxNodeCount");
+                FrameworkErrorUtilities.VerifyThrowArgument(value > 0, BuildStrings.InvalidMaxNodeCount);
                 _maxNodeCount = value;
             }
         }

@@ -1142,10 +1142,10 @@ namespace Microsoft.Build.BackEnd.Logging
         /// </summary>
         private static InternalLoggerException CreateReflectiveLoggerLoadingDisabledException()
         {
-            string message = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+            string message = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
                 out string errorCode,
                 out string helpKeyword,
-                "ReflectiveLoggerLoadingNotSupported");
+                BuildStrings.ReflectiveLoggerLoadingNotSupported);
             return new InternalLoggerException(message, innerException: null, e: null, errorCode, helpKeyword, initializationException: true);
         }
 
@@ -1579,7 +1579,7 @@ namespace Microsoft.Build.BackEnd.Logging
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e) && e is not LoggerException)
             {
-                InternalLoggerException.Throw(e, null, "FatalErrorDuringLoggerShutdown", false, logger.GetType().Name);
+                InternalLoggerException.Throw(e, null, BuildStrings.FatalErrorDuringLoggerShutdown, false, logger.GetType().Name);
             }
         }
 
@@ -1919,7 +1919,7 @@ namespace Microsoft.Build.BackEnd.Logging
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e) && e is not LoggerException)
             {
-                InternalLoggerException.Throw(e, null, "FatalErrorWhileInitializingLogger", true, logger.GetType().Name);
+                InternalLoggerException.Throw(e, null, BuildStrings.FatalErrorWhileInitializingLogger, true, logger.GetType().Name);
             }
 
             // Update the minimum guaranteed message importance based on the newly added logger.

@@ -555,7 +555,12 @@ namespace Microsoft.Build.CommandLine
         /// <summary>
         /// Logs errors from TaskLoader
         /// </summary>
-        private void LogErrorDelegate(string taskLocation, int taskLine, int taskColumn, string message, params object[] messageArgs)
+        private void LogErrorDelegate(
+            string taskLocation,
+            int taskLine,
+            int taskColumn,
+            Microsoft.Build.Framework.Resources.ResourceString message,
+            params object[] messageArgs)
             => buildEngine.LogErrorEvent(new BuildErrorEventArgs(
                 subcategory: null,
                 code: null,
@@ -564,7 +569,7 @@ namespace Microsoft.Build.CommandLine
                 columnNumber: taskColumn,
                 endLineNumber: 0,
                 endColumnNumber: 0,
-                message: MessageFormatter.Format(AssemblyResources.GetString(message), messageArgs),
+                message: Microsoft.Build.Framework.Resources.ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(message, messageArgs),
                 helpKeyword: null,
                 senderName: taskName));
 

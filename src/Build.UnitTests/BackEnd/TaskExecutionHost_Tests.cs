@@ -1866,8 +1866,8 @@ namespace Microsoft.Build.UnitTests.BackEnd
 
             factory.CreateTaskCalls.ShouldBe(0);
             _logger.Errors.ShouldHaveSingleItem().Message.ShouldBe(
-                ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
-                    "CustomTaskFactoryOutOfProcNotSupported",
+                ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+                    BuildStrings.CustomTaskFactoryOutOfProcNotSupported,
                     factory.FactoryName,
                     nameof(AttributedFactoryTask)));
         }
@@ -2068,7 +2068,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             // 'An internal failure occurred while running MSBuild'
             ml.AssertLogDoesntContain("MSB1025");
             // 'This is an unhandled error in MSBuild'
-            ml.AssertLogDoesntContain(ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("UnhandledMSBuildError", string.Empty));
+            ml.AssertLogDoesntContain(ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(BuildStrings.UnhandledMSBuildError, string.Empty));
             ml.AssertLogContains(testExceptionMessage);
 
             File.Exists(DebugUtils.DumpFilePath).ShouldBe(isCritical, $"{DebugUtils.DumpFilePath} expected to exist: {isCritical}");

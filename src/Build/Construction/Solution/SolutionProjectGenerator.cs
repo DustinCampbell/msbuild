@@ -286,7 +286,7 @@ namespace Microsoft.Build.Construction
                             if (!solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                             {
                                 // If it's not itself part of the solution, that's an invalid solution
-                                ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(dependencyProject != null, "SubCategoryForSolutionParsingErrors", new BuildEventFileInfo(solutionFile.FullPath), "SolutionParseProjectDepNotFoundError", project.ProjectGuid, dependencyProjectGuid);
+                                ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(dependencyProject != null, BuildStrings.SubCategoryForSolutionParsingErrors, new BuildEventFileInfo(solutionFile.FullPath), BuildStrings.SolutionParseProjectDepNotFoundError, project.ProjectGuid, dependencyProjectGuid);
                             }
 
                             // Add it to the list of dependencies, but only if it should build in this solution configuration
@@ -322,10 +322,10 @@ namespace Microsoft.Build.Construction
             ProjectTargetElement target,
             string elementType,
             bool treatAsLiteral,
-            string textResourceName,
+            ResourceString textResource,
             params object[] args)
         {
-            string text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string code, out string helpKeyword, textResourceName, args);
+            string text = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out string code, out string helpKeyword, textResource, args);
 
             if (treatAsLiteral)
             {
@@ -628,10 +628,10 @@ namespace Microsoft.Build.Construction
             string condition,
             string elementType,
             bool treatAsLiteral,
-            string textResourceName,
+            ResourceString textResource,
             params object[] args)
         {
-            string text = ResourceUtilities.FormatResourceStringStripCodeAndKeyword(out string code, out string helpKeyword, textResourceName, args);
+            string text = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(out string code, out string helpKeyword, textResource, args);
 
             if (treatAsLiteral)
             {
@@ -747,9 +747,9 @@ namespace Microsoft.Build.Construction
                 // Validate against our minimum for upgradable projects
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
                     _solutionFile.Version >= SolutionFile.slnFileMinVersion,
-                    "SubCategoryForSolutionParsingErrors",
+                    BuildStrings.SubCategoryForSolutionParsingErrors,
                     new BuildEventFileInfo(_solutionFile.FullPath),
-                    "SolutionParseUpgradeNeeded");
+                    BuildStrings.SolutionParseUpgradeNeeded);
             }
 
             // This is needed in order to make decisions about tools versions such as whether to put a
@@ -1104,7 +1104,7 @@ namespace Microsoft.Build.Construction
                     metaproject.Save(writer);
                 }
 
-                string message = ResourceUtilities.GetResourceString("MetaprojectGenerated");
+                string message = ResourceStringUtilities.GetResourceString(BuildStrings.MetaprojectGenerated);
                 var eventArgs = new MetaprojectGeneratedEventArgs(xml.ToString(), path, message)
                 {
                     BuildEventContext = _projectBuildEventContext,
@@ -1219,9 +1219,9 @@ namespace Microsoft.Build.Construction
                     if (!_solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                     {
                         ProjectFileErrorUtilities.ThrowInvalidProjectFile(
-                            "SubCategoryForSolutionParsingErrors",
+                            BuildStrings.SubCategoryForSolutionParsingErrors,
                             new BuildEventFileInfo(traversalProject.FullPath),
-                            "SolutionParseProjectDepNotFoundError",
+                            BuildStrings.SolutionParseProjectDepNotFoundError,
                             projectToAdd.ProjectGuid,
                             dependencyProjectGuid);
                     }
@@ -1289,9 +1289,9 @@ namespace Microsoft.Build.Construction
             {
 #if !FEATURE_ASPNET_COMPILER
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(
-                    "SubCategoryForSolutionParsingErrors",
+                    BuildStrings.SubCategoryForSolutionParsingErrors,
                     new BuildEventFileInfo(_solutionFile.FullPath),
-                    "AspNetCompiler.UnsupportedMSBuildVersion",
+                    BuildStrings.AspNetCompiler_UnsupportedMSBuildVersion,
                     project.ProjectName);
 #else
                 // Set WebConfigFileName property if web.config exists (for RAR AppConfigFile parameter)
@@ -1385,9 +1385,9 @@ namespace Microsoft.Build.Construction
                 if (!_solutionFile.ProjectsByGuid.TryGetValue(dependencyProjectGuid, out ProjectInSolution dependencyProject))
                 {
                     ProjectFileErrorUtilities.ThrowInvalidProjectFile(
-                        "SubCategoryForSolutionParsingErrors",
+                        BuildStrings.SubCategoryForSolutionParsingErrors,
                         new BuildEventFileInfo(traversalProject.FullPath),
-                        "SolutionParseProjectDepNotFoundError",
+                        BuildStrings.SolutionParseProjectDepNotFoundError,
                         project.ProjectGuid,
                         dependencyProjectGuid);
                 }
@@ -1496,14 +1496,14 @@ namespace Microsoft.Build.Construction
                 // Well, hmmm.  The AspNetCompiler task doesn't support any kind of
                 // a "Clean" operation.  The best we can really do is offer up a
                 // message saying so.
-                AddErrorWarningMessageInstance(newTarget, null, XMakeElements.message, true, "SolutionVenusProjectNoClean");
+                AddErrorWarningMessageInstance(newTarget, null, XMakeElements.message, true, BuildStrings.SolutionVenusProjectNoClean);
             }
             else if (targetName == "Publish")
             {
                 // Well, hmmm.  The AspNetCompiler task doesn't support any kind of
                 // a "Publish" operation.  The best we can really do is offer up a
                 // message saying so.
-                AddErrorWarningMessageInstance(newTarget, null, XMakeElements.message, true, "SolutionVenusProjectNoPublish");
+                AddErrorWarningMessageInstance(newTarget, null, XMakeElements.message, true, BuildStrings.SolutionVenusProjectNoPublish);
             }
             else
             {
@@ -1580,7 +1580,7 @@ namespace Microsoft.Build.Construction
                     "!(" + conditionDescribingValidConfigurations + ")",
                     XMakeElements.message,
                     false,
-                    "SolutionVenusProjectSkipped");
+                    BuildStrings.SolutionVenusProjectSkipped);
             }
         }
 
@@ -1617,7 +1617,7 @@ namespace Microsoft.Build.Construction
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                     new BuildEventFileInfo(_solutionFile.FullPath),
                     e,
-                    "AspNetCompiler.InvalidTargetFrameworkMonikerFromException",
+                    BuildStrings.AspNetCompiler_InvalidTargetFrameworkMonikerFromException,
                     project.ProjectName,
                     project.TargetFrameworkMoniker,
                     e.Message);
@@ -1634,16 +1634,16 @@ namespace Microsoft.Build.Construction
                 _loggingService.LogComment(
                     _projectBuildEventContext,
                     MessageImportance.Low,
-                    "AspNetCompiler.TargetingHigherFrameworksDefaultsTo40",
+                    BuildStrings.AspNetCompiler_TargetingHigherFrameworksDefaultsTo40,
                     project.ProjectName,
                     targetFramework.Version.ToString());
             }
             if (!isDotNetFramework)
             {
                 ProjectFileErrorUtilities.ThrowInvalidProjectFile(
-                    "SubCategoryForSolutionParsingErrors",
+                    BuildStrings.SubCategoryForSolutionParsingErrors,
                     new BuildEventFileInfo(_solutionFile.FullPath),
-                    "AspNetCompiler.InvalidTargetFrameworkMonikerNotDotNET",
+                    BuildStrings.AspNetCompiler_InvalidTargetFrameworkMonikerNotDotNET,
                     project.ProjectName,
                     project.TargetFrameworkMoniker);
             }
@@ -1662,9 +1662,9 @@ namespace Microsoft.Build.Construction
 
             ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
                 aspnetCompilerPath != null,
-                "SubCategoryForSolutionParsingErrors",
+                BuildStrings.SubCategoryForSolutionParsingErrors,
                 new BuildEventFileInfo(_solutionFile.FullPath),
-                "AspNetCompiler.20NotInstalled");
+                BuildStrings.AspNetCompiler_20NotInstalled);
 
             task.SetParameter("ToolPath", aspnetCompilerPath);
         }
@@ -1791,10 +1791,10 @@ namespace Microsoft.Build.Construction
                 {
                     ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
                         false,
-                        "SubCategoryForSolutionParsingErrors",
+                        BuildStrings.SubCategoryForSolutionParsingErrors,
                         new BuildEventFileInfo(solutionFile),
                         e,
-                        "SolutionParseInvalidProjectFileName",
+                        BuildStrings.SolutionParseInvalidProjectFileName,
                         project.RelativePath,
                         e.Message);
                 }
@@ -1949,7 +1949,7 @@ namespace Microsoft.Build.Construction
                                 null,
                                 XMakeElements.warning,
                                 true,
-                                "SolutionParseUnknownProjectType",
+                                BuildStrings.SolutionParseUnknownProjectType,
                                 project.RelativePath);
                         }
                         else
@@ -1960,7 +1960,7 @@ namespace Microsoft.Build.Construction
                                 null,
                                 XMakeElements.warning,
                                 true,
-                                "SolutionParseErrorReadingProject",
+                                BuildStrings.SolutionParseErrorReadingProject,
                                 project.RelativePath,
                                 unknownProjectTypeErrorMessage);
                         }
@@ -1972,7 +1972,7 @@ namespace Microsoft.Build.Construction
                             null,
                             XMakeElements.message,
                             true,
-                            "SolutionProjectSkippedForBuilding",
+                            BuildStrings.SolutionProjectSkippedForBuilding,
                             project.ProjectName,
                             solutionConfiguration.FullName);
                     }
@@ -1984,7 +1984,7 @@ namespace Microsoft.Build.Construction
                         null,
                         XMakeElements.warning,
                         true,
-                        "SolutionProjectConfigurationMissing",
+                        BuildStrings.SolutionProjectConfigurationMissing,
                         project.ProjectName,
                         solutionConfiguration.FullName);
                 }
@@ -2013,7 +2013,7 @@ namespace Microsoft.Build.Construction
                                 condition,
                                 XMakeElements.message,
                                 true,
-                                "SolutionProjectSkippedForBuilding",
+                                BuildStrings.SolutionProjectSkippedForBuilding,
                                 project.ProjectName,
                                 solutionConfiguration.FullName);
                         }
@@ -2025,7 +2025,7 @@ namespace Microsoft.Build.Construction
                             condition,
                             XMakeElements.warning,
                             true,
-                            "SolutionProjectConfigurationMissing",
+                            BuildStrings.SolutionProjectConfigurationMissing,
                             project.ProjectName,
                             solutionConfiguration.FullName);
                     }
@@ -2256,9 +2256,9 @@ namespace Microsoft.Build.Construction
                     {
                         _loggingService.LogWarning(
                             _projectBuildEventContext,
-                            "SubCategoryForSolutionParsingErrors",
+                            BuildStrings.SubCategoryForSolutionParsingErrors,
                             new BuildEventFileInfo(project.RelativePath),
-                            "SolutionScanProjectDependenciesFailed",
+                            BuildStrings.SolutionScanProjectDependenciesFailed,
                             project.RelativePath,
                             e.Message);
                     }
@@ -2284,9 +2284,9 @@ namespace Microsoft.Build.Construction
                 {
                     _loggingService.LogWarning(
                         _projectBuildEventContext,
-                        "SubCategoryForSolutionParsingErrors",
+                        BuildStrings.SubCategoryForSolutionParsingErrors,
                         new BuildEventFileInfo(_solutionFile.FullPath),
-                        "SolutionParseProjectDepNotFoundError",
+                        BuildStrings.SolutionParseProjectDepNotFoundError,
                         project.ProjectGuid,
                         dependencyGuid);
                 }
@@ -2429,7 +2429,7 @@ namespace Microsoft.Build.Construction
                     "('$(CurrentSolutionConfigurationContents)' == '') and ('$(SkipInvalidConfigurations)' != 'true')",
                     XMakeElements.error,
                     false /* do not treat as literal */,
-                    "SolutionInvalidSolutionConfiguration",
+                    BuildStrings.SolutionInvalidSolutionConfiguration,
                     "$(Configuration)|$(Platform)");
 
                 AddErrorWarningMessageInstance(
@@ -2437,7 +2437,7 @@ namespace Microsoft.Build.Construction
                     "('$(CurrentSolutionConfigurationContents)' == '') and ('$(SkipInvalidConfigurations)' == 'true')",
                     XMakeElements.warning,
                     false /* do not treat as literal */,
-                    "SolutionInvalidSolutionConfiguration",
+                    BuildStrings.SolutionInvalidSolutionConfiguration,
                     "$(Configuration)|$(Platform)");
 
                 AddErrorWarningMessageInstance(
@@ -2445,7 +2445,7 @@ namespace Microsoft.Build.Construction
                     "'$(CurrentSolutionConfigurationContents)' != ''",
                     XMakeElements.message,
                     false /* do not treat as literal */,
-                    "SolutionBuildingSolutionConfiguration",
+                    BuildStrings.SolutionBuildingSolutionConfiguration,
                     "$(Configuration)|$(Platform)");
             }
         }
@@ -2461,7 +2461,7 @@ namespace Microsoft.Build.Construction
                 "'$(MSBuildToolsVersion)' == '2.0' and ('$(ProjectToolsVersion)' != '2.0' and '$(ProjectToolsVersion)' != '')",
                 XMakeElements.error,
                 false /* do not treat as literal */,
-                "SolutionToolsVersionDoesNotSupportProjectToolsVersion",
+                BuildStrings.SolutionToolsVersionDoesNotSupportProjectToolsVersion,
                 "$(MSBuildToolsVersion)");
         }
 

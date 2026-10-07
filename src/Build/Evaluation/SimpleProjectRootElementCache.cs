@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Concurrent;
 using Microsoft.Build.Construction;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -40,7 +39,7 @@ namespace Microsoft.Build.Evaluation
             bool? preserveFormatting)
         {
             // Should already have been canonicalized
-            ErrorUtilities.VerifyThrowInternalRooted(projectFile);
+            FrameworkErrorUtilities.VerifyThrowInternalRooted(projectFile);
 
             return loadProjectRootElement == null
                 ? GetFromCache(projectFile)

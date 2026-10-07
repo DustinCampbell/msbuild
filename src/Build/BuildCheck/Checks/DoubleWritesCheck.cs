@@ -9,7 +9,6 @@ using System.IO;
 #endif
 using System.Linq;
 using Microsoft.Build.Collections;
-using Microsoft.Build.Shared;
 using static Microsoft.Build.Experimental.BuildCheck.TaskInvocationCheckData;
 
 #if FEATURE_MSIOREDIST
@@ -23,8 +22,8 @@ internal sealed class DoubleWritesCheck : Check
     public static CheckRule SupportedRule = new CheckRule(
         "BC0102",
         "DoubleWrites",
-        ResourceUtilities.GetResourceString("BuildCheck_BC0102_Title")!,
-        ResourceUtilities.GetResourceString("BuildCheck_BC0102_MessageFmt")!,
+        ResourceStringUtilities.GetResourceString(BuildStrings.BuildCheck_BC0102_Title)!,
+        ResourceStringUtilities.GetResourceString(BuildStrings.BuildCheck_BC0102_MessageFmt)!,
         new CheckConfiguration() { Severity = CheckResultSeverity.Warning });
 
     public override string FriendlyName => "MSBuild.DoubleWritesCheck";

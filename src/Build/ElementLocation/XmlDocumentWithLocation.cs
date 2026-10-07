@@ -406,7 +406,7 @@ namespace Microsoft.Build.Construction
         /// </summary>
         private void VerifyThrowNotReadOnly()
         {
-            ErrorUtilities.VerifyThrowInvalidOperation(!_loadAsReadOnly.HasValue || !_loadAsReadOnly.Value, "OM_CannotSaveFileLoadedAsReadOnly", _fullPath);
+            FrameworkErrorUtilities.VerifyThrowInvalidOperation(!_loadAsReadOnly.HasValue || !_loadAsReadOnly.Value, BuildStrings.OM_CannotSaveFileLoadedAsReadOnly, _fullPath);
         }
     }
 }

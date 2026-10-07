@@ -33,6 +33,10 @@
     <PackageReference Include="NuGet.Frameworks">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
+    <Using Include="Microsoft.Build.Framework.Resources.FrameworkStrings" Alias="FrameworkStrings" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceString" Alias="ResourceString" />
+    <Using Include="Microsoft.Build.Framework.Resources.ResourceStringUtilities" Alias="ResourceStringUtilities" />
+    <Using Include="Microsoft.Build.Resources.BuildStrings" Alias="BuildStrings" />
 
     <ProjectReference Include="..\Build\Microsoft.Build.csproj" />
     <ProjectReference Include="..\Framework\Microsoft.Build.Framework.csproj" />

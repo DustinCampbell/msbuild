@@ -251,12 +251,12 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                 if (resolvers.Count == 1) // Check if only one resolver was used
                 {
                     // Log the single resolver's error message directly
-                    loggingContext.LogError(new BuildEventFileInfo(sdkReferenceLocation), "SingleResolverFailedToResolveSDK", sdk.Name, resolvers[0].Name, string.Join(Environment.NewLine, errors));
+                    loggingContext.LogError(new BuildEventFileInfo(sdkReferenceLocation), BuildStrings.SingleResolverFailedToResolveSDK, sdk.Name, resolvers[0].Name, string.Join(Environment.NewLine, errors));
                 }
                 else
                 {
                     // Log the error with the MSBuild wrapper
-                    loggingContext.LogError(new BuildEventFileInfo(sdkReferenceLocation), "FailedToResolveSDK", sdk.Name, string.Join($"{Environment.NewLine}  ", errors));
+                    loggingContext.LogError(new BuildEventFileInfo(sdkReferenceLocation), BuildStrings.FailedToResolveSDK, sdk.Name, string.Join($"{Environment.NewLine}  ", errors));
                 }
             }
 
@@ -291,7 +291,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                             // back to a JIT MSBuild) rather than attempting an Assembly.LoadFrom that cannot work here.
                             ProjectFileErrorUtilities.ThrowInvalidProjectFile(
                                 new BuildEventFileInfo(sdkReferenceLocation),
-                                "SdkResolverDynamicLoadingNotSupported",
+                                BuildStrings.SdkResolverDynamicLoadingNotSupported,
                                 sdk.Name,
                                 resolverManifest.DisplayName);
                         }
@@ -348,7 +348,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                     // Since this can be caused by custom and 3rd party SDK resolvers, we want to log this information to help diagnose the issue.
                     if (result?.Warnings?.Any(s => s is null) == true || result?.Errors?.Any(s => s is null) == true)
                     {
-                        loggingContext.LogComment(MessageImportance.Low, "SDKResolverNullMessage", sdkResolver.Name, sdk.ToString());
+                        loggingContext.LogComment(MessageImportance.Low, BuildStrings.SDKResolverNullMessage, sdkResolver.Name, sdk.ToString());
                     }
                 }
                 catch (Exception e) when ((e is FileNotFoundException || e is FileLoadException) && sdkResolver.GetType().Name.Equals("NuGetSdkResolver", StringComparison.Ordinal))
@@ -358,12 +358,12 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                     // than give them a generic error, we want to give a more specific message.  This exception cannot be caught by
                     // the resolver itself because it is usually thrown before the class is loaded
                     // The NuGet-based SDK resolver failed to run because NuGet assemblies could not be located.  Check your installation of MSBuild or set the environment variable "{0}" to the folder that contains the required NuGet assemblies. {1}
-                    throw new SdkResolverException("CouldNotRunNuGetSdkResolver", sdkResolver, sdk, e, MSBuildConstants.NuGetAssemblyPathEnvironmentVariableName, e.ToString());
+                    throw new SdkResolverException(BuildStrings.CouldNotRunNuGetSdkResolver, sdkResolver, sdk, e, MSBuildConstants.NuGetAssemblyPathEnvironmentVariableName, e.ToString());
                 }
                 catch (Exception e)
                 {
                     // The SDK resolver "{0}" failed while attempting to resolve the SDK "{1}": {2}
-                    throw new SdkResolverException("SDKResolverFailed", sdkResolver, sdk, e, sdkResolver.Name, sdk.ToString(), e.ToString());
+                    throw new SdkResolverException(BuildStrings.SDKResolverFailed, sdkResolver, sdk, e, sdkResolver.Name, sdk.ToString(), e.ToString());
                 }
                 finally
                 {
@@ -372,18 +372,18 @@ namespace Microsoft.Build.BackEnd.SdkResolution
 
                 SetResolverState(submissionId, sdkResolver, context.State);
 
-                result ??= (SdkResult)resultFactory.IndicateFailure([ResourceUtilities.FormatResourceStringStripCodeAndKeyword("SDKResolverReturnedNull", sdkResolver.Name)], []);
+                result ??= (SdkResult)resultFactory.IndicateFailure([ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(BuildStrings.SDKResolverReturnedNull, sdkResolver.Name)], []);
 
                 if (result.Success)
                 {
-                    loggingContext.LogComment(MessageImportance.Low, "SucceededToResolveSDK", sdk.ToString(), sdkResolver.Name, result.Path ?? "null", result.Version ?? "null");
+                    loggingContext.LogComment(MessageImportance.Low, BuildStrings.SucceededToResolveSDK, sdk.ToString(), sdkResolver.Name, result.Path ?? "null", result.Version ?? "null");
 
                     LogWarnings(loggingContext, sdkReferenceLocation, result.Warnings);
 
                     if (!IsReferenceSameVersion(sdk, result.Version))
                     {
                         // MSB4241: The SDK reference "{0}" version "{1}" was resolved to version "{2}" instead.  You could be using a different version than expected if you do not update the referenced version to match.
-                        loggingContext.LogWarning(null, new BuildEventFileInfo(sdkReferenceLocation), "SdkResultVersionDifferentThanReference", sdk.Name, sdk.Version, result.Version);
+                        loggingContext.LogWarning(null, new BuildEventFileInfo(sdkReferenceLocation), BuildStrings.SdkResultVersionDifferentThanReference, sdk.Name, sdk.Version, result.Version);
                     }
 
                     // Associate the element location of the resolved SDK reference
@@ -397,7 +397,7 @@ namespace Microsoft.Build.BackEnd.SdkResolution
                     string resultWarnings = result.Warnings?.Any() == true ? string.Join(Environment.NewLine, result.Warnings) : "null";
                     string resultErrors = result.Errors?.Any() == true ? string.Join(Environment.NewLine, result.Errors) : "null";
 
-                    loggingContext.LogComment(MessageImportance.Low, "SDKResolverAttempt", sdkResolver.Name, sdk.ToString(), resultWarnings, resultErrors);
+                    loggingContext.LogComment(MessageImportance.Low, BuildStrings.SDKResolverAttempt, sdkResolver.Name, sdk.ToString(), resultWarnings, resultErrors);
                 }
 
                 results.Add(result);
