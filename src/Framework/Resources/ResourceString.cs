@@ -45,6 +45,11 @@ internal sealed class ResourceString : IResourceString
     }
 
     /// <summary>
+    ///  Gets the exact RESX key.
+    /// </summary>
+    public string ResourceName => _resourceName;
+
+    /// <summary>
     ///  Resolves the resource string for the effective culture.
     /// </summary>
     /// <returns>

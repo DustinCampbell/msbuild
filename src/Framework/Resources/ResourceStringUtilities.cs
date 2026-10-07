@@ -63,10 +63,10 @@ internal static class ResourceStringUtilities
         => resource.WithArguments(arg0, arg1, arg2).Resolve().Text;
 
     public static string FormatResourceStringStripCodeAndKeyword(ResourceString resource, string?[] args)
-        => MessageFormatter.Format(resource.Resolve().Text, args);
+        => ResolveFormatted(resource, args).Text;
 
     public static string FormatResourceStringStripCodeAndKeyword(ResourceString resource, params object?[] args)
-        => MessageFormatter.Format(resource.Resolve().Text, args);
+        => ResolveFormatted(resource, args).Text;
 
     public static string FormatResourceStringStripCodeAndKeyword(
         out string? code,
@@ -109,10 +109,7 @@ internal static class ResourceStringUtilities
         ResourceString resource,
         string?[] args)
     {
-        ResolvedResourceString resolved = resource.Resolve();
-        code = resolved.Code;
-        helpKeyword = resolved.HelpKeyword;
-        return MessageFormatter.Format(resolved.Text, args);
+        return GetResolvedText(ResolveFormatted(resource, args), out code, out helpKeyword);
     }
 
     public static string FormatResourceStringStripCodeAndKeyword(
@@ -121,10 +118,7 @@ internal static class ResourceStringUtilities
         ResourceString resource,
         params object?[] args)
     {
-        ResolvedResourceString resolved = resource.Resolve();
-        code = resolved.Code;
-        helpKeyword = resolved.HelpKeyword;
-        return MessageFormatter.Format(resolved.Text, args);
+        return GetResolvedText(ResolveFormatted(resource, args), out code, out helpKeyword);
     }
 
     public static string FormatResourceStringIgnoreCodeAndKeyword(ResourceString resource)
@@ -156,6 +150,28 @@ internal static class ResourceStringUtilities
         where TResource : IResourceString
     {
         ResolvedResourceString resolved = resource.Resolve();
+        code = resolved.Code;
+        helpKeyword = resolved.HelpKeyword;
+        return resolved.Text;
+    }
+
+    private static ResolvedResourceString ResolveFormatted(ResourceString resource, string?[] args)
+    {
+        ResolvedResourceString resolved = resource.Resolve();
+        return FormattedResourceStringUtilities.Create(resolved, MessageFormatter.Format(resolved.OriginalText, args));
+    }
+
+    private static ResolvedResourceString ResolveFormatted(ResourceString resource, object?[] args)
+    {
+        ResolvedResourceString resolved = resource.Resolve();
+        return FormattedResourceStringUtilities.Create(resolved, MessageFormatter.Format(resolved.OriginalText, args));
+    }
+
+    private static string GetResolvedText(
+        ResolvedResourceString resolved,
+        out string? code,
+        out string? helpKeyword)
+    {
         code = resolved.Code;
         helpKeyword = resolved.HelpKeyword;
         return resolved.Text;

@@ -97,6 +97,23 @@ public class ResourceStringTests
     }
 
     [Fact]
+    public void WithArgumentsParsesDiagnosticCodeAfterFormatting()
+    {
+        var resource = new ResourceString(
+            new TestResourceManager(static (_, _) => "{0}: {1}"),
+            getCulture: null,
+            "Formatted.Resource",
+            "MSBuild.");
+
+        ResolvedResourceString resolved = resource.WithArguments("MSB9000", "Message").Resolve();
+
+        resolved.OriginalText.ShouldBe("MSB9000: Message");
+        resolved.Text.ShouldBe("Message");
+        resolved.Code.ShouldBe("MSB9000");
+        resolved.HelpKeyword.ShouldBe("MSBuild.Formatted.Resource");
+    }
+
+    [Fact]
     public void FormattedResourceStringsAreValueTypes()
     {
         typeof(FormattedResourceString<string>).IsValueType.ShouldBeTrue();
@@ -121,6 +138,25 @@ public class ResourceStringTests
             resource,
             arguments).ShouldBe("one two");
         code.ShouldBe("MSB4321");
+        helpKeyword.ShouldBe("MSBuild.Formatted.Resource");
+    }
+
+    [Fact]
+    public void StringArrayArgumentsParseDiagnosticCodeAfterFormatting()
+    {
+        var resource = new ResourceString(
+            new TestResourceManager(static (_, _) => "{0}: {1}"),
+            getCulture: null,
+            "Formatted.Resource",
+            "MSBuild.");
+        string[] arguments = ["MSB9000", "Message"];
+
+        ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(
+            out string? code,
+            out string? helpKeyword,
+            resource,
+            arguments).ShouldBe("Message");
+        code.ShouldBe("MSB9000");
         helpKeyword.ShouldBe("MSBuild.Formatted.Resource");
     }
 
