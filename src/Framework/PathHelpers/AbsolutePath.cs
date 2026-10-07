@@ -91,7 +91,7 @@ namespace Microsoft.Build.Framework
 #if NETFRAMEWORK || NET
             if (!Path.IsPathFullyQualified(path))
             {
-                throw new ArgumentException(SR.PathMustBeRooted, nameof(path));
+                throw new ArgumentException(FrameworkStrings.PathMustBeRooted.Resolve().Text, nameof(path));
             }
 #endif
         }

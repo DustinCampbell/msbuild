@@ -83,7 +83,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Add(T item)
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Clear()
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public bool Remove(T item)
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>

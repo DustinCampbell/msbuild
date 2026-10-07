@@ -3141,7 +3141,7 @@ namespace Microsoft.Build.Shared
                     CreateArrayWithSingleItemIfNotExcluded(filespecUnescaped, excludeSpecsUnescaped),
                     trackedAction,
                     trackedExcludeFileSpec,
-                    SR.FormatGlobExpansionFailed(filespecUnescaped, ex.ToString()));
+                    ResourceStringUtilities.GetText(FrameworkStrings.GlobExpansionFailed.WithArguments(filespecUnescaped, ex.ToString())));
             }
 
             return ([.. files], trackedAction, trackedExcludeFileSpec, null);
@@ -3989,7 +3989,7 @@ namespace Microsoft.Build.Shared
                     CreateArrayWithSingleItemIfNotExcluded(filespecUnescaped, excludeSpecsUnescaped),
                     trackSearchAction,
                     trackExcludeFileSpec,
-                    SR.FormatGlobExpansionFailed(filespecUnescaped, ex.ToString()));
+                    ResourceStringUtilities.GetText(FrameworkStrings.GlobExpansionFailed.WithArguments(filespecUnescaped, ex.ToString())));
             }
 
             /*

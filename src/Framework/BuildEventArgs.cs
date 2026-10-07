@@ -311,12 +311,12 @@ namespace Microsoft.Build.Framework
         /// <summary>
         /// Shortcut method to mimic the original logic of creating the formatted strings.
         /// </summary>
-        /// <param name="resourceName">Name of the resource string.</param>
+        /// <param name="resource">The resource string to format.</param>
         /// <param name="arguments">Optional list of arguments to pass to the formatted string.</param>
         /// <returns>The concatenated formatted string.</returns>
-        internal static string FormatResourceStringIgnoreCodeAndKeyword(string resourceName, params string?[] arguments)
+        internal static string FormatResourceStringIgnoreCodeAndKeyword(BuildEventResourceString resource, params string?[] arguments)
         {
-            return ResourceStringFormatter(resourceName, arguments);
+            return ResourceStringFormatter(resource.ToString(), arguments);
         }
     }
 }

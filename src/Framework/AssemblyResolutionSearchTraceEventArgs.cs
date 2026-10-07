@@ -384,15 +384,22 @@ public sealed class AssemblyResolutionSearchTraceEventArgs : BuildMessageEventAr
 
         internal MessageFormats(CultureInfo culture)
         {
-            SearchPath = GetResource("AssemblyResolutionSearchTrace_SearchPath", culture);
-            SearchPathAddedByParentAssembly = GetResource("AssemblyResolutionSearchTrace_SearchPathAddedByParentAssembly", culture);
-            SearchedAssemblyFoldersEx = GetResource("AssemblyResolutionSearchTrace_SearchedAssemblyFoldersEx", culture);
-            FileNotFound = GetResource("AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseNoFile", culture);
-            FusionNamesDidNotMatch = GetResource("AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseFusionNamesDidntMatch", culture);
-            TargetHadNoFusionName = GetResource("AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseTargetDidntHaveFusionName", culture);
-            NotInGac = GetResource("AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseNotInGac", culture);
-            NotAFileNameOnDisk = GetResource("AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseNotAFileNameOnDisk", culture);
-            ProcessorArchitectureDoesNotMatch = GetResource("AssemblyResolutionSearchTrace_TargetedProcessorArchitectureDoesNotMatch", culture);
+            SearchPath = EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_SearchPath.Resolve(culture).Text;
+            SearchPathAddedByParentAssembly =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_SearchPathAddedByParentAssembly.Resolve(culture).Text;
+            SearchedAssemblyFoldersEx = EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_SearchedAssemblyFoldersEx.Resolve(culture).Text;
+            FileNotFound =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseNoFile.Resolve(culture).Text;
+            FusionNamesDidNotMatch =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseFusionNamesDidntMatch.Resolve(culture).Text;
+            TargetHadNoFusionName =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseTargetDidntHaveFusionName.Resolve(culture).Text;
+            NotInGac =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseNotInGac.Resolve(culture).Text;
+            NotAFileNameOnDisk =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_ConsideredAndRejectedBecauseNotAFileNameOnDisk.Resolve(culture).Text;
+            ProcessorArchitectureDoesNotMatch =
+                EightSpaces + FrameworkStrings.AssemblyResolutionSearchTrace_TargetedProcessorArchitectureDoesNotMatch.Resolve(culture).Text;
         }
 
         internal string SearchPath { get; }
@@ -404,9 +411,5 @@ public sealed class AssemblyResolutionSearchTraceEventArgs : BuildMessageEventAr
         internal string NotInGac { get; }
         internal string NotAFileNameOnDisk { get; }
         internal string ProcessorArchitectureDoesNotMatch { get; }
-
-        private static string GetResource(string resourceName, CultureInfo culture)
-            => EightSpaces + (SR.ResourceManager.GetString(resourceName, culture)
-                ?? throw new InvalidOperationException($"Resource '{resourceName}' was not found for culture '{culture.Name}'."));
     }
 }

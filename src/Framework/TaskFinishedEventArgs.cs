@@ -141,7 +141,9 @@ namespace Microsoft.Build.Framework
             {
                 if (RawMessage == null)
                 {
-                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(Succeeded ? "TaskFinishedSuccess" : "TaskFinishedFailure", TaskName);
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                        Succeeded ? BuildEventResourceString.TaskFinishedSuccess : BuildEventResourceString.TaskFinishedFailure,
+                        TaskName);
                 }
 
                 return RawMessage;

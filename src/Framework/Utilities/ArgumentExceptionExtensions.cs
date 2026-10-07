@@ -34,7 +34,7 @@ internal static partial class ArgumentExceptionExtensions
 
             if (argument.Count == 0)
             {
-                throw new ArgumentException(SR.Argument_EmptyCollection, paramName);
+                throw new ArgumentException(FrameworkStrings.Argument_EmptyCollection.Resolve().Text, paramName);
             }
         }
     }

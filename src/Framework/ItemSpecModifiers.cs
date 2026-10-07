@@ -489,7 +489,8 @@ internal static class ItemSpecModifiers
         }
         catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
         {
-            throw new InvalidOperationException(SR.FormatInvalidFilespecForTransform(modifier, itemSpec, e.Message));
+            throw new InvalidOperationException(
+                ResourceStringUtilities.GetText(FrameworkStrings.InvalidFilespecForTransform.WithArguments(modifier, itemSpec, e.Message)));
         }
 
         return Assumed.Unreachable<string>($"\"{modifier}\" is not a valid item-spec modifier.");

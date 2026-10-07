@@ -36,7 +36,7 @@ namespace Microsoft.Build.Shared
             else
             {
                 // Unsupported boolean representation.
-                throw new ArgumentException(SR.FormatCannotConvertStringToBool(parameterValue));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.CannotConvertStringToBool.WithArguments(parameterValue)));
             }
         }
 

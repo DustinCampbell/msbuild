@@ -41,7 +41,9 @@ namespace Microsoft.Build.Shared
             }
             catch (System.ArgumentException e)
             {
-                throw new ArgumentException(SR.FormatInvalidAttributeMetadata(item.ItemSpec, itemMetadataName, metadataValue, "bool"), e);
+                throw new ArgumentException(
+                    ResourceStringUtilities.GetText(FrameworkStrings.InvalidAttributeMetadata.WithArguments(item.ItemSpec, itemMetadataName, metadataValue, "bool")),
+                    e);
             }
         }
 

@@ -386,19 +386,15 @@ internal static class AssemblyConflictMessageFormatter
     {
         internal MessageFormats(CultureInfo culture)
         {
-            ConflictFound = GetResource("AssemblyConflict_ConflictFound", culture);
-            ConflictHigherVersionChosen = GetResource("AssemblyConflict_ConflictHigherVersionChosen", culture);
-            ConflictPrimaryChosen = GetResource("AssemblyConflict_ConflictPrimaryChosen", culture);
-            ConflictUnsolvable = GetResource("AssemblyConflict_ConflictUnsolvable", culture);
-            ReferenceDependsOn = GetResource("AssemblyConflict_ReferenceDependsOn", culture);
-            UnifiedReferenceDependsOn = GetResource("AssemblyConflict_UnifiedReferenceDependsOn", culture);
-            UnresolvedPrimaryItemSpec = GetResource("AssemblyConflict_UnResolvedPrimaryItemSpec", culture);
-            PrimarySourceItemsForReference = GetResource("AssemblyConflict_PrimarySourceItemsForReference", culture);
-
-            string foundConflicts = GetResource("AssemblyConflict_FoundConflicts", culture);
-            FoundConflicts = MessageParser.TryStripAnyCode(foundConflicts, out string? strippedMessage)
-                ? strippedMessage
-                : foundConflicts;
+            ConflictFound = FrameworkStrings.AssemblyConflict_ConflictFound.Resolve(culture).Text;
+            ConflictHigherVersionChosen = FrameworkStrings.AssemblyConflict_ConflictHigherVersionChosen.Resolve(culture).Text;
+            ConflictPrimaryChosen = FrameworkStrings.AssemblyConflict_ConflictPrimaryChosen.Resolve(culture).Text;
+            ConflictUnsolvable = FrameworkStrings.AssemblyConflict_ConflictUnsolvable.Resolve(culture).Text;
+            ReferenceDependsOn = FrameworkStrings.AssemblyConflict_ReferenceDependsOn.Resolve(culture).Text;
+            UnifiedReferenceDependsOn = FrameworkStrings.AssemblyConflict_UnifiedReferenceDependsOn.Resolve(culture).Text;
+            UnresolvedPrimaryItemSpec = FrameworkStrings.AssemblyConflict_UnResolvedPrimaryItemSpec.Resolve(culture).Text;
+            PrimarySourceItemsForReference = FrameworkStrings.AssemblyConflict_PrimarySourceItemsForReference.Resolve(culture).Text;
+            FoundConflicts = FrameworkStrings.AssemblyConflict_FoundConflicts.Resolve(culture).Text;
         }
 
         internal string ConflictFound { get; }
@@ -410,10 +406,6 @@ internal static class AssemblyConflictMessageFormatter
         internal string UnresolvedPrimaryItemSpec { get; }
         internal string PrimarySourceItemsForReference { get; }
         internal string FoundConflicts { get; }
-
-        private static string GetResource(string resourceName, CultureInfo culture)
-            => Resources.SR.ResourceManager.GetString(resourceName, culture)
-                ?? throw new InvalidOperationException($"The resource string '{resourceName}' was not found for culture '{culture.Name}'.");
     }
 }
 

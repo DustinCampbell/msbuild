@@ -475,7 +475,7 @@ namespace Microsoft.Build.Framework
             }
             catch (PathTooLongException)
             {
-                throw new ArgumentException(SR.FormatDebugPathTooLong(directory));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.DebugPathTooLong.WithArguments(directory)));
             }
             catch (Exception)
             {
@@ -1719,7 +1719,7 @@ namespace Microsoft.Build.Framework
             // This method does not accept a path, only a file name
             if (file.Any(i => i.Equals(Path.DirectorySeparatorChar) || i.Equals(Path.AltDirectorySeparatorChar)))
             {
-                throw new ArgumentException(SR.FormatInvalidGetPathOfFileAboveParameter(file));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.InvalidGetPathOfFileAboveParameter.WithArguments(file)));
             }
 
             // Search for a directory that contains that file

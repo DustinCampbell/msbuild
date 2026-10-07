@@ -162,20 +162,20 @@ namespace Microsoft.Build.Framework
                         TargetSkipReason.PreviouslyBuiltSuccessfully or TargetSkipReason.PreviouslyBuiltUnsuccessfully =>
                             FormatResourceStringIgnoreCodeAndKeyword(
                                 OriginallySucceeded
-                                ? "TargetAlreadyCompleteSuccess"
-                                : "TargetAlreadyCompleteFailure",
+                                ? BuildEventResourceString.TargetAlreadyCompleteSuccess
+                                : BuildEventResourceString.TargetAlreadyCompleteFailure,
                                 TargetName),
 
                         TargetSkipReason.ConditionWasFalse =>
                             FormatResourceStringIgnoreCodeAndKeyword(
-                                "TargetSkippedFalseCondition",
+                                BuildEventResourceString.TargetSkippedFalseCondition,
                                 TargetName,
                                 Condition,
                                 EvaluatedCondition),
 
                         TargetSkipReason.OutputsUpToDate =>
                             FormatResourceStringIgnoreCodeAndKeyword(
-                                "SkipTargetBecauseOutputsUpToDate",
+                                BuildEventResourceString.SkipTargetBecauseOutputsUpToDate,
                                 TargetName),
 
                         _ => SkipReason.ToString()

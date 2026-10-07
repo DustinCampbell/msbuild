@@ -8,6 +8,15 @@
       <DiscoverEditorConfigFiles>true</DiscoverEditorConfigFiles>
   </PropertyGroup>
 
+  <ItemGroup>
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ResourceCatalogNamespace" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ResourceCatalogClass" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ResourceCatalogResourceAccessorType" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ResourceCatalogResourceManagerExpression" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ResourceCatalogCultureExpression" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="ResourceCatalogHelpKeywordPrefix" />
+  </ItemGroup>
+
   <Import Project="$(BUILD_STAGINGDIRECTORY)\MicroBuild\Plugins\MicroBuild.Plugins.IBCMerge.*\**\build\MicroBuild.Plugins.*.props" Condition="'$(ShouldUseIBCOptimization)' == 'true'" />
 
   <!-- Override project defaults provided by Repo toolset -->

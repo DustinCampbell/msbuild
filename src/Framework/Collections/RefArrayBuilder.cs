@@ -484,7 +484,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            ThrowInvalidOperation(SR.Format_0_contains_no_elements(nameof(RefArrayBuilder<>)));
+            ThrowInvalidOperation(ResourceStringUtilities.GetText(FrameworkStrings._0_contains_no_elements.WithArguments(nameof(RefArrayBuilder<>))));
         }
 
         return first!;
@@ -504,7 +504,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            ThrowInvalidOperation(SR.Format_0_does_not_contain_matching_element(nameof(RefArrayBuilder<>)));
+            ThrowInvalidOperation(ResourceStringUtilities.GetText(FrameworkStrings._0_does_not_contain_matching_element.WithArguments(nameof(RefArrayBuilder<>))));
         }
 
         return first!;
@@ -526,7 +526,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            ThrowInvalidOperation(SR.Format_0_does_not_contain_matching_element(nameof(RefArrayBuilder<>)));
+            ThrowInvalidOperation(ResourceStringUtilities.GetText(FrameworkStrings._0_does_not_contain_matching_element.WithArguments(nameof(RefArrayBuilder<>))));
         }
 
         return first!;
@@ -626,7 +626,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            ThrowInvalidOperation(SR.Format_0_contains_no_elements(nameof(RefArrayBuilder<>)));
+            ThrowInvalidOperation(ResourceStringUtilities.GetText(FrameworkStrings._0_contains_no_elements.WithArguments(nameof(RefArrayBuilder<>))));
         }
 
         return last!;
@@ -646,7 +646,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            ThrowInvalidOperation(SR.Format_0_does_not_contain_matching_element(nameof(RefArrayBuilder<>)));
+            ThrowInvalidOperation(ResourceStringUtilities.GetText(FrameworkStrings._0_does_not_contain_matching_element.WithArguments(nameof(RefArrayBuilder<>))));
         }
 
         return last!;
@@ -668,7 +668,7 @@ internal ref struct RefArrayBuilder<T>
 
         if (!found)
         {
-            ThrowInvalidOperation(SR.Format_0_does_not_contain_matching_element(nameof(RefArrayBuilder<>)));
+            ThrowInvalidOperation(ResourceStringUtilities.GetText(FrameworkStrings._0_does_not_contain_matching_element.WithArguments(nameof(RefArrayBuilder<>))));
         }
 
         return last!;

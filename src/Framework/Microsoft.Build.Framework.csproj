@@ -97,6 +97,9 @@
 
     <ProjectReference Include="..\TaskAnalyzer\TaskAnalyzer.csproj"
                       PrivateAssets="all" />
+    <ProjectReference Include="..\ResourceStringGenerator\Microsoft.Build.ResourceStringGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
 
     <PackageReference Include="Microsoft.CodeAnalysis.Contracts" PrivateAssets="all" />
 
@@ -156,6 +159,11 @@
     <EmbeddedResource Update="Resources\SR.resx">
       <GenerateSource>true</GenerateSource>
     </EmbeddedResource>
+    <AdditionalFiles Include="Resources\SR.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.Framework.Resources"
+                     ResourceCatalogClass="FrameworkStrings"
+                     ResourceCatalogResourceAccessorType="global::Microsoft.Build.Framework.Resources.SR"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
 
     <Using Include="$(RootNamespace).Resources" />
   </ItemGroup>

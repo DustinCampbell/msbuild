@@ -61,7 +61,7 @@ namespace Microsoft.Build.Shared.FileSystem
             if (!string.IsNullOrEmpty(path) && FileUtilities.IsPathTooLong(path))
             {
                 // If the path is too long, we can't check if it exists on windows
-                throw new PathTooLongException(SR.FormatPathTooLong(path, NativeMethods.MaxPath));
+                throw new PathTooLongException(ResourceStringUtilities.GetText(FrameworkStrings.PathTooLong.WithArguments(path, NativeMethods.MaxPath)));
             }
 
             uint attrs = PInvoke.GetFileAttributes(path);

@@ -6,15 +6,36 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Microsoft.Build.Framework;
 
-// TODO: this should be unified with Shared\ErrorUtilities.cs, but it is hard to untangle everything
-//       because some of the errors there will use localized resources from different assemblies,
-//       which won't be referenceable in Framework.
-
 internal static class FrameworkErrorUtilities
 {
+    /// <summary>
+    ///  Verifies in debug builds that the specified object's type provides a meaningful
+    ///  <see cref="object.ToString()"/> implementation.
+    /// </summary>
+    /// <param name="parameter">The object to verify.</param>
+    public static void ThrowIfTypeDoesNotImplementToString(object parameter)
+    {
+#if DEBUG
+        if (string.Equals(parameter.GetType().ToString(), parameter.ToString(), StringComparison.Ordinal))
+        {
+            InternalError.Throw($"This type does not implement ToString() properly {parameter.GetType().FullName!}");
+        }
+#endif
+    }
+
+    /// <summary>
+    ///  Throws an internal error when a lock on <paramref name="locker"/> is not held.
+    /// </summary>
+    /// <param name="locker">The object whose monitor should already be held.</param>
+    public static void VerifyThrowInternalLockHeld(object locker)
+    {
+        Assumed.True(Monitor.IsEntered(locker), "Lock should already have been taken");
+    }
+
     /// <summary>
     /// Helper to throw an InternalErrorException when the specified parameter is not a rooted path.
     /// This should be used ONLY if this would indicate a bug in MSBuild rather than
@@ -58,7 +79,94 @@ internal static class FrameworkErrorUtilities
         int capacity = collection.Count - index;
         if (requiredCapacity > capacity)
         {
-            throw new ArgumentException(SR.CollectionCopyToFailureProvidedArrayIsTooSmall, collectionParamName);
+            throw new ArgumentException(
+                FrameworkStrings.CollectionCopyToFailureProvidedArrayIsTooSmall.Resolve().Text,
+                collectionParamName);
+        }
+    }
+
+    /// <summary>
+    ///  Throws an <see cref="InvalidOperationException"/> containing a resolved resource string.
+    /// </summary>
+    /// <typeparam name="TResource">The concrete resource-string carrier type.</typeparam>
+    /// <param name="message">The exception message.</param>
+    [DoesNotReturn]
+    public static void ThrowInvalidOperation<TResource>(TResource message)
+        where TResource : IResourceString
+        => throw new InvalidOperationException(message.Resolve().Text);
+
+    /// <summary>
+    ///  Throws an <see cref="InvalidOperationException"/> if <paramref name="condition"/> is
+    ///  <see langword="false"/>.
+    /// </summary>
+    /// <typeparam name="TResource">The concrete resource-string carrier type.</typeparam>
+    /// <param name="condition">The condition to verify.</param>
+    /// <param name="message">The exception message.</param>
+    public static void VerifyThrowInvalidOperation<TResource>(
+        [DoesNotReturnIf(false)] bool condition,
+        TResource message)
+        where TResource : IResourceString
+    {
+        if (!condition)
+        {
+            ThrowInvalidOperation(message);
+        }
+    }
+
+    /// <summary>
+    ///  Throws an <see cref="ArgumentException"/> containing a resolved resource string.
+    /// </summary>
+    /// <typeparam name="TResource">The concrete resource-string carrier type.</typeparam>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The optional inner exception.</param>
+    [DoesNotReturn]
+    public static void ThrowArgument<TResource>(TResource message, Exception? innerException = null)
+        where TResource : IResourceString
+        => throw new ArgumentException(message.Resolve().Text, innerException);
+
+    /// <summary>
+    ///  Throws an <see cref="ArgumentException"/> if <paramref name="condition"/> is
+    ///  <see langword="false"/>.
+    /// </summary>
+    /// <typeparam name="TResource">The concrete resource-string carrier type.</typeparam>
+    /// <param name="condition">The condition to verify.</param>
+    /// <param name="message">The exception message.</param>
+    /// <param name="innerException">The optional inner exception.</param>
+    public static void VerifyThrowArgument<TResource>(
+        [DoesNotReturnIf(false)] bool condition,
+        TResource message,
+        Exception? innerException = null)
+        where TResource : IResourceString
+    {
+        if (!condition)
+        {
+            ThrowArgument(message, innerException);
+        }
+    }
+
+    /// <summary>
+    ///  Throws an <see cref="ArgumentOutOfRangeException"/>.
+    /// </summary>
+    /// <param name="parameterName">The parameter name.</param>
+    [DoesNotReturn]
+    public static void ThrowArgumentOutOfRange(string? parameterName)
+        => throw new ArgumentOutOfRangeException(parameterName);
+
+    /// <summary>
+    ///  Throws an <see cref="ArgumentNullException"/> if <paramref name="parameter"/> is
+    ///  <see langword="null"/>.
+    /// </summary>
+    /// <typeparam name="TResource">The concrete resource-string carrier type.</typeparam>
+    /// <param name="parameter">The parameter to verify.</param>
+    /// <param name="message">The preformatted exception message.</param>
+    public static void VerifyThrowArgumentNull<TResource>(
+        [NotNull] object? parameter,
+        TResource message)
+        where TResource : IResourceString
+    {
+        if (parameter is null)
+        {
+            throw new ArgumentNullException(message.Resolve().Text, (Exception?)null);
         }
     }
 
@@ -92,7 +200,7 @@ internal static class FrameworkErrorUtilities
 
     [DoesNotReturn]
     private static void ThrowArgumentLength(string? parameterName)
-        => throw new ArgumentException(SR.Argument_EmptyString, parameterName);
+        => throw new ArgumentException(FrameworkStrings.Argument_EmptyString.Resolve().Text, parameterName);
 
     /// <summary>
     ///  Throws an <see cref="ArgumentNullException"/> if the given string parameter is null,
@@ -106,7 +214,8 @@ internal static class FrameworkErrorUtilities
 
         if (FileUtilities.PathIsInvalid(parameter))
         {
-            throw new ArgumentException(SR.FormatParameterCannotHaveInvalidPathChars(parameterName, parameter));
+            throw new ArgumentException(
+                FrameworkStrings.ParameterCannotHaveInvalidPathChars.WithArguments(parameterName, parameter).Resolve().Text);
         }
     }
 }

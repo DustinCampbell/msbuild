@@ -178,7 +178,10 @@ namespace Microsoft.Build.Framework
             {
                 if (RawMessage == null)
                 {
-                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(Succeeded ? "TargetFinishedSuccess" : "TargetFinishedFailure", targetName, Path.GetFileName(projectFile));
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                        Succeeded ? BuildEventResourceString.TargetFinishedSuccess : BuildEventResourceString.TargetFinishedFailure,
+                        targetName,
+                        Path.GetFileName(projectFile));
                 }
 
                 return RawMessage;

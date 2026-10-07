@@ -82,7 +82,7 @@ namespace Microsoft.Build.Framework
 
             return string.Join("; ", withPaths.Select(l => string.Format(
                 CultureInfo.CurrentCulture,
-                SR.LogFileOutputPath,
+                FrameworkStrings.LogFileOutputPath.Resolve().Text,
                 l.LoggerName,
                 string.Join(CultureInfo.CurrentCulture.TextInfo.ListSeparator + " ", l.OutputFilePaths))));
         }

@@ -203,7 +203,7 @@ internal static partial class FileUtilities
         }
         catch (Exception ex) when (ExceptionHandling.IsIoRelatedException(ex))
         {
-            throw new IOException(SR.FormatFailedCreatingTempFile(ex.Message), ex);
+            throw new IOException(ResourceStringUtilities.GetText(FrameworkStrings.FailedCreatingTempFile.WithArguments(ex.Message)), ex);
         }
     }
 

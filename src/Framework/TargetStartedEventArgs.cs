@@ -181,22 +181,38 @@ namespace Microsoft.Build.Framework
                     {
                         if (!string.IsNullOrEmpty(parentTarget))
                         {
-                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword("TargetStartedProjectDepends", targetName, projectFile, parentTarget);
+                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                                BuildEventResourceString.TargetStartedProjectDepends,
+                                targetName,
+                                projectFile,
+                                parentTarget);
                         }
                         else
                         {
-                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword("TargetStartedProjectEntry", targetName, projectFile);
+                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                                BuildEventResourceString.TargetStartedProjectEntry,
+                                targetName,
+                                projectFile);
                         }
                     }
                     else
                     {
                         if (!string.IsNullOrEmpty(parentTarget))
                         {
-                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword("TargetStartedFileProjectDepends", targetName, targetFile, projectFile, parentTarget);
+                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                                BuildEventResourceString.TargetStartedFileProjectDepends,
+                                targetName,
+                                targetFile,
+                                projectFile,
+                                parentTarget);
                         }
                         else
                         {
-                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword("TargetStartedFileProjectEntry", targetName, targetFile, projectFile);
+                            RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                                BuildEventResourceString.TargetStartedFileProjectEntry,
+                                targetName,
+                                targetFile,
+                                projectFile);
                         }
                     }
                 }

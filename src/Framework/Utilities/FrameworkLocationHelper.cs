@@ -670,7 +670,7 @@ namespace Microsoft.Build.Shared
 
             if (!visualStudioSpec.SupportedDotNetFrameworkVersions.Contains(dotNetFrameworkVersion))
             {
-                throw new ArgumentException(SR.FormatUnsupportedFrameworkVersion(dotNetFrameworkVersion));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersion.WithArguments(dotNetFrameworkVersion)));
             }
 
             return dotNetFrameworkSpec.GetDotNetFrameworkSdkRootRegistryKey(visualStudioSpec);
@@ -685,7 +685,7 @@ namespace Microsoft.Build.Shared
 
             if (!visualStudioSpec.SupportedDotNetFrameworkVersions.Contains(dotNetFrameworkVersion))
             {
-                throw new ArgumentException(SR.FormatUnsupportedFrameworkVersion(dotNetFrameworkVersion));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersion.WithArguments(dotNetFrameworkVersion)));
             }
 
             return dotNetFrameworkSpec.DotNetFrameworkSdkRegistryInstallationFolderName;
@@ -715,7 +715,7 @@ namespace Microsoft.Build.Shared
 
             if (!visualStudioSpec.SupportedDotNetFrameworkVersions.Contains(dotNetFrameworkVersion))
             {
-                throw new ArgumentException(SR.FormatUnsupportedFrameworkVersion(dotNetFrameworkVersion));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersion.WithArguments(dotNetFrameworkVersion)));
             }
 
             return dotNetFrameworkSpec.GetPathToDotNetFrameworkSdkTools(visualStudioSpec);
@@ -730,7 +730,7 @@ namespace Microsoft.Build.Shared
 
             if (!visualStudioSpec.SupportedDotNetFrameworkVersions.Contains(dotNetFrameworkVersion))
             {
-                throw new ArgumentException(SR.FormatUnsupportedFrameworkVersion(dotNetFrameworkVersion));
+                throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersion.WithArguments(dotNetFrameworkVersion)));
             }
 
             return dotNetFrameworkSpec.GetPathToDotNetFrameworkSdk(visualStudioSpec);
@@ -1045,7 +1045,12 @@ namespace Microsoft.Build.Shared
             }
             catch (Exception e) when (ExceptionHandling.IsIoRelatedException(e))
             {
-                throw new InvalidOperationException(SR.FormatCouldNotGenerateReferenceAssemblyDirectory(targetFrameworkRootPath, frameworkName.ToString(), e.Message));
+                throw new InvalidOperationException(
+                    ResourceStringUtilities.GetText(
+                        FrameworkStrings.CouldNotGenerateReferenceAssemblyDirectory.WithArguments(
+                            targetFrameworkRootPath,
+                            frameworkName.ToString(),
+                            e.Message)));
             }
         }
 
@@ -1173,12 +1178,12 @@ namespace Microsoft.Build.Shared
         private static VisualStudioSpec GetVisualStudioSpec(Version version)
             => VisualStudioSpecDict.Value.TryGetValue(version, out VisualStudioSpec spec)
                 ? spec
-                : throw new ArgumentException(SR.FormatUnsupportedVisualStudioVersion(version));
+                : throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedVisualStudioVersion.WithArguments(version)));
 
         private static DotNetFrameworkSpec GetDotNetFrameworkSpec(Version version)
             => DotNetFrameworkSpecDict.Value.TryGetValue(version, out DotNetFrameworkSpec spec)
                 ? spec
-                : throw new ArgumentException(SR.FormatUnsupportedFrameworkVersion(version));
+                : throw new ArgumentException(ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersion.WithArguments(version)));
 
         /// <summary>
         /// Helper method to create an instance of <see cref="DotNetFrameworkSpec"/> for .net v4.x,
@@ -1623,14 +1628,16 @@ namespace Microsoft.Build.Shared
                 {
                     if (_visualStudioVersion == null)
                     {
-                        throw new ArgumentException(SR.FormatUnsupportedFrameworkVersionForWindowsSdk(Version));
+                        throw new ArgumentException(
+                            ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersionForWindowsSdk.WithArguments(Version)));
                     }
 
                     var visualStudioSpec = GetVisualStudioSpec(_visualStudioVersion);
 
                     if (string.IsNullOrEmpty(visualStudioSpec.WindowsSdkRegistryKey) || string.IsNullOrEmpty(visualStudioSpec.WindowsSdkRegistryInstallationFolderName))
                     {
-                        throw new ArgumentException(SR.FormatUnsupportedFrameworkVersionForWindowsSdk(Version));
+                        throw new ArgumentException(
+                            ResourceStringUtilities.GetText(FrameworkStrings.UnsupportedFrameworkVersionForWindowsSdk.WithArguments(Version)));
                     }
 
                     string registryPath = string.Join(@"\", MicrosoftSDKsRegistryKey, "Windows", visualStudioSpec.WindowsSdkRegistryKey);

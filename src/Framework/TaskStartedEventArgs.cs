@@ -195,7 +195,7 @@ namespace Microsoft.Build.Framework
             {
                 if (RawMessage == null)
                 {
-                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword("TaskStarted", TaskName);
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(BuildEventResourceString.TaskStarted, TaskName);
                 }
 
                 return RawMessage;

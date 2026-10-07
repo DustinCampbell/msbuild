@@ -64,7 +64,7 @@ namespace Microsoft.Build.Framework
             {
                 if (RawMessage == null)
                 {
-                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword("UninitializedPropertyRead", PropertyName);
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(BuildEventResourceString.UninitializedPropertyRead, PropertyName);
                 }
 
                 return RawMessage;

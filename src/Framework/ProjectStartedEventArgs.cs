@@ -540,11 +540,16 @@ namespace Microsoft.Build.Framework
                     // default targets.
                     if (!string.IsNullOrEmpty(TargetNames))
                     {
-                        RawMessage = FormatResourceStringIgnoreCodeAndKeyword("ProjectStartedPrefixForTopLevelProjectWithTargetNames", projectFilePath, TargetNames!);
+                        RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                            BuildEventResourceString.ProjectStartedPrefixForTopLevelProjectWithTargetNames,
+                            projectFilePath,
+                            TargetNames!);
                     }
                     else
                     {
-                        RawMessage = FormatResourceStringIgnoreCodeAndKeyword("ProjectStartedPrefixForTopLevelProjectWithDefaultTargets", projectFilePath);
+                        RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                            BuildEventResourceString.ProjectStartedPrefixForTopLevelProjectWithDefaultTargets,
+                            projectFilePath);
                     }
                 }
 

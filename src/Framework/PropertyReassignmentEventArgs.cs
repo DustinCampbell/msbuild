@@ -110,7 +110,12 @@ namespace Microsoft.Build.Framework
                 if (RawMessage == null)
                 {
                     string formattedLocation = File == null ? Location : $"{File} ({LineNumber},{ColumnNumber})";
-                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword("PropertyReassignment", PropertyName, NewValue, PreviousValue, formattedLocation);
+                    RawMessage = FormatResourceStringIgnoreCodeAndKeyword(
+                        BuildEventResourceString.PropertyReassignment,
+                        PropertyName,
+                        NewValue,
+                        PreviousValue,
+                        formattedLocation);
                 }
 
                 return RawMessage;

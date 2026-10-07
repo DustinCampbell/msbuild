@@ -60,6 +60,24 @@ public class ResourceStringTests
     }
 
     [Fact]
+    public void ResolveUsesExplicitCulture()
+    {
+        CultureInfo currentCulture = CultureInfo.GetCultureInfo("en-US");
+        var resourceManager = new TestResourceManager(
+            static (_, requestedCulture) => requestedCulture.Name switch
+            {
+                "en-US" => "Hello",
+                "fr-FR" => "Bonjour",
+                _ => throw new InvalidOperationException(),
+            });
+        var resource = new ResourceString(resourceManager, () => currentCulture, "Greeting", "MSBuild.");
+
+        resource.Resolve(CultureInfo.GetCultureInfo("fr-FR")).Text.ShouldBe("Bonjour");
+        resource.Resolve().Text.ShouldBe("Hello");
+        resourceManager.GetStringCallCount.ShouldBe(2);
+    }
+
+    [Fact]
     public void WithArgumentsDefersFormattingUntilResolve()
     {
         var resourceManager = new TestResourceManager(static (_, _) => "MSB4321: {0} {1} {2} {3}");

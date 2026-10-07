@@ -162,7 +162,7 @@ namespace Microsoft.Build.Collections
 
             set
             {
-                throw new InvalidOperationException(SR.CollectionIsReadOnly);
+                throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
             }
         }
 
@@ -171,7 +171,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Add(K key, V value)
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>
@@ -187,7 +187,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public bool Remove(K key)
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Add(KeyValuePair<K, V> item)
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public void Clear()
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace Microsoft.Build.Collections
         /// </summary>
         public bool Remove(KeyValuePair<K, V> item)
         {
-            throw new InvalidOperationException(SR.CollectionIsReadOnly);
+            throw new InvalidOperationException(FrameworkStrings.CollectionIsReadOnly.Resolve().Text);
         }
 
         /// <summary>

@@ -51,8 +51,19 @@ internal sealed class ResourceString : IResourceString
     ///  The resolved resource string.
     /// </returns>
     public ResolvedResourceString Resolve()
+        => Resolve(_getCulture?.Invoke() ?? CultureInfo.CurrentUICulture);
+
+    /// <summary>
+    ///  Resolves the resource string for a specific culture.
+    /// </summary>
+    /// <param name="culture">The culture to use for the resource lookup.</param>
+    /// <returns>
+    ///  The resolved resource string.
+    /// </returns>
+    public ResolvedResourceString Resolve(CultureInfo culture)
     {
-        CultureInfo culture = _getCulture?.Invoke() ?? CultureInfo.CurrentUICulture;
+        ArgumentNullException.ThrowIfNull(culture);
+
         CacheEntry? cache = _cache;
 
         if (cache is null || !cache.Culture.Equals(culture))
