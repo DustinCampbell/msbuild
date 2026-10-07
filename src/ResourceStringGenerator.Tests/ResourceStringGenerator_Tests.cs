@@ -51,6 +51,7 @@ public class ResourceStringGeneratorTests
         source.ShouldContain("\"Dotted.Resource\"");
         source.ShouldContain("ResourceString @class");
         source.ShouldContain("\"Example.\"");
+        source.ShouldContain("\"Dotted.Resource\" => Dotted_Resource");
         CSharpSyntaxTree.ParseText(source).GetDiagnostics().ShouldBeEmpty();
     }
 
@@ -132,6 +133,24 @@ public class ResourceStringGeneratorTests
         Diagnostic diagnostic = result.Diagnostics.Single(static diagnostic => diagnostic.Id == "MSBRSG004");
         diagnostic.GetMessage().ShouldContain("Dotted.Resource");
         diagnostic.GetMessage().ShouldContain("Dotted_Resource");
+    }
+
+    [Fact]
+    public void ReportsGeneratedCatalogMemberCollisions()
+    {
+        TestAdditionalText resources = CreateResources(
+            "Strings.resx",
+            """
+            <root>
+              <data name="GetResourceString"><value>Lookup</value></data>
+            </root>
+            """,
+            CreateDirectConfiguration("global::Example.Resources", cultureExpression: null));
+
+        GeneratorDriverRunResult result = RunGenerator(resources);
+
+        Diagnostic diagnostic = result.Diagnostics.Single(static diagnostic => diagnostic.Id == "MSBRSG006");
+        diagnostic.GetMessage().ShouldContain("GetResourceString");
     }
 
     [Fact]

@@ -64,6 +64,14 @@ public sealed class ResourceStringGenerator : IIncrementalGenerator
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor s_generatedMemberCollision = new(
+        "MSBRSG006",
+        "Resource identifier collision",
+        "Resource key '{0}' generates the C# identifier '{1}', which is reserved by catalog '{2}'",
+        "ResourceStringGenerator",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
     /// <summary>
     ///  Initializes the incremental generator.
     /// </summary>
@@ -273,12 +281,25 @@ public sealed class ResourceStringGenerator : IIncrementalGenerator
         string catalogDisplayName = firstFile.CatalogNamespace + "." + firstFile.CatalogClass;
         var keys = new Dictionary<string, ResourceEntry>(StringComparer.Ordinal);
         var identifiers = new Dictionary<string, ResourceEntry>(StringComparer.Ordinal);
+        var generatedMembers = new Dictionary<string, ResourceEntry>(StringComparer.Ordinal);
+        var reservedMembers = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "GetResourceString",
+        };
         var generatedEntries = new List<GeneratedEntry>();
 
         for (int fileIndex = 0; fileIndex < files.Count; fileIndex++)
         {
-            ResourceFile file = files[fileIndex];
+            reservedMembers.Add("s_resourceManager" + fileIndex);
+            if (files[fileIndex].CultureExpression is not null)
+            {
+                reservedMembers.Add("s_getCulture" + fileIndex);
+            }
+        }
 
+        for (int fileIndex = 0; fileIndex < files.Count; fileIndex++)
+        {
+            ResourceFile file = files[fileIndex];
             foreach (ResourceEntry entry in file.Entries)
             {
                 if (keys.ContainsKey(entry.Key))
@@ -301,7 +322,58 @@ public sealed class ResourceStringGenerator : IIncrementalGenerator
                     continue;
                 }
 
+                string propertyIdentifier = entry.Identifier.TrimStart('@');
+                string fieldIdentifier = "s_" + propertyIdentifier;
+
+                if (reservedMembers.Contains(propertyIdentifier))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        s_generatedMemberCollision,
+                        Location.None,
+                        entry.Key,
+                        propertyIdentifier,
+                        catalogDisplayName));
+                    continue;
+                }
+
+                if (reservedMembers.Contains(fieldIdentifier))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        s_generatedMemberCollision,
+                        Location.None,
+                        entry.Key,
+                        fieldIdentifier,
+                        catalogDisplayName));
+                    continue;
+                }
+
+                if (generatedMembers.TryGetValue(propertyIdentifier, out ResourceEntry? existingMemberEntry))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        s_identifierCollision,
+                        Location.None,
+                        existingMemberEntry.Key,
+                        entry.Key,
+                        propertyIdentifier,
+                        catalogDisplayName));
+                    continue;
+                }
+
+                if (generatedMembers.TryGetValue(fieldIdentifier, out existingMemberEntry))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        s_identifierCollision,
+                        Location.None,
+                        existingMemberEntry.Key,
+                        entry.Key,
+                        fieldIdentifier,
+                        catalogDisplayName));
+                    continue;
+                }
+
                 identifiers.Add(entry.Identifier, entry);
+                generatedMembers.Add(propertyIdentifier, entry);
+                generatedMembers.Add(fieldIdentifier, entry);
                 generatedEntries.Add(new GeneratedEntry(entry, fileIndex));
             }
         }
@@ -334,6 +406,29 @@ public sealed class ResourceStringGenerator : IIncrementalGenerator
         }
 
         if (files.Count > 0 && generatedEntries.Count > 0)
+        {
+            source.AppendLine();
+        }
+
+        source.Append("    public static ")
+            .Append(ResourceStringType)
+            .AppendLine(" GetResourceString(string name)");
+        source.AppendLine("        => name switch");
+        source.AppendLine("        {");
+
+        foreach (GeneratedEntry generatedEntry in generatedEntries)
+        {
+            source.Append("            ")
+                .Append(Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(generatedEntry.Entry.Key, quote: true))
+                .Append(" => ")
+                .Append(generatedEntry.Entry.Identifier)
+                .AppendLine(",");
+        }
+
+        source.AppendLine("            _ => throw new global::System.ArgumentException($\"Unknown resource key '{name}'.\", nameof(name)),");
+        source.AppendLine("        };");
+
+        if (generatedEntries.Count > 0)
         {
             source.AppendLine();
         }
