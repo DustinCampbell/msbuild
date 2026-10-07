@@ -7,7 +7,6 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -522,16 +521,16 @@ namespace Microsoft.Build.Utilities
             {
                 if (string.IsNullOrEmpty(switchName))
                 {
-                    ErrorUtilities.VerifyThrowArgument(
+                    FrameworkErrorUtilities.VerifyThrowArgument(
                             -1 == parameter.IndexOf('"'),
-                            "General.QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName",
+                            UtilityStrings.General_QuotesNotAllowedInThisKindOfTaskParameterNoSwitchName,
                             parameter);
                 }
                 else
                 {
-                    ErrorUtilities.VerifyThrowArgument(
+                    FrameworkErrorUtilities.VerifyThrowArgument(
                             -1 == parameter.IndexOf('"'),
-                            "General.QuotesNotAllowedInThisKindOfTaskParameter",
+                            UtilityStrings.General_QuotesNotAllowedInThisKindOfTaskParameter,
                             switchName,
                             parameter);
                 }

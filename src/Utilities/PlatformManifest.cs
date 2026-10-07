@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 
 #nullable disable
@@ -151,7 +150,7 @@ namespace Microsoft.Build.Utilities
                 }
                 else
                 {
-                    ReadErrorMessage = ResourceUtilities.FormatResourceStringStripCodeAndKeyword("PlatformManifest.MissingPlatformXml", platformManifestPath);
+                    ReadErrorMessage = ResourceStringUtilities.FormatResourceStringStripCodeAndKeyword(UtilityStrings.PlatformManifest_MissingPlatformXml, platformManifestPath);
                 }
             }
             catch (Exception e) when (!ExceptionHandling.IsCriticalException(e))

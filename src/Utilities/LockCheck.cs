@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.Versioning;
-using Microsoft.Build.Shared;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.System.RestartManager;
@@ -113,7 +112,7 @@ namespace Microsoft.Build.Utilities
             {
                 var processes = GetProcessesLockingFile(filePath);
                 message = !string.IsNullOrEmpty(processes)
-                    ? ResourceUtilities.FormatResourceStringIgnoreCodeAndKeyword("LockCheck.FileLocked", processes)
+                    ? ResourceStringUtilities.FormatResourceStringIgnoreCodeAndKeyword(UtilityStrings.LockCheck_FileLocked, processes)
                     : String.Empty;
             }
             catch (Exception)

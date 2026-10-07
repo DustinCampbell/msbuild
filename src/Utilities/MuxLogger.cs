@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 #nullable disable
 
@@ -48,7 +47,7 @@ namespace Microsoft.Build.Utilities
     ///     This may create a Synchronization issue, if unregister is called while events are being logged.
     /// </summary>
     //
-    // UNDONE: If we can use ErrorUtilities, replace all InvalidOperation and Argument exceptions with the appropriate calls.
+    // UNDONE: If we can use FrameworkErrorUtilities, replace all InvalidOperation and Argument exceptions with the appropriate calls.
     //
     public class MuxLogger : INodeLogger
     {
@@ -1256,7 +1255,7 @@ namespace Microsoft.Build.Utilities
                     ProjectFinishedEventArgs projectFinishedEvent = buildEvent as ProjectFinishedEventArgs;
                     if (projectFinishedEvent != null && buildEvent.BuildEventContext?.Equals(_firstProjectStartedEventContext) == true)
                     {
-                        string message = projectFinishedEvent.Succeeded ? ResourceUtilities.GetResourceString("MuxLogger_BuildFinishedSuccess") : ResourceUtilities.GetResourceString("MuxLogger_BuildFinishedFailure");
+                        string message = projectFinishedEvent.Succeeded ? ResourceStringUtilities.GetResourceString(UtilityStrings.MuxLogger_BuildFinishedSuccess) : ResourceStringUtilities.GetResourceString(UtilityStrings.MuxLogger_BuildFinishedFailure);
                         RaiseBuildFinishedEvent(sender, new BuildFinishedEventArgs(message, null, projectFinishedEvent.Succeeded));
                         Shutdown();
                     }
