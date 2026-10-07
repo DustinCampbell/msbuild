@@ -58,6 +58,7 @@
     <ProjectReference Include="..\ResourceStringGenerator\Microsoft.Build.ResourceStringGenerator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
+    <Using Include="Microsoft.Build.CommandLine.Resources.BuildResourceNames" Alias="BuildResourceNames" />
     <Using Include="Microsoft.Build.CommandLine.Resources.MSBuildStrings" Alias="MSBuildStrings" />
     <Using Include="Microsoft.Build.Framework.FrameworkErrorUtilities" Alias="FrameworkErrorUtilities" />
     <Using Include="Microsoft.Build.Framework.Resources.FrameworkStrings" Alias="FrameworkStrings" />
@@ -130,6 +131,11 @@
                      ResourceCatalogNamespace="Microsoft.Build.CommandLine.Resources"
                      ResourceCatalogClass="MSBuildStrings"
                      ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.PrimaryResources"
+                     ResourceCatalogHelpKeywordPrefix="MSBuild." />
+    <AdditionalFiles Include="Resources\BuildResourceNames.resx"
+                     ResourceCatalogNamespace="Microsoft.Build.CommandLine.Resources"
+                     ResourceCatalogClass="BuildResourceNames"
+                     ResourceCatalogResourceManagerExpression="global::Microsoft.Build.Shared.AssemblyResources.BuildResources"
                      ResourceCatalogHelpKeywordPrefix="MSBuild." />
     <!-- Content Files -->
     <Content Include="MSBuild.ico" Pack="false" />

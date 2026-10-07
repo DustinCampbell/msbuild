@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- These Microsoft.Build resource names cross the out-of-proc task-host result contract. -->
+  <data name="InvalidTaskAttributeError" xml:space="preserve">
+    <value />
+  </data>
+  <data name="InvalidTaskParameterValueError" xml:space="preserve">
+    <value />
+  </data>
+  <data name="TaskInstantiationFailureError" xml:space="preserve">
+    <value />
+  </data>
+  <data name="TaskInstantiationFailureNotSupported" xml:space="preserve">
+    <value />
+  </data>
+</root>

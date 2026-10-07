@@ -140,7 +140,7 @@ namespace Microsoft.Build.CommandLine
                 return new OutOfProcTaskHostTaskResult(
                                 TaskCompleteType.CrashedDuringInitialization,
                                 exceptionToReturn,
-                                "TaskInstantiationFailureError",
+                                BuildResourceNames.TaskInstantiationFailureError.ResourceName,
                                 [taskName, taskLocation, String.Empty]);
             }
 
@@ -152,7 +152,7 @@ namespace Microsoft.Build.CommandLine
                 return new OutOfProcTaskHostTaskResult(
                                 TaskCompleteType.CrashedDuringInitialization,
                                 new TypeLoadException(),
-                                "TaskInstantiationFailureError",
+                                BuildResourceNames.TaskInstantiationFailureError.ResourceName,
                                 [taskName, taskLocation, String.Empty]);
             }
 
@@ -178,7 +178,7 @@ namespace Microsoft.Build.CommandLine
                 return new OutOfProcTaskHostTaskResult(
                                                     TaskCompleteType.CrashedDuringInitialization,
                                                     null,
-                                                    "TaskInstantiationFailureNotSupported",
+                                                    BuildResourceNames.TaskInstantiationFailureNotSupported.ResourceName,
                                                     [taskName, taskLocation, typeof(RunInSTAAttribute).FullName]);
 #endif
             }
@@ -390,7 +390,7 @@ namespace Microsoft.Build.CommandLine
                 return new OutOfProcTaskHostTaskResult(
                     TaskCompleteType.CrashedDuringInitialization,
                     exceptionToReturn,
-                    "TaskInstantiationFailureError",
+                    BuildResourceNames.TaskInstantiationFailureError.ResourceName,
                     [taskName, taskLocation, String.Empty]);
             }
 
@@ -412,7 +412,7 @@ namespace Microsoft.Build.CommandLine
                     return new OutOfProcTaskHostTaskResult(
                         TaskCompleteType.CrashedDuringInitialization,
                         e.InnerException,
-                        "InvalidTaskParameterValueError",
+                        BuildResourceNames.InvalidTaskParameterValueError.ResourceName,
                         [e.Value, param.Key, paramInfo.PropertyType.FullName, taskName]);
                 }
 #endif
@@ -422,7 +422,7 @@ namespace Microsoft.Build.CommandLine
                                 TaskCompleteType.CrashedDuringInitialization,
                                 // If it's a TargetInvocationException, we only care about the contents of the inner exception, so save that instead.
                                 e is TargetInvocationException ? e.InnerException : e,
-                                "InvalidTaskAttributeError",
+                                BuildResourceNames.InvalidTaskAttributeError.ResourceName,
                                 [param.Key, param.Value.ToString(), taskName]);
                 }
             }

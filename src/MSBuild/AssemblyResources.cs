@@ -14,4 +14,10 @@ internal static class AssemblyResources
     ///  Gets the assembly's primary resources, i.e. the resources exclusively owned by this assembly.
     /// </summary>
     internal static ResourceManager PrimaryResources { get; } = new ResourceManager("MSBuild.Strings", typeof(AssemblyResources).Assembly);
+
+    /// <summary>
+    ///  Gets resources owned by Microsoft.Build for command-line data contracts that carry resource names.
+    /// </summary>
+    internal static ResourceManager BuildResources { get; } =
+        new ResourceManager("Microsoft.Build.Strings", typeof(global::Microsoft.Build.Evaluation.ProjectCollection).Assembly);
 }
