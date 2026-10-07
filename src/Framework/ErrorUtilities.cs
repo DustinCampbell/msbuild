@@ -95,6 +95,26 @@ internal static class FrameworkErrorUtilities
         where TResource : IResourceString
         => throw new InvalidOperationException(message.Resolve().Text);
 
+    [DoesNotReturn]
+    public static void ThrowInvalidOperationMessage(string message)
+        => throw new InvalidOperationException(message);
+
+    [DoesNotReturn]
+    public static void ThrowInvalidOperation<T1>(ResourceString resource, T1 arg0)
+        => ThrowInvalidOperation(resource.WithArguments(arg0));
+
+    [DoesNotReturn]
+    public static void ThrowInvalidOperation<T1, T2>(ResourceString resource, T1 arg0, T2 arg1)
+        => ThrowInvalidOperation(resource.WithArguments(arg0, arg1));
+
+    [DoesNotReturn]
+    public static void ThrowInvalidOperation<T1, T2, T3>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2)
+        => ThrowInvalidOperation(resource.WithArguments(arg0, arg1, arg2));
+
+    [DoesNotReturn]
+    public static void ThrowInvalidOperation<T1, T2, T3, T4>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2, T4 arg3)
+        => ThrowInvalidOperation(resource.WithArguments(arg0, arg1, arg2, arg3));
+
     /// <summary>
     ///  Throws an <see cref="InvalidOperationException"/> if <paramref name="condition"/> is
     ///  <see langword="false"/>.
@@ -113,6 +133,56 @@ internal static class FrameworkErrorUtilities
         }
     }
 
+    public static void VerifyThrowInvalidOperation<T1>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0)
+    {
+        if (!condition)
+        {
+            ThrowInvalidOperation(resource.WithArguments(arg0));
+        }
+    }
+
+    public static void VerifyThrowInvalidOperation<T1, T2>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1)
+    {
+        if (!condition)
+        {
+            ThrowInvalidOperation(resource.WithArguments(arg0, arg1));
+        }
+    }
+
+    public static void VerifyThrowInvalidOperation<T1, T2, T3>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2)
+    {
+        if (!condition)
+        {
+            ThrowInvalidOperation(resource.WithArguments(arg0, arg1, arg2));
+        }
+    }
+
+    public static void VerifyThrowInvalidOperation<T1, T2, T3, T4>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2,
+        T4 arg3)
+    {
+        if (!condition)
+        {
+            ThrowInvalidOperation(resource.WithArguments(arg0, arg1, arg2, arg3));
+        }
+    }
+
     /// <summary>
     ///  Throws an <see cref="ArgumentException"/> containing a resolved resource string.
     /// </summary>
@@ -123,6 +193,71 @@ internal static class FrameworkErrorUtilities
     public static void ThrowArgument<TResource>(TResource message, Exception? innerException = null)
         where TResource : IResourceString
         => throw new ArgumentException(message.Resolve().Text, innerException);
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1>(ResourceString resource, T1 arg0)
+        => ThrowArgument(resource.WithArguments(arg0));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2>(ResourceString resource, T1 arg0, T2 arg1)
+        => ThrowArgument(resource.WithArguments(arg0, arg1));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3, T4>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2, T4 arg3)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2, arg3));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3, T4, T5>(ResourceString resource, T1 arg0, T2 arg1, T3 arg2, T4 arg3, T5 arg4)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2, arg3, arg4));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3, T4, T5, T6>(
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2,
+        T4 arg3,
+        T5 arg4,
+        T6 arg5)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2, arg3, arg4, arg5));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3, T4, T5, T6, T7>(
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2,
+        T4 arg3,
+        T5 arg4,
+        T6 arg5,
+        T7 arg6)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2, arg3, arg4, arg5, arg6));
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1>(Exception? innerException, ResourceString resource, T1 arg0)
+        => ThrowArgument(resource.WithArguments(arg0), innerException);
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2>(Exception? innerException, ResourceString resource, T1 arg0, T2 arg1)
+        => ThrowArgument(resource.WithArguments(arg0, arg1), innerException);
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3>(Exception? innerException, ResourceString resource, T1 arg0, T2 arg1, T3 arg2)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2), innerException);
+
+    [DoesNotReturn]
+    public static void ThrowArgument<T1, T2, T3, T4>(
+        Exception? innerException,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2,
+        T4 arg3)
+        => ThrowArgument(resource.WithArguments(arg0, arg1, arg2, arg3), innerException);
 
     /// <summary>
     ///  Throws an <see cref="ArgumentException"/> if <paramref name="condition"/> is
@@ -143,6 +278,70 @@ internal static class FrameworkErrorUtilities
             ThrowArgument(message, innerException);
         }
     }
+
+    public static void VerifyThrowArgument<T1>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0));
+
+    public static void VerifyThrowArgument<T1, T2>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0, arg1));
+
+    public static void VerifyThrowArgument<T1, T2, T3>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0, arg1, arg2));
+
+    public static void VerifyThrowArgument<T1, T2, T3, T4>(
+        [DoesNotReturnIf(false)] bool condition,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2,
+        T4 arg3)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0, arg1, arg2, arg3));
+
+    public static void VerifyThrowArgument<T1>(
+        [DoesNotReturnIf(false)] bool condition,
+        Exception? innerException,
+        ResourceString resource,
+        T1 arg0)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0), innerException);
+
+    public static void VerifyThrowArgument<T1, T2>(
+        [DoesNotReturnIf(false)] bool condition,
+        Exception? innerException,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0, arg1), innerException);
+
+    public static void VerifyThrowArgument<T1, T2, T3>(
+        [DoesNotReturnIf(false)] bool condition,
+        Exception? innerException,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0, arg1, arg2), innerException);
+
+    public static void VerifyThrowArgument<T1, T2, T3, T4>(
+        [DoesNotReturnIf(false)] bool condition,
+        Exception? innerException,
+        ResourceString resource,
+        T1 arg0,
+        T2 arg1,
+        T3 arg2,
+        T4 arg3)
+        => VerifyThrowArgument(condition, resource.WithArguments(arg0, arg1, arg2, arg3), innerException);
 
     /// <summary>
     ///  Throws an <see cref="ArgumentOutOfRangeException"/>.
@@ -167,6 +366,17 @@ internal static class FrameworkErrorUtilities
         if (parameter is null)
         {
             throw new ArgumentNullException(message.Resolve().Text, (Exception?)null);
+        }
+    }
+
+    public static void VerifyThrowArgumentNull(
+        [NotNull] object? parameter,
+        string? parameterName,
+        ResourceString resource)
+    {
+        if (parameter is null)
+        {
+            throw new ArgumentNullException(resource.WithArguments(parameterName).Resolve().Text, (Exception?)null);
         }
     }
 

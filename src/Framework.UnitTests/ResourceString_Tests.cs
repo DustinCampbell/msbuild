@@ -28,6 +28,7 @@ public class ResourceStringTests
         ResolvedResourceString first = resource.Resolve();
         ResolvedResourceString second = resource.Resolve();
 
+        first.OriginalText.ShouldBe("MSB1234: Hello");
         first.Text.ShouldBe("Hello");
         first.Code.ShouldBe("MSB1234");
         first.HelpKeyword.ShouldBe("MSBuild.Dotted.Resource.Key");
@@ -88,6 +89,7 @@ public class ResourceStringTests
         resourceManager.GetStringCallCount.ShouldBe(0);
         ResolvedResourceString resolved = formatted.Resolve();
 
+        resolved.OriginalText.ShouldBe("MSB4321: one 2 three 4");
         resolved.Text.ShouldBe("one 2 three 4");
         resolved.Code.ShouldBe("MSB4321");
         resolved.HelpKeyword.ShouldBe("MSBuild.Formatted.Resource");

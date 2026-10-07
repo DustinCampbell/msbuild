@@ -8,12 +8,18 @@ namespace Microsoft.Build.Framework.Resources;
 /// </summary>
 internal readonly struct ResolvedResourceString
 {
-    internal ResolvedResourceString(string text, string? code, string helpKeyword)
+    internal ResolvedResourceString(string originalText, string text, string? code, string helpKeyword)
     {
+        OriginalText = originalText;
         Text = text;
         Code = code;
         HelpKeyword = helpKeyword;
     }
+
+    /// <summary>
+    ///  Gets the localized resource text including any MSBuild diagnostic code.
+    /// </summary>
+    public string OriginalText { get; }
 
     /// <summary>
     ///  Gets the localized resource text with any MSBuild diagnostic code removed.

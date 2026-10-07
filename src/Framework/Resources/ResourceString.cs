@@ -77,11 +77,11 @@ internal sealed class ResourceString : IResourceString
                 text = resourceText;
             }
 
-            cache = new CacheEntry(culture, text, code);
+            cache = new CacheEntry(culture, resourceText, text, code);
             _cache = cache;
         }
 
-        return new ResolvedResourceString(cache.Text, cache.Code, GetHelpKeyword());
+        return new ResolvedResourceString(cache.OriginalText, cache.Text, cache.Code, GetHelpKeyword());
     }
 
     public FormattedResourceString<T1> WithArguments<T1>(T1 arg0)
@@ -137,9 +137,11 @@ internal sealed class ResourceString : IResourceString
         return _helpKeyword!;
     }
 
-    private sealed class CacheEntry(CultureInfo culture, string text, string? code)
+    private sealed class CacheEntry(CultureInfo culture, string originalText, string text, string? code)
     {
         public CultureInfo Culture { get; } = culture;
+
+        public string OriginalText { get; } = originalText;
 
         public string Text { get; } = text;
 

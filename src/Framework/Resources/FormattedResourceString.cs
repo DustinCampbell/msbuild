@@ -22,8 +22,14 @@ internal readonly struct FormattedResourceString<T1> : IResourceString
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
@@ -48,8 +54,14 @@ internal readonly struct FormattedResourceString<T1, T2> : IResourceString
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0, _arg1);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0, _arg1);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0, _arg1),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
@@ -76,8 +88,14 @@ internal readonly struct FormattedResourceString<T1, T2, T3> : IResourceString
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0, _arg1, _arg2);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
@@ -106,8 +124,14 @@ internal readonly struct FormattedResourceString<T1, T2, T3, T4> : IResourceStri
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0, _arg1, _arg2, _arg3);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
@@ -138,8 +162,14 @@ internal readonly struct FormattedResourceString<T1, T2, T3, T4, T5> : IResource
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3, _arg4);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0, _arg1, _arg2, _arg3, _arg4);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3, _arg4),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
@@ -172,8 +202,14 @@ internal readonly struct FormattedResourceString<T1, T2, T3, T4, T5, T6> : IReso
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3, _arg4, _arg5);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0, _arg1, _arg2, _arg3, _arg4, _arg5);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3, _arg4, _arg5),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
@@ -208,8 +244,14 @@ internal readonly struct FormattedResourceString<T1, T2, T3, T4, T5, T6, T7> : I
     public ResolvedResourceString Resolve()
     {
         ResolvedResourceString resolved = _resource.Resolve();
+        string text = MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3, _arg4, _arg5, _arg6);
+        string originalText = object.ReferenceEquals(resolved.OriginalText, resolved.Text)
+            ? text
+            : MessageFormatter.Format(resolved.OriginalText, _arg0, _arg1, _arg2, _arg3, _arg4, _arg5, _arg6);
+
         return new ResolvedResourceString(
-            MessageFormatter.Format(resolved.Text, _arg0, _arg1, _arg2, _arg3, _arg4, _arg5, _arg6),
+            originalText,
+            text,
             resolved.Code,
             resolved.HelpKeyword);
     }
