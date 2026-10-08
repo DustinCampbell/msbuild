@@ -17,7 +17,10 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private abstract class LazyItemOperation : IItemOperation
+        /// <summary>
+        ///  Applies one recorded operation with its captured item state and XML context.
+        /// </summary>
+        private abstract class LazyItemOperation
         {
             private readonly string _itemType;
             private readonly ImmutableDictionary<string, LazyItemList> _referencedItemLists;
@@ -34,13 +37,26 @@ namespace Microsoft.Build.Evaluation
             protected readonly IItemFactory<I, I> _itemFactory;
             internal ItemSpec<P, I> Spec => _itemSpec;
 
-            protected LazyItemOperation(OperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+            /// <summary>
+            ///  Binds a parsed operation to its captured references and model-specific factory.
+            /// </summary>
+            /// <param name="itemElement">The operation's XML.</param>
+            /// <param name="itemSpec">The property-expanded specification.</param>
+            /// <param name="references">The earlier item histories captured during construction.</param>
+            /// <param name="conditionResult">The combined group and item condition.</param>
+            /// <param name="lazyEvaluator">The owning evaluator.</param>
+            protected LazyItemOperation(
+                ProjectItemElement itemElement,
+                ItemSpec<P, I> itemSpec,
+                ImmutableDictionary<string, LazyItemList> references,
+                bool conditionResult,
+                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
-                _itemElement = builder.ItemElement;
-                _itemType = builder.ItemType;
-                _itemSpec = builder.ItemSpec;
-                _referencedItemLists = builder.ReferencedItemLists.ToImmutable();
-                _conditionResult = builder.ConditionResult;
+                _itemElement = itemElement;
+                _itemType = itemElement.ItemType;
+                _itemSpec = itemSpec;
+                _referencedItemLists = references;
+                _conditionResult = conditionResult;
 
                 _lazyEvaluator = lazyEvaluator;
 
@@ -63,26 +79,12 @@ namespace Microsoft.Build.Evaluation
                 MSBuildEventSource.Log.ApplyLazyItemOperationsStop(_itemElement.ItemType);
             }
 
-            protected virtual void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-                var items = SelectItems(listBuilder, globsToIgnore);
-                MutateItems(items);
-                SaveItems(items, listBuilder);
-            }
-
             /// <summary>
-            /// Produce the items to operate on. For example, create new ones or select existing ones
+            ///  Applies the operation to an ordered working item state.
             /// </summary>
-            protected virtual ImmutableArray<I> SelectItems(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-                return listBuilder.Select(itemData => itemData.Item)
-                                  .ToImmutableArray();
-            }
-
-            // todo Refactoring: MutateItems should clone each item before mutation. See https://github.com/dotnet/msbuild/issues/2328
-            protected virtual void MutateItems(ImmutableArray<I> items) { }
-
-            protected virtual void SaveItems(ImmutableArray<I> items, OrderedItemDataCollection.Builder listBuilder) { }
+            /// <param name="listBuilder">The item state to modify.</param>
+            /// <param name="globsToIgnore">Later glob removals applicable to this materialization.</param>
+            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore);
 
             [DebuggerDisplay(@"{DebugString()}")]
             protected readonly struct ItemBatchingContext

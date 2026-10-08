@@ -16,13 +16,30 @@ namespace Microsoft.Build.Evaluation
     {
         private class RemoveOperation : LazyItemOperation
         {
-            private readonly ImmutableList<string> _matchOnMetadata;
+            private readonly ImmutableArray<string> _matchOnMetadata;
             private MetadataTrie<P, I> _metadataSet;
 
-            public RemoveOperation(RemoveOperationBuilder builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            /// <summary>
+            ///  Initializes a Remove and eagerly validates/builds its metadata match set.
+            /// </summary>
+            /// <param name="element">The Remove XML.</param>
+            /// <param name="spec">The property-expanded Remove specification.</param>
+            /// <param name="references">The captured earlier item histories.</param>
+            /// <param name="conditionResult">The combined group and item condition.</param>
+            /// <param name="evaluator">The owning evaluator.</param>
+            /// <param name="metadataNames">The expanded metadata names to match.</param>
+            /// <param name="options">The metadata comparison policy.</param>
+            public RemoveOperation(
+                ProjectItemElement element,
+                ItemSpec<P, I> spec,
+                ImmutableDictionary<string, LazyItemList> references,
+                bool conditionResult,
+                LazyItemEvaluator<P, I, M, D> evaluator,
+                ImmutableArray<string> metadataNames,
+                MatchOnMetadataOptions options)
+                : base(element, spec, references, conditionResult, evaluator)
             {
-                _matchOnMetadata = builder.MatchOnMetadata.ToImmutable();
+                _matchOnMetadata = metadataNames;
 
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
                     _matchOnMetadata.IsEmpty || _itemSpec.Fragments.All(f => f is ItemSpec<P, I>.ItemExpressionFragment),
@@ -31,7 +48,7 @@ namespace Microsoft.Build.Evaluation
 
                 if (!_matchOnMetadata.IsEmpty)
                 {
-                    _metadataSet = new MetadataTrie<P, I>(builder.MatchOnMetadataOptions, _matchOnMetadata, _itemSpec);
+                    _metadataSet = new MetadataTrie<P, I>(options, _matchOnMetadata, _itemSpec);
                 }
             }
 
@@ -106,17 +123,6 @@ namespace Microsoft.Build.Evaluation
                 builder.UnionWith(globs);
 
                 return builder;
-            }
-        }
-
-        private class RemoveOperationBuilder : OperationBuilder
-        {
-            public ImmutableList<string>.Builder MatchOnMetadata { get; } = ImmutableList.CreateBuilder<string>();
-
-            public MatchOnMetadataOptions MatchOnMetadataOptions { get; set; }
-
-            public RemoveOperationBuilder(ProjectItemElement itemElement, bool conditionResult) : base(itemElement, conditionResult)
-            {
             }
         }
     }

@@ -21,10 +21,25 @@ namespace Microsoft.Build.Evaluation
             private ItemSpecMatchesItem _matchItemSpec = null;
             private bool? _needToExpandMetadataForEachItem = null;
 
-            public UpdateOperation(OperationBuilderWithMetadata builder, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-                : base(builder, lazyEvaluator)
+            /// <summary>
+            ///  Initializes an Update with normalized construction data.
+            /// </summary>
+            /// <param name="element">The Update XML.</param>
+            /// <param name="spec">The property-expanded Update specification.</param>
+            /// <param name="references">The captured earlier item histories.</param>
+            /// <param name="conditionResult">The combined group and item condition.</param>
+            /// <param name="evaluator">The owning evaluator.</param>
+            /// <param name="metadata">The metadata XML in declaration order.</param>
+            public UpdateOperation(
+                ProjectItemElement element,
+                ItemSpec<P, I> spec,
+                ImmutableDictionary<string, LazyItemList> references,
+                bool conditionResult,
+                LazyItemEvaluator<P, I, M, D> evaluator,
+                ImmutableArray<ProjectMetadataElement> metadata)
+                : base(element, spec, references, conditionResult, evaluator)
             {
-                _metadata = builder.Metadata.ToImmutable();
+                _metadata = metadata;
             }
 
             private readonly struct MatchResult
