@@ -38,7 +38,7 @@ namespace Microsoft.Build.Evaluation
             public IncludeOperation(
                 ProjectItemElement element,
                 ItemSpec<P, I> spec,
-                ImmutableDictionary<string, LazyItemList> references,
+                Dictionary<string, LazyItemList>? references,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> evaluator,
                 int elementOrder,
@@ -80,7 +80,7 @@ namespace Microsoft.Build.Evaluation
             {
                 ImmutableArray<I>.Builder? itemsToAdd = null;
 
-                ImmutableList<string>.Builder excludePatterns = ImmutableList.CreateBuilder<string>();
+                List<string> excludePatterns = [];
                 if (!_excludes.IsEmpty)
                 {
                     // STEP 4: Evaluate, split, expand and subtract any Exclude
@@ -102,7 +102,7 @@ namespace Microsoft.Build.Evaluation
                         // STEP 3: If expression is "@(x)" copy specified list with its metadata, otherwise just treat as string
                         var itemsFromExpression = _expander.ExpandExpressionCaptureIntoItems(
                             itemReferenceFragment.Capture,
-                            _evaluatorData,
+                            this,
                             _itemFactory,
                             ExpanderOptions.ExpandItems,
                             includeNullEntries: false,
@@ -131,13 +131,16 @@ namespace Microsoft.Build.Evaluation
                     else if (fragment is ValueFragment valueFragment)
                     {
                         string value = valueFragment.TextFragment;
-                        matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
-
-                        if (excludePatterns.Count == 0 || !ExcludeTester(_rootDirectory, excludePatterns, matchers, EscapingUtilities.UnescapeAll(value)))
+                        if (excludePatterns.Count > 0)
                         {
-                            itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
-                            itemsToAdd.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
+                            matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
+                            if (ExcludeTester(_rootDirectory, excludePatterns, matchers, EscapingUtilities.UnescapeAll(value)))
+                            {
+                                continue;
+                            }
                         }
+                        itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
+                        itemsToAdd.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
                     }
                     else if (fragment is GlobFragment globFragment)
                     {
@@ -191,7 +194,7 @@ namespace Microsoft.Build.Evaluation
 
                 return itemsToAdd?.ToImmutable() ?? ImmutableArray<I>.Empty;
 
-                static bool ExcludeTester(string? directory, ImmutableList<string>.Builder excludePatterns, FileSpecMatcherTester?[] matchers, string item)
+                static bool ExcludeTester(string? directory, List<string> excludePatterns, FileSpecMatcherTester?[] matchers, string item)
                 {
                     if (excludePatterns.Count == 0)
                     {
@@ -219,17 +222,22 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            private static ISet<string> BuildExcludePatternsForGlobs(ImmutableHashSet<string> globsToIgnore, ImmutableList<string>.Builder excludePatterns)
+            private static ISet<string> BuildExcludePatternsForGlobs(ImmutableHashSet<string> globsToIgnore, List<string> excludePatterns)
             {
                 var anyExcludes = excludePatterns.Count > 0;
                 var anyGlobsToIgnore = globsToIgnore.Count > 0;
 
-                if (anyGlobsToIgnore && anyExcludes)
+                if (anyExcludes)
                 {
-                    return excludePatterns.Concat(globsToIgnore).ToImmutableHashSet();
+                    var patterns = new HashSet<string>(excludePatterns, StringComparer.Ordinal);
+                    if (anyGlobsToIgnore)
+                    {
+                        patterns.UnionWith(globsToIgnore);
+                    }
+                    return patterns;
                 }
 
-                return anyExcludes ? excludePatterns.ToImmutableHashSet() : globsToIgnore;
+                return globsToIgnore;
             }
         }
     }

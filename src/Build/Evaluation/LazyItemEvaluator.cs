@@ -23,7 +23,7 @@ using System.Threading;
 
 namespace Microsoft.Build.Evaluation
 {
-    internal partial class LazyItemEvaluator<P, I, M, D>
+    internal partial class LazyItemEvaluator<P, I, M, D> : IItemProvider<I>
         where P : class, IProperty, IEquatable<P>, IValued
         where I : class, IItem<M>, IMetadataTable
         where M : class, IMetadatum
@@ -31,7 +31,6 @@ namespace Microsoft.Build.Evaluation
     {
         private readonly IEvaluatorData<P, I, M, D> _outerEvaluatorData;
         private readonly Expander<P, I> _outerExpander;
-        private readonly IEvaluatorData<P, I, M, D> _evaluatorData;
         private readonly Expander<P, I> _expander;
         private readonly IItemFactory<I, I> _itemFactory;
         private readonly LoggingContext _loggingContext;
@@ -53,8 +52,7 @@ namespace Microsoft.Build.Evaluation
         {
             _outerEvaluatorData = data;
             _outerExpander = new Expander<P, I>(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
-            _evaluatorData = new EvaluatorData(_outerEvaluatorData, _itemLists);
-            _expander = new Expander<P, I>(_evaluatorData, _evaluatorData, evaluationContext, loggingContext);
+            _expander = new Expander<P, I>(_outerEvaluatorData, this, evaluationContext, loggingContext);
             _itemFactory = itemFactory;
             _loggingContext = loggingContext;
             _evaluationProfiler = evaluationProfiler;
@@ -66,6 +64,18 @@ namespace Microsoft.Build.Evaluation
         {
             return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, _expander, this);
         }
+
+        /// <summary>
+        ///  Supplies condition-visible items from the current end of the requested item history.
+        /// </summary>
+        /// <param name="itemType">The requested item type.</param>
+        /// <returns>
+        ///  Matching items, excluding false-condition items, or an empty collection.
+        /// </returns>
+        public ICollection<I> GetItems(string itemType)
+            => _itemLists.TryGetValue(itemType, out LazyItemList list)
+                ? list.GetMatchedItems(ImmutableHashSet<string>.Empty)
+                : Array.Empty<I>();
 
         private static bool EvaluateCondition(
             string condition,
@@ -485,11 +495,12 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="itemType">The referenced item type.</param>
         /// <param name="referencedItemLists">The operation's reference map being constructed.</param>
-        private void AddReferencedItemList(string itemType, IDictionary<string, LazyItemList> referencedItemLists)
+        private void AddReferencedItemList(string itemType, ref Dictionary<string, LazyItemList> referencedItemLists)
         {
             if (_itemLists.TryGetValue(itemType, out LazyItemList itemList))
             {
                 itemList.MarkAsReferenced();
+                referencedItemLists ??= new Dictionary<string, LazyItemList>(_itemLists.Comparer);
                 referencedItemLists[itemType] = itemList;
             }
         }
@@ -537,10 +548,10 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         private UpdateOperation BuildUpdateOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            var references = CreateReferenceBuilder();
-            ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Update, itemElement.UpdateLocation, references);
-            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, references);
-            return new UpdateOperation(itemElement, spec, references.ToImmutable(), conditionResult, this, metadata);
+            Dictionary<string, LazyItemList> references = null;
+            ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Update, itemElement.UpdateLocation, ref references);
+            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, ref references);
+            return new UpdateOperation(itemElement, spec, references, conditionResult, this, metadata);
         }
 
         /// <summary>
@@ -555,9 +566,9 @@ namespace Microsoft.Build.Evaluation
         private IncludeOperation BuildIncludeOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
             int elementOrder = _nextElementOrder++;
-            var references = CreateReferenceBuilder();
-            ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Include, itemElement.IncludeLocation, references);
-            var excludes = ImmutableArray.CreateBuilder<string>();
+            Dictionary<string, LazyItemList> references = null;
+            ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Include, itemElement.IncludeLocation, ref references);
+            ImmutableArray<string>.Builder excludes = null;
             if (itemElement.Exclude.Length > 0)
             {
                 // A property can introduce an item reference that must capture this earlier state.
@@ -566,15 +577,16 @@ namespace Microsoft.Build.Evaluation
                 {
                     foreach (string exclude in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude))
                     {
-                        excludes.Add(exclude);
-                        AddItemReferences(exclude, references, itemElement.ExcludeLocation);
+                        (excludes ??= ImmutableArray.CreateBuilder<string>()).Add(exclude);
+                        AddItemReferences(exclude, ref references, itemElement.ExcludeLocation);
                     }
                 }
             }
 
-            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, references);
+            ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, ref references);
             return new IncludeOperation(
-                itemElement, spec, references.ToImmutable(), conditionResult, this, elementOrder, rootDirectory, excludes.ToImmutable(), metadata);
+                itemElement, spec, references, conditionResult, this, elementOrder, rootDirectory,
+                excludes?.ToImmutable() ?? ImmutableArray<string>.Empty, metadata);
         }
 
         /// <summary>
@@ -588,9 +600,9 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         private RemoveOperation BuildRemoveOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            var references = CreateReferenceBuilder();
-            ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, references);
-            var metadataNames = ImmutableArray.CreateBuilder<string>();
+            Dictionary<string, LazyItemList> references = null;
+            ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, ref references);
+            ImmutableArray<string>.Builder metadataNames = null;
             if (itemElement.MatchOnMetadata.Length > 0)
             {
                 string evaluatedNames = _expander.ExpandIntoStringLeaveEscaped(
@@ -599,10 +611,11 @@ namespace Microsoft.Build.Evaluation
                 {
                     foreach (string name in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedNames))
                     {
-                        AddItemReferences(name, references, itemElement.MatchOnMetadataLocation);
+                        AddItemReferences(name, ref references, itemElement.MatchOnMetadataLocation);
                         string expanded = _expander.ExpandIntoStringLeaveEscaped(
                             name, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
-                        metadataNames.AddRange(ExpressionShredder.SplitSemiColonSeparatedList(expanded));
+                        (metadataNames ??= ImmutableArray.CreateBuilder<string>()).AddRange(
+                            ExpressionShredder.SplitSemiColonSeparatedList(expanded));
                     }
                 }
             }
@@ -610,18 +623,10 @@ namespace Microsoft.Build.Evaluation
             MatchOnMetadataOptions options = Enum.TryParse(itemElement.MatchOnMetadataOptions, out MatchOnMetadataOptions parsed)
                 ? parsed
                 : MatchOnMetadataOptions.CaseSensitive;
-            return new RemoveOperation(itemElement, spec, references.ToImmutable(), conditionResult, this, metadataNames.ToImmutable(), options);
+            return new RemoveOperation(
+                itemElement, spec, references, conditionResult, this,
+                metadataNames?.ToImmutable() ?? ImmutableArray<string>.Empty, options);
         }
-
-        /// <summary>
-        ///  Creates an operation's reference map using the existing item-name comparison policy.
-        /// </summary>
-        /// <returns>
-        ///  A mutable map used only while constructing that operation.
-        /// </returns>
-        private static ImmutableDictionary<string, LazyItemList>.Builder CreateReferenceBuilder()
-            => ImmutableDictionary.CreateBuilder<string, LazyItemList>(
-                Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         ///  Expands properties in a specification and captures its item references.
@@ -634,14 +639,14 @@ namespace Microsoft.Build.Evaluation
         ///  The parsed specification, before it is bound to the operation's expander.
         /// </returns>
         private ItemSpec<P, I> CreateItemSpec(
-            string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, IDictionary<string, LazyItemList> references)
+            string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, ref Dictionary<string, LazyItemList> references)
         {
             var spec = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, rootDirectory);
             foreach (ItemSpecFragment fragment in spec.Fragments)
             {
                 if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemExpression)
                 {
-                    AddReferencedItemLists(references, itemExpression.Capture);
+                    AddReferencedItemLists(ref references, itemExpression.Capture);
                 }
             }
             return spec;
@@ -656,8 +661,12 @@ namespace Microsoft.Build.Evaluation
         ///  The metadata elements in declaration order.
         /// </returns>
         private ImmutableArray<ProjectMetadataElement> ProcessMetadataElements(
-            ProjectItemElement itemElement, IDictionary<string, LazyItemList> references)
+            ProjectItemElement itemElement, ref Dictionary<string, LazyItemList> references)
         {
+            if (!itemElement.HasMetadata)
+            {
+                return ImmutableArray<ProjectMetadataElement>.Empty;
+            }
             var metadata = ImmutableArray.CreateBuilder<ProjectMetadataElement>();
             if (itemElement.HasMetadata)
             {
@@ -690,7 +699,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     foreach (var itemType in itemsAndMetadataFound.Items)
                     {
-                        AddReferencedItemList(itemType, references);
+                        AddReferencedItemList(itemType, ref references);
                     }
                 }
             }
@@ -703,7 +712,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="expression">The expression after property expansion.</param>
         /// <param name="references">The operation's reference map being constructed.</param>
         /// <param name="elementLocation">The expression's XML location.</param>
-        private void AddItemReferences(string expression, IDictionary<string, LazyItemList> references, IElementLocation elementLocation)
+        private void AddItemReferences(string expression, ref Dictionary<string, LazyItemList> references, IElementLocation elementLocation)
         {
             if (Expander<P, I>.TryExpandSingleItemVectorExpression(
                     expression,
@@ -711,7 +720,7 @@ namespace Microsoft.Build.Evaluation
                     elementLocation,
                     out ExpressionShredder.ItemExpressionCapture itemVector))
             {
-                AddReferencedItemLists(references, itemVector);
+                AddReferencedItemLists(ref references, itemVector);
             }
         }
 
@@ -720,17 +729,17 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="references">The operation's reference map being constructed.</param>
         /// <param name="match">The parsed item expression.</param>
-        private void AddReferencedItemLists(IDictionary<string, LazyItemList> references, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(ref Dictionary<string, LazyItemList> references, ExpressionShredder.ItemExpressionCapture match)
         {
             if (match.ItemType != null)
             {
-                AddReferencedItemList(match.ItemType, references);
+                AddReferencedItemList(match.ItemType, ref references);
             }
             if (match.Captures != null)
             {
                 foreach (var subMatch in match.Captures)
                 {
-                    AddReferencedItemLists(references, subMatch);
+                    AddReferencedItemLists(ref references, subMatch);
                 }
             }
         }

@@ -32,7 +32,7 @@ namespace Microsoft.Build.Evaluation
             public RemoveOperation(
                 ProjectItemElement element,
                 ItemSpec<P, I> spec,
-                ImmutableDictionary<string, LazyItemList> references,
+                Dictionary<string, LazyItemList> references,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> evaluator,
                 ImmutableArray<string> metadataNames,

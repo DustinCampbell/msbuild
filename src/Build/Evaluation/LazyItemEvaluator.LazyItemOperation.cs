@@ -20,15 +20,14 @@ namespace Microsoft.Build.Evaluation
         /// <summary>
         ///  Applies one recorded operation with its captured item state and XML context.
         /// </summary>
-        private abstract class LazyItemOperation
+        private abstract class LazyItemOperation : IItemProvider<I>
         {
             private readonly string _itemType;
-            private readonly ImmutableDictionary<string, LazyItemList> _referencedItemLists;
+            private readonly Dictionary<string, LazyItemList> _referencedItemLists;
 
             protected readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
             protected readonly ProjectItemElement _itemElement;
             protected readonly ItemSpec<P, I> _itemSpec;
-            protected readonly EvaluatorData _evaluatorData;
             protected readonly Expander<P, I> _expander;
             protected readonly bool _conditionResult;
 
@@ -48,7 +47,7 @@ namespace Microsoft.Build.Evaluation
             protected LazyItemOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                ImmutableDictionary<string, LazyItemList> references,
+                Dictionary<string, LazyItemList> references,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
@@ -60,14 +59,26 @@ namespace Microsoft.Build.Evaluation
 
                 _lazyEvaluator = lazyEvaluator;
 
-                _evaluatorData = new EvaluatorData(_lazyEvaluator._outerEvaluatorData, _referencedItemLists);
                 _itemFactory = new ItemFactoryWrapper(_itemElement, _lazyEvaluator._itemFactory);
-                _expander = new Expander<P, I>(_evaluatorData, _evaluatorData, _lazyEvaluator.EvaluationContext, _lazyEvaluator._loggingContext);
+                _expander = new Expander<P, I>(
+                    _lazyEvaluator._outerEvaluatorData, this, _lazyEvaluator.EvaluationContext, _lazyEvaluator._loggingContext);
 
                 _itemSpec.Expander = _expander;
             }
 
             protected FileMatcher FileMatcher => _lazyEvaluator.FileMatcher;
+
+            /// <summary>
+            ///  Supplies only the earlier item states captured while this operation was constructed.
+            /// </summary>
+            /// <param name="itemType">The requested item type.</param>
+            /// <returns>
+            ///  Condition-visible captured items, or an empty collection for a missing reference.
+            /// </returns>
+            public ICollection<I> GetItems(string itemType)
+                => _referencedItemLists is not null && _referencedItemLists.TryGetValue(itemType, out LazyItemList list)
+                    ? list.GetMatchedItems(ImmutableHashSet<string>.Empty)
+                    : Array.Empty<I>();
 
             public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
