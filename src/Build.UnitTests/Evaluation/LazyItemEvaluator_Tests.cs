@@ -530,6 +530,56 @@ public sealed class LazyItemEvaluator_Tests
     }
 
     /// <summary>
+    ///  A rejected literal batch cannot apply fragments from its rejected operation twice.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    /// <param name="spec">The Update specification that rejects batching after its first fragment.</param>
+    /// <param name="expectedB">The expected metadata on the second item.</param>
+    [Theory]
+    [InlineData(false, "a;a", "0")]
+    [InlineData(true, "a;a", "0")]
+    [InlineData(false, "a;./a", "0")]
+    [InlineData(true, "a;./a", "0")]
+    [InlineData(false, "a;*", "0x")]
+    [InlineData(true, "a;*", "0x")]
+    public void RejectedLiteralBatchDoesNotLeakCandidateKeys(bool instanceModel, string spec, string expectedB)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Record($"""
+            <ItemGroup>
+              <A Include="a;b" M="0" />
+              <A Update="{spec}" M="%(M)x" />
+            </ItemGroup>
+            """);
+        Values(fixture.GetItems(), "M").ShouldBe(["a:0x", $"b:{expectedB}"]);
+    }
+
+    /// <summary>
+    ///  A condition-demanded literal update is cached rather than replayed on subsequent reads.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LiteralUpdateCachesDemandedPrefixes(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Record("""<ItemGroup><A Include="a;b" M="0" /><A Update="a" M="1" /></ItemGroup>""");
+        fixture.EvaluateCondition("'@(A)' == 'a;b'").ShouldBeTrue();
+        fixture.ClonedItems.ShouldBe(1);
+        fixture.EvaluateCondition("'@(A)' == 'a;b'").ShouldBeTrue();
+        fixture.ClonedItems.ShouldBe(1);
+
+        fixture.Record("""<ItemGroup><A Update="b" M="2" /></ItemGroup>""");
+        fixture.EvaluateCondition("'@(A)' == 'a;b'").ShouldBeTrue();
+        fixture.ClonedItems.ShouldBe(2);
+        Values(fixture.GetItems(), "M").ShouldBe(["a:1", "b:2"]);
+        fixture.ClonedItems.ShouldBe(2);
+    }
+
+    /// <summary>
     ///  Scan and dictionary removals preserve duplicate handling and surviving order.
     /// </summary>
     /// <param name="instanceModel">Whether to use instance-model items.</param>

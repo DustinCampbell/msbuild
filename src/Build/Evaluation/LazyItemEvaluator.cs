@@ -177,6 +177,11 @@ namespace Microsoft.Build.Evaluation
                 Operation = operation;
             }
 
+            /// <summary>
+            ///  Gets whether an expression or current-state read requires this operation's result.
+            /// </summary>
+            public bool IsReferenced => _isReferenced;
+
             public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
             {
 #if DEBUG
@@ -185,6 +190,16 @@ namespace Microsoft.Build.Evaluation
 
                 Operation.Apply(listBuilder, globsToIgnore);
 
+                RecordResult(listBuilder, globsToIgnore);
+            }
+
+            /// <summary>
+            ///  Records the result of an operation applied either directly or through a literal batch.
+            /// </summary>
+            /// <param name="listBuilder">The item state immediately after the operation.</param>
+            /// <param name="globsToIgnore">The exclusions under which that state was computed.</param>
+            public void RecordResult(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            {
                 // cache results if somebody is referencing this operation
                 if (_isReferenced)
                 {
@@ -401,12 +416,21 @@ namespace Microsoft.Build.Evaluation
                             // We found a wildcard. Remove any fragments associated with the current operation and process them later.
                             for (int j = 0; j < i; j++)
                             {
-                                itemsWithNoWildcards.Remove(currentList._memoizedOperation.Operation.Spec.Fragments[j].TextFragment);
+                                ItemSpecFragment fragment = op.Spec.Fragments[j];
+                                string key = FileUtilities.NormalizePathForComparisonNoThrow(fragment.TextFragment, fragment.ProjectDirectory);
+                                itemsWithNoWildcards.Remove(key);
                             }
                         }
                         else
                         {
                             addedToBatch = true;
+                            if (currentList._memoizedOperation.IsReferenced)
+                            {
+                                // Publish demanded prefixes before later updates can join the batch.
+                                ProcessNonWildCardItemUpdates(itemsWithNoWildcards, items);
+                                currentList._memoizedOperation.RecordResult(items, currentGlobsToIgnore);
+                                addedToBatch = false;
+                            }
                             continue;
                         }
                     }
