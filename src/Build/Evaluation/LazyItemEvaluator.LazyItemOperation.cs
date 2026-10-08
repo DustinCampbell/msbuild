@@ -80,7 +80,7 @@ namespace Microsoft.Build.Evaluation
                     ? list.GetMatchedItems()
                     : Array.Empty<I>();
 
-            public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            public void Apply(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore)
             {
                 MSBuildEventSource.Log.ApplyLazyItemOperationsStart(_itemElement.ItemType);
                 using (_lazyEvaluator._evaluationProfiler.TrackElement(_itemElement))
@@ -95,7 +95,7 @@ namespace Microsoft.Build.Evaluation
             /// </summary>
             /// <param name="listBuilder">The item state to modify.</param>
             /// <param name="globsToIgnore">Later glob removals applicable to this materialization.</param>
-            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore);
+            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore);
 
             [DebuggerDisplay(@"{DebugString()}")]
             protected readonly struct ItemBatchingContext

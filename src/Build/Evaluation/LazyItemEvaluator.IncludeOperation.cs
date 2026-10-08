@@ -18,6 +18,11 @@ namespace Microsoft.Build.Evaluation
     {
         private class IncludeOperation : LazyItemOperation
         {
+            /// <summary>
+            ///  The shared empty exclusion set, which consumers only enumerate.
+            /// </summary>
+            private static readonly HashSet<string> s_noExclusions = [];
+
             private readonly int _elementOrder;
             private readonly string? _rootDirectory;
             private readonly ImmutableArray<string> _excludes;
@@ -58,7 +63,7 @@ namespace Microsoft.Build.Evaluation
             /// </summary>
             /// <param name="listBuilder">The working item state.</param>
             /// <param name="globsToIgnore">Later glob removals applicable to earlier Includes.</param>
-            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore)
             {
                 ImmutableArray<I> items = CreateItems(globsToIgnore);
                 DecorateItemsWithMetadata(items.Select(i => new ItemBatchingContext(i)), _metadata);
@@ -76,7 +81,7 @@ namespace Microsoft.Build.Evaluation
             ///  The new items before metadata decoration.
             /// </returns>
             [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
-            private ImmutableArray<I> CreateItems(ImmutableHashSet<string> globsToIgnore)
+            private ImmutableArray<I> CreateItems(GlobExclusions globsToIgnore)
             {
                 ImmutableArray<I>.Builder? itemsToAdd = null;
 
@@ -222,22 +227,22 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            private static ISet<string> BuildExcludePatternsForGlobs(ImmutableHashSet<string> globsToIgnore, List<string> excludePatterns)
+            private static ISet<string> BuildExcludePatternsForGlobs(GlobExclusions globsToIgnore, List<string> excludePatterns)
             {
                 var anyExcludes = excludePatterns.Count > 0;
                 var anyGlobsToIgnore = globsToIgnore.Count > 0;
 
-                if (anyExcludes)
+                if (anyExcludes || anyGlobsToIgnore)
                 {
                     var patterns = new HashSet<string>(excludePatterns, StringComparer.Ordinal);
                     if (anyGlobsToIgnore)
                     {
-                        patterns.UnionWith(globsToIgnore);
+                        globsToIgnore.AddTo(patterns);
                     }
                     return patterns;
                 }
 
-                return globsToIgnore;
+                return s_noExclusions;
             }
         }
     }

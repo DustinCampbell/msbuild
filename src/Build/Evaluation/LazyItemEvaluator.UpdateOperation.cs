@@ -122,7 +122,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// </summary>
         /// <param name="items">The ordered working state.</param>
         /// <param name="globsToIgnore">The materialization's applicable later glob removals.</param>
-        protected override void ApplyImpl(OrderedItemDataCollection.Builder items, ImmutableHashSet<string> globsToIgnore)
+        protected override void ApplyImpl(OrderedItemDataCollection.Builder items, GlobExclusions globsToIgnore)
         {
             if (!_conditionResult)
             {

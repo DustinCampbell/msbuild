@@ -919,6 +919,39 @@ public sealed class LazyItemEvaluator_Tests
     }
 
     /// <summary>
+    ///  Removal-range cache keys keep multiple historical and final glob states independent.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MultipleGlobRemovalsRetainIndependentHistoricalStates(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        env.CreateFile(fixture.Directory, "a.cs", "");
+        env.CreateFile(fixture.Directory, "b.cs", "");
+        env.CreateFile(fixture.Directory, "c.txt", "");
+        fixture.Record("""
+            <ItemGroup>
+              <A Include="*.cs" M="old" />
+              <B Include="@(A)" />
+              <A Remove="a*" />
+              <A Update="b.cs" M="updated" />
+              <C Include="@(A)" />
+              <A Remove="*.cs" />
+              <A Remove="*.txt" Condition="false" />
+              <A Include="*.txt" M="final" />
+            </ItemGroup>
+            """);
+        ItemRecord[] items = fixture.GetItems().ToArray();
+        Values(OfType(items, "B"), "M").ShouldBe(["a.cs:old", "b.cs:old"]);
+        Values(OfType(items, "C"), "M").ShouldBe(["b.cs:updated"]);
+        Values(OfType(items, "A"), "M").ShouldBe(["c.txt:final"]);
+        Identities(items).ShouldBe(["a.cs", "b.cs", "b.cs", "c.txt"]);
+    }
+
+    /// <summary>
     ///  An eager item-dependent condition prevents future removals from changing its answer.
     /// </summary>
     /// <param name="instanceModel">Whether to use instance-model items.</param>

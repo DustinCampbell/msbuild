@@ -58,7 +58,7 @@ namespace Microsoft.Build.Evaluation
             /// <remarks>
             /// This override exists to apply the removing-everything short-circuit and to avoid creating a redundant list of items to remove.
             /// </remarks>
-            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
+            protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore)
             {
                 if (!_conditionResult)
                 {
@@ -109,20 +109,23 @@ namespace Microsoft.Build.Evaluation
                 return _metadataSet.Contains(_matchOnMetadata.Select(m => item.GetMetadataValue(m)));
             }
 
-            public ImmutableHashSet<string>.Builder GetRemovedGlobs()
+            /// <summary>
+            ///  Appends statically known true-condition removed globs to the owning history.
+            /// </summary>
+            /// <param name="patterns">The history's append-only removal-pattern list.</param>
+            public void AppendRemovedGlobs(List<string> patterns)
             {
-                var builder = ImmutableHashSet.CreateBuilder<string>();
-
                 if (!_conditionResult)
                 {
-                    return builder;
+                    return;
                 }
-
-                var globs = _itemSpec.Fragments.OfType<GlobFragment>().Select(g => g.TextFragment);
-
-                builder.UnionWith(globs);
-
-                return builder;
+                foreach (ItemSpecFragment fragment in _itemSpec.Fragments)
+                {
+                    if (fragment is GlobFragment glob)
+                    {
+                        patterns.Add(glob.TextFragment);
+                    }
+                }
             }
         }
     }
