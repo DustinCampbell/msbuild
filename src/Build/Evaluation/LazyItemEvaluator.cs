@@ -13,7 +13,6 @@ using Microsoft.Build.Shared.FileSystem;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using System.Threading;
 
 #nullable disable
@@ -183,10 +182,61 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
+        /// <summary>
+        ///  Materializes current item states when enumerated and publishes them in Include order.
+        /// </summary>
+        /// <returns>
+        ///  All surviving items, retaining false-condition entries and stable within-Include order.
+        /// </returns>
         public IEnumerable<ItemData> GetAllItemsDeferred()
         {
-            return _itemLists.Values.SelectMany(itemList => itemList.GetItemData(itemList.Count))
-                                    .OrderBy(itemData => itemData.ElementOrder);
+            ItemData[] items = CollectOrderedItems();
+            foreach (ItemData item in items)
+            {
+                yield return item;
+            }
+        }
+
+        /// <summary>
+        ///  Places final items directly into their known Include-element order without sorting.
+        /// </summary>
+        /// <returns>
+        ///  The ordered publication buffer.
+        /// </returns>
+        private ItemData[] CollectOrderedItems()
+        {
+            if (_itemLists.Count == 0)
+            {
+                return Array.Empty<ItemData>();
+            }
+
+            var states = new OrderedItemDataCollection.Builder[_itemLists.Count];
+            int[] offsets = new int[_nextElementOrder + 1];
+            int stateIndex = 0;
+            foreach (ItemHistory history in _itemLists.Values)
+            {
+                OrderedItemDataCollection.Builder state = history.GetItemData(history.Count);
+                states[stateIndex++] = state;
+                for (int index = 0; index < state.Count; index++)
+                {
+                    offsets[state[index].ElementOrder + 1]++;
+                }
+            }
+
+            for (int index = 1; index < offsets.Length; index++)
+            {
+                offsets[index] += offsets[index - 1];
+            }
+            ItemData[] result = new ItemData[offsets[offsets.Length - 1]];
+            foreach (OrderedItemDataCollection.Builder state in states)
+            {
+                for (int index = 0; index < state.Count; index++)
+                {
+                    ItemData item = state[index];
+                    result[offsets[item.ElementOrder]++] = item;
+                }
+            }
+            return result;
         }
 
         public void ProcessItemElement(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
