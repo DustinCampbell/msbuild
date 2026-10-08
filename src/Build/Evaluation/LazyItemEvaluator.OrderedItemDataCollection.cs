@@ -250,6 +250,22 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             }
 
             /// <summary>
+            ///  Gets a normalized path and memoizes it in the stored entry without semantic mutation.
+            /// </summary>
+            /// <param name="index">The entry position.</param>
+            /// <returns>
+            ///  The lazily normalized item value.
+            /// </returns>
+            public string GetNormalizedValue(int index)
+            {
+                ValidateIndex(index);
+                ItemData data = _items[index];
+                string key = data.NormalizedItemValue;
+                _items[index] = data;
+                return key;
+            }
+
+            /// <summary>
             ///  Gets or creates the normalized-value index and persists normalization in entries.
             /// </summary>
             public Dictionary<string, ItemDataCollectionValue<I>> Dictionary

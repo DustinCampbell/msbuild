@@ -4,9 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using Microsoft.Build.Framework;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -229,32 +226,23 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// </returns>
         private static bool TryAddToBatch(UpdateOperation operation, Dictionary<string, UpdateOperation> batch)
         {
-            int index;
-            for (index = 0; index < operation.Spec.Fragments.Count; index++)
+            string[]? keys = operation.GetLiteralKeys();
+            if (keys is null)
             {
-                ItemSpecFragment fragment = operation.Spec.Fragments[index];
-                if (MSBuildConstants.CharactersForExpansion.Any(fragment.TextFragment.Contains))
-                {
-                    break;
-                }
-                string key = FileUtilities.NormalizePathForComparisonNoThrow(fragment.TextFragment, fragment.ProjectDirectory);
+                return false;
+            }
+            foreach (string key in keys)
+            {
                 if (batch.ContainsKey(key))
                 {
-                    break;
+                    return false;
                 }
+            }
+            foreach (string key in keys)
+            {
                 batch.Add(key, operation);
             }
-
-            if (index == operation.Spec.Fragments.Count)
-            {
-                return true;
-            }
-            for (int added = 0; added < index; added++)
-            {
-                ItemSpecFragment fragment = operation.Spec.Fragments[added];
-                batch.Remove(FileUtilities.NormalizePathForComparisonNoThrow(fragment.TextFragment, fragment.ProjectDirectory));
-            }
-            return false;
+            return true;
         }
 
         /// <summary>
@@ -271,7 +259,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             for (int index = 0; index < items.Count; index++)
             {
                 ItemData item = items[index];
-                string key = FileUtilities.NormalizePathForComparisonNoThrow(item.Item.EvaluatedInclude, item.Item.ProjectDirectory);
+                string key = items.GetNormalizedValue(index);
                 if (batch.TryGetValue(key, out UpdateOperation? operation))
                 {
                     items[index] = operation.UpdateItem(item);

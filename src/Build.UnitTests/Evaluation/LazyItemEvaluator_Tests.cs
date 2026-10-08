@@ -456,6 +456,74 @@ public sealed class LazyItemEvaluator_Tests
     }
 
     /// <summary>
+    ///  Indexed source capture keeps separate item types and the last source within each type.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void QualifiedUpdateIndexesMultipleSourceTypesAndLiteralFragments(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.SetEnvironmentVariable("MSBuildDoNotExpandQualifiedMetadataInUpdateOperation", null);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Record("""
+            <ItemGroup>
+              <S Include="a" M="first" />
+              <T Include="a" M="other-type" />
+              <S Include="a" M="last" />
+              <A Include="a;b;c" />
+              <A Update="@(S);@(T);c" M="%(S.M)|%(T.M)|%(A.Identity)" />
+            </ItemGroup>
+            """);
+        Values(OfType(fixture.GetItems(), "A"), "M").ShouldBe(["a:last|other-type|a", "b:", "c:||c"]);
+    }
+
+    /// <summary>
+    ///  Wildcard-valued transforms retain the specification matcher instead of literal indexing.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void QualifiedUpdateRetainsWildcardSourceMatching(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.SetEnvironmentVariable("MSBuildDoNotExpandQualifiedMetadataInUpdateOperation", null);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Record("""
+            <ItemGroup>
+              <S Include="source" M="captured" />
+              <A Include="one.txt;two.txt;other.cs" />
+              <A Update="@(S->'*.txt')" M="%(S.M)" />
+            </ItemGroup>
+            """);
+        Values(OfType(fixture.GetItems(), "A"), "M").ShouldBe(["one.txt:captured", "two.txt:captured", "other.cs:"]);
+    }
+
+    /// <summary>
+    ///  Escaped wildcard characters in literal sources do not become wildcard matches.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void QualifiedUpdateIndexesEscapedLiteralIdentities(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.SetEnvironmentVariable("MSBuildDoNotExpandQualifiedMetadataInUpdateOperation", null);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Record("""
+            <ItemGroup>
+              <S Include="literal%2A.txt" M="captured" />
+              <A Include="literal%2A.txt;literal-other.txt" />
+              <A Update="@(S)" M="%(S.M)" />
+            </ItemGroup>
+            """);
+        Values(OfType(fixture.GetItems(), "A"), "M").ShouldBe(["literal*.txt:captured", "literal-other.txt:"]);
+    }
+
+    /// <summary>
     ///  Item-name lookup honors both normal case-insensitive lookup and its compatibility switch.
     /// </summary>
     /// <param name="instanceModel">Whether to use instance-model items.</param>

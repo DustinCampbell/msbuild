@@ -149,27 +149,36 @@ namespace Microsoft.Build.Evaluation
 
                 public string GetEscapedValue(string itemType, string name)
                 {
-                    return RouteCall(itemType, name, (t, it, n) => t.GetEscapedValue(it, n));
+                    IMetadataTable table = GetTable(itemType);
+                    return table is null ? string.Empty : table.GetEscapedValue(itemType, name);
                 }
 
                 public string GetEscapedValueIfPresent(string itemType, string name)
                 {
-                    return RouteCall(itemType, name, (t, it, n) => t.GetEscapedValueIfPresent(it, n));
+                    IMetadataTable table = GetTable(itemType);
+                    return table is null ? string.Empty : table.GetEscapedValueIfPresent(itemType, name);
                 }
 
-                private string RouteCall(string itemType, string name, Func<IMetadataTable, string, string, string> getEscapedValueFunc)
+                /// <summary>
+                ///  Resolves the item supplying qualified metadata without a forwarding delegate.
+                /// </summary>
+                /// <param name="itemType">The qualifier, or null for the operation item.</param>
+                /// <returns>
+                ///  The operation or captured item table, or null for an uncaptured qualifier.
+                /// </returns>
+                private IMetadataTable GetTable(string itemType)
                 {
                     if (itemType?.Equals(_operationItem.Key, StringComparison.OrdinalIgnoreCase) != false)
                     {
-                        return getEscapedValueFunc(_operationItem, itemType, name);
+                        return _operationItem;
                     }
                     else if (_capturedItems.TryGetValue(itemType, out var item))
                     {
-                        return getEscapedValueFunc(item, itemType, name);
+                        return item;
                     }
                     else
                     {
-                        return string.Empty;
+                        return null;
                     }
                 }
             }
