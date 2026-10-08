@@ -129,8 +129,8 @@ param(
 Set-StrictMode -Version 'Latest'
 $ErrorActionPreference = 'Stop'
 
-# Match Arcade's SDK selection without installing anything. A repository build uses an existing installation
-# from DOTNET_INSTALL_DIR or PATH when it contains the requested SDK, and populates .dotnet only as a fallback.
+# Resolve the SDK through global.json without installing anything. Checking for an exact SDK directory
+# would reject compatible installed patches that global.json's roll-forward policy accepts.
 $repoRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $dotnetExecutable = if ($env:OS -eq 'Windows_NT') { 'dotnet.exe' } else { 'dotnet' }
 $dotnetSdkVersion = (Get-Content (Join-Path $repoRoot 'global.json') -Raw | ConvertFrom-Json).tools.dotnet
@@ -147,24 +147,41 @@ $dotnetRoot = $null
 $dotnetPath = $null
 $dotnetSdkPath = $null
 
-foreach ($candidateRoot in $dotnetRoots)
+Push-Location $repoRoot
+try
 {
-    if (-not $candidateRoot)
+    foreach ($candidateRoot in $dotnetRoots)
     {
-        continue
-    }
+        if (-not $candidateRoot)
+        {
+            continue
+        }
 
-    $candidateDotnetPath = Join-Path $candidateRoot $dotnetExecutable
-    $candidateSdkPath = Join-Path (Join-Path $candidateRoot 'sdk') $dotnetSdkVersion
+        $candidateDotnetPath = Join-Path $candidateRoot $dotnetExecutable
+        if (-not (Test-Path $candidateDotnetPath -PathType Leaf))
+        {
+            continue
+        }
 
-    if ((Test-Path $candidateDotnetPath -PathType Leaf) -and
-        (Test-Path $candidateSdkPath -PathType Container))
-    {
-        $dotnetRoot = $candidateRoot
-        $dotnetPath = $candidateDotnetPath
-        $dotnetSdkPath = $candidateSdkPath
-        break
+        $resolvedVersion = & $candidateDotnetPath --version
+        if ($LASTEXITCODE -ne 0)
+        {
+            continue
+        }
+
+        $candidateSdkPath = Join-Path (Join-Path $candidateRoot 'sdk') $resolvedVersion
+        if (Test-Path $candidateSdkPath -PathType Container)
+        {
+            $dotnetRoot = $candidateRoot
+            $dotnetPath = $candidateDotnetPath
+            $dotnetSdkPath = $candidateSdkPath
+            break
+        }
     }
+}
+finally
+{
+    Pop-Location
 }
 
 if (-not $dotnetPath)
