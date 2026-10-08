@@ -81,8 +81,40 @@ allow BenchmarkDotNet to temporarily select the High Performance plan on Windows
 previous plan when the run completes. If the process terminates abruptly, the plan may need to be
 restored manually.
 
+SDK selection honors the repository's `global.json`, including compatible patch roll-forward.
+The runner reports the resolved SDK directory and pins benchmark child hosts to that installation.
+
 Compare results only when the target framework, architecture, runtime, and machine environment
 match. In particular, absolute `net472` and `net11.0` results are not directly comparable.
+
+### Lazy Item Evaluator
+
+`LazyItemEvaluatorBenchmark` constructs the evaluator directly using preconstructed item XML and
+outer project data. Each invocation records and materializes fresh evaluator state, then consumes
+ordered item identities and metadata. Setup validates identities, metadata, order, and provenance.
+XML loading, outer project evaluation, and file creation are not timed.
+
+The related classes isolate recording, 10,000-operation scaling, glob/removal behavior, and Exclude
+cardinality. Earlier-state workloads include sparse reads, reads of every growing prefix, repeated
+reads of one state, and reads after updates. The glob fixture deliberately shares a warmed
+evaluation-context file cache. `LazyItemEvaluationBenchmark` remains the full, cold-project
+evaluation control, including collection construction and XML loading.
+
+Use the same selection and launch count before and after an evaluator change:
+
+```powershell
+.\Run-Benchmarks.ps1 -Filter '*LazyItem*' -LaunchCount 3 `
+    -ArtifactsPath ..\..\artifacts\BenchmarkDotNet\LazyItems\baseline
+
+.\Run-Benchmarks.ps1 -Filter '*LazyItem*' -LaunchCount 3 `
+    -ArtifactsPath ..\..\artifacts\BenchmarkDotNet\LazyItems\candidate
+```
+
+Compare the same benchmark and parameters across revisions, not unrelated workload ratios within
+one run. Preserve each revision's artifacts and record the commit and runtime. Check allocations
+alongside time, especially for earlier-state reads: reducing tree overhead must not introduce
+quadratic copying or excessive retained memory. Allocation totals alone do not measure peak
+retention. Keep the runner's SDK, inlining, and power-plan settings identical between comparisons.
 
 ### Run Benchmarks on a Specific TFM
 
