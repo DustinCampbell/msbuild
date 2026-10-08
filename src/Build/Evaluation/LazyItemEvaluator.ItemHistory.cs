@@ -98,15 +98,12 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// </returns>
         public ICollection<I> GetMatchedItems(int count)
         {
-            var items = ImmutableList.CreateBuilder<I>();
-            foreach (ItemData data in GetItemData(count, ImmutableHashSet<string>.Empty))
+            if (!TryGetCached(count, ImmutableHashSet<string>.Empty, out OrderedItemDataCollection? items))
             {
-                if (data.ConditionResult)
-                {
-                    items.Add(data.Item);
-                }
+                GetItemData(count, ImmutableHashSet<string>.Empty);
+                items = _cache![(count, ImmutableHashSet<string>.Empty)];
             }
-            return items.ToImmutable();
+            return items!;
         }
 
         /// <summary>
@@ -218,6 +215,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             }
 
             ApplyBatch(literalUpdates, items);
+            SaveResult(count, exclusions, items);
             return items;
         }
 

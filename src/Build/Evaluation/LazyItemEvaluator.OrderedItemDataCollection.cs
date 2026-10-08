@@ -1,221 +1,434 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+internal partial class LazyItemEvaluator<P, I, M, D>
 {
-    internal partial class LazyItemEvaluator<P, I, M, D>
+    /// <summary>
+    ///  Saves an ordered item prefix and supplies a read-only view of its condition-visible items.
+    /// </summary>
+    /// <remarks>
+    ///  Appending items can share the backing list because saved views have fixed bounds. Replacing
+    ///  or removing existing entries detaches the working prefix first. Item objects themselves must
+    ///  still be cloned before metadata mutation; container ownership does not make items immutable.
+    /// </remarks>
+    internal sealed class OrderedItemDataCollection : ICollection<I>
     {
         /// <summary>
-        /// A collection of ItemData that maintains insertion order and internally optimizes some access patterns, e.g. bulk removal
-        /// based on normalized item values.
+        ///  The backing list, which may acquire later items beyond this saved prefix.
         /// </summary>
-        internal sealed class OrderedItemDataCollection
+        private readonly List<ItemData> _items;
+
+        /// <summary>
+        ///  The fixed number of entries belonging to this saved state.
+        /// </summary>
+        private readonly int _count;
+
+        /// <summary>
+        ///  Initializes a saved view of a working prefix.
+        /// </summary>
+        /// <param name="items">The shared backing list.</param>
+        /// <param name="count">The fixed prefix length.</param>
+        /// <param name="matchedCount">The number of condition-visible entries.</param>
+        private OrderedItemDataCollection(List<ItemData> items, int count, int matchedCount)
         {
-            #region Inner types
+            _items = items;
+            _count = count;
+            Count = matchedCount;
+        }
+
+        /// <summary>
+        ///  Gets the condition-visible item count without projecting or enumerating the prefix.
+        /// </summary>
+        public int Count { get; }
+
+        /// <summary>
+        ///  Gets whether this saved item view is read-only.
+        /// </summary>
+        public bool IsReadOnly => true;
+
+        /// <summary>
+        ///  Creates an empty working item collection.
+        /// </summary>
+        /// <returns>
+        ///  The mutable collection.
+        /// </returns>
+        public static Builder CreateBuilder() => new([], 0, 0, shared: false);
+
+        /// <summary>
+        ///  Creates a working view that detaches before modifying entries in this saved prefix.
+        /// </summary>
+        /// <returns>
+        ///  The mutable working view.
+        /// </returns>
+        public Builder ToBuilder() => new(_items, _count, Count, shared: true);
+
+        /// <summary>
+        ///  Tests membership among the condition-visible items.
+        /// </summary>
+        /// <param name="item">The item to find.</param>
+        /// <returns>
+        ///  Whether the item belongs to this view.
+        /// </returns>
+        public bool Contains(I item)
+        {
+            for (int index = 0; index < _count; index++)
+            {
+                ItemData data = _items[index];
+                if (data.ConditionResult && EqualityComparer<I>.Default.Equals(data.Item, item))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        ///  Copies condition-visible items in their original order.
+        /// </summary>
+        /// <param name="array">The destination array.</param>
+        /// <param name="arrayIndex">The first destination position.</param>
+        public void CopyTo(I[] array, int arrayIndex)
+        {
+            ArgumentNullException.ThrowIfNull(array);
+            if (arrayIndex < 0 || arrayIndex > array.Length - Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+            }
+            for (int index = 0; index < _count; index++)
+            {
+                ItemData data = _items[index];
+                if (data.ConditionResult)
+                {
+                    array[arrayIndex++] = data.Item;
+                }
+            }
+        }
+
+        /// <summary>
+        ///  Enumerates condition-visible items within the saved bounds.
+        /// </summary>
+        /// <returns>
+        ///  The ordered enumerator.
+        /// </returns>
+        public IEnumerator<I> GetEnumerator()
+        {
+            for (int index = 0; index < _count; index++)
+            {
+                ItemData data = _items[index];
+                if (data.ConditionResult)
+                {
+                    yield return data.Item;
+                }
+            }
+        }
+
+        /// <summary>
+        ///  Supplies the non-generic enumerator for the read-only view.
+        /// </summary>
+        /// <returns>
+        ///  The ordered enumerator.
+        /// </returns>
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <summary>
+        ///  Rejects mutation through the read-only collection interface.
+        /// </summary>
+        /// <param name="item">The item that cannot be added.</param>
+        void ICollection<I>.Add(I item) => throw new NotSupportedException();
+
+        /// <summary>
+        ///  Rejects clearing a saved view.
+        /// </summary>
+        void ICollection<I>.Clear() => throw new NotSupportedException();
+
+        /// <summary>
+        ///  Rejects removing an item from a saved view.
+        /// </summary>
+        /// <param name="item">The item that cannot be removed.</param>
+        /// <returns>
+        ///  This method always throws because the view is read-only.
+        /// </returns>
+        bool ICollection<I>.Remove(I item) => throw new NotSupportedException();
+
+        /// <summary>
+        ///  Maintains ordered mutable items and a lazily constructed normalized-value index.
+        /// </summary>
+        internal sealed class Builder : IEnumerable<ItemData>
+        {
+            /// <summary>
+            ///  The backing list for the current working prefix.
+            /// </summary>
+            private List<ItemData> _items;
 
             /// <summary>
-            /// A mutable and enumerable version of <see cref="OrderedItemDataCollection"/>.
+            ///  Whether existing entries are shared with a saved view or another working prefix.
             /// </summary>
-            internal sealed class Builder : IEnumerable<ItemData>
+            private bool _shared;
+
+            /// <summary>
+            ///  The number of entries with true originating conditions.
+            /// </summary>
+            private int _matchedCount;
+
+            /// <summary>
+            ///  The optional duplicate-aware normalized-value index.
+            /// </summary>
+            private Dictionary<string, ItemDataCollectionValue<I>>? _dictionary;
+
+            /// <summary>
+            ///  Initializes a working prefix with explicit ownership.
+            /// </summary>
+            /// <param name="items">The backing list.</param>
+            /// <param name="count">The prefix length.</param>
+            /// <param name="matchedCount">The number of condition-visible entries.</param>
+            /// <param name="shared">Whether modifications must detach existing entries.</param>
+            public Builder(List<ItemData> items, int count, int matchedCount, bool shared)
             {
-                /// <summary>
-                /// The list of items in the collection. Defines the enumeration order.
-                /// </summary>
-                private ImmutableList<ItemData>.Builder _listBuilder;
+                _items = items;
+                Count = count;
+                _matchedCount = matchedCount;
+                _shared = shared;
+            }
 
-                /// <summary>
-                /// A dictionary of items keyed by their normalized value.
-                /// </summary>
-                private Dictionary<string, ItemDataCollectionValue<I>> _dictionaryBuilder;
+            /// <summary>
+            ///  Gets the total number of entries, including false-condition items.
+            /// </summary>
+            public int Count { get; private set; }
 
-                internal Builder(ImmutableList<ItemData>.Builder listBuilder)
+            /// <summary>
+            ///  Gets or replaces an entry without changing its ordered position.
+            /// </summary>
+            /// <param name="index">The entry position.</param>
+            /// <returns>
+            ///  The entry at that position.
+            /// </returns>
+            public ItemData this[int index]
+            {
+                get
                 {
-                    _listBuilder = listBuilder;
+                    ValidateIndex(index);
+                    return _items[index];
                 }
-
-                #region IEnumerable implementation
-
-                IEnumerator<ItemData> IEnumerable<ItemData>.GetEnumerator() => _listBuilder.GetEnumerator();
-
-                System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => _listBuilder.GetEnumerator();
-
-                #endregion
-
-                public int Count => _listBuilder.Count;
-
-                public ItemData this[int index]
+                set
                 {
-                    get
+                    ValidateIndex(index);
+                    EnsureWritable();
+                    ItemData previous = _items[index];
+                    if (_dictionary is not null)
                     {
-                        return _listBuilder[index];
-                    }
-
-                    set
-                    {
-                        // Update the dictionary if it exists.
-                        if (_dictionaryBuilder is not null)
+                        string oldKey = previous.NormalizedItemValue;
+                        string newKey = value.NormalizedItemValue;
+                        ItemDataCollectionValue<I> oldEntry = _dictionary[oldKey];
+                        if (string.Equals(oldKey, newKey, StringComparison.OrdinalIgnoreCase))
                         {
-                            ItemData oldItemData = _listBuilder[index];
-                            string oldNormalizedValue = oldItemData.NormalizedItemValue;
-                            string newNormalizedValue = value.NormalizedItemValue;
-                            if (!string.Equals(oldNormalizedValue, newNormalizedValue, StringComparison.OrdinalIgnoreCase))
+                            oldEntry.Replace(previous.Item, value.Item);
+                            _dictionary[oldKey] = oldEntry;
+                        }
+                        else
+                        {
+                            oldEntry.Delete(previous.Item);
+                            if (oldEntry.IsEmpty)
                             {
-                                // Normalized values are different - delete from the old entry and add to the new entry.
-                                ItemDataCollectionValue<I> oldDictionaryEntry = _dictionaryBuilder[oldNormalizedValue];
-                                oldDictionaryEntry.Delete(oldItemData.Item);
-                                if (oldDictionaryEntry.IsEmpty)
-                                {
-                                    _dictionaryBuilder.Remove(oldNormalizedValue);
-                                }
-                                else
-                                {
-                                    _dictionaryBuilder[oldNormalizedValue] = oldDictionaryEntry;
-                                }
-
-                                ItemDataCollectionValue<I> newDictionaryEntry = _dictionaryBuilder[newNormalizedValue];
-                                newDictionaryEntry.Add(value.Item);
-                                _dictionaryBuilder[newNormalizedValue] = newDictionaryEntry;
+                                _dictionary.Remove(oldKey);
                             }
                             else
                             {
-                                // Normalized values are the same - replace the item in the entry.
-                                ItemDataCollectionValue<I> dictionaryEntry = _dictionaryBuilder[newNormalizedValue];
-                                dictionaryEntry.Replace(oldItemData.Item, value.Item);
-                                _dictionaryBuilder[newNormalizedValue] = dictionaryEntry;
+                                _dictionary[oldKey] = oldEntry;
                             }
+                            AddToDictionary(ref value);
                         }
-                        _listBuilder[index] = value;
                     }
+                    _matchedCount += (value.ConditionResult ? 1 : 0) - (previous.ConditionResult ? 1 : 0);
+                    _items[index] = value;
                 }
+            }
 
-                /// <summary>
-                /// Gets or creates a dictionary keyed by normalized values.
-                /// </summary>
-                public Dictionary<string, ItemDataCollectionValue<I>> Dictionary
+            /// <summary>
+            ///  Gets or creates the normalized-value index and persists normalization in entries.
+            /// </summary>
+            public Dictionary<string, ItemDataCollectionValue<I>> Dictionary
+            {
+                get
                 {
-                    get
+                    if (_dictionary is null)
                     {
-                        if (_dictionaryBuilder == null)
+                        _dictionary = new(StringComparer.OrdinalIgnoreCase);
+                        for (int index = 0; index < Count; index++)
                         {
-                            _dictionaryBuilder = new Dictionary<string, ItemDataCollectionValue<I>>(StringComparer.OrdinalIgnoreCase);
-                            for (int i = 0; i < _listBuilder.Count; i++)
-                            {
-                                ItemData itemData = _listBuilder[i];
-                                AddToDictionary(ref itemData);
-                                _listBuilder[i] = itemData;
-                            }
+                            ItemData data = _items[index];
+                            AddToDictionary(ref data);
+                            // Only memoized normalization changes; saved semantic item data is unchanged.
+                            _items[index] = data;
                         }
-                        return _dictionaryBuilder;
+                    }
+                    return _dictionary;
+                }
+            }
+
+            /// <summary>
+            ///  Appends an item, sharing earlier prefixes when their bounds remain unchanged.
+            /// </summary>
+            /// <param name="data">The new entry.</param>
+            public void Add(ItemData data)
+            {
+                if (Count != _items.Count)
+                {
+                    EnsureWritable();
+                }
+                if (_dictionary is not null)
+                {
+                    AddToDictionary(ref data);
+                }
+                _items.Add(data);
+                Count++;
+                _matchedCount += data.ConditionResult ? 1 : 0;
+            }
+
+            /// <summary>
+            ///  Clears the working collection without changing saved prefixes.
+            /// </summary>
+            public void Clear()
+            {
+                _items = [];
+                Count = 0;
+                _matchedCount = 0;
+                _shared = false;
+                _dictionary?.Clear();
+            }
+
+            /// <summary>
+            ///  Removes matching items with stable compaction.
+            /// </summary>
+            /// <param name="itemsToRemove">The items to remove.</param>
+            public void RemoveAll(ICollection<I> itemsToRemove)
+            {
+                EnsureWritable();
+                int destination = 0;
+                int matched = 0;
+                for (int index = 0; index < Count; index++)
+                {
+                    ItemData data = _items[index];
+                    if (!itemsToRemove.Contains(data.Item))
+                    {
+                        _items[destination++] = data;
+                        matched += data.ConditionResult ? 1 : 0;
                     }
                 }
+                _items.RemoveRange(destination, Count - destination);
+                Count = destination;
+                _matchedCount = matched;
+                _dictionary = null;
+            }
 
-                public void Add(ItemData data)
+            /// <summary>
+            ///  Removes all duplicate items under the supplied normalized paths.
+            /// </summary>
+            /// <param name="paths">The normalized paths to remove.</param>
+            public void RemoveAll(ICollection<string> paths)
+            {
+                Dictionary<string, ItemDataCollectionValue<I>> dictionary = Dictionary;
+                HashSet<I>? removed = null;
+                foreach (string path in paths)
                 {
-                    if (_dictionaryBuilder is not null)
+                    if (dictionary.TryGetValue(path, out ItemDataCollectionValue<I> entries))
                     {
-                        AddToDictionary(ref data);
-                    }
-                    _listBuilder.Add(data);
-                }
-
-                public void Clear()
-                {
-                    _listBuilder.Clear();
-                    _dictionaryBuilder?.Clear();
-                }
-
-                /// <summary>
-                /// Removes all items passed in a collection.
-                /// </summary>
-                public void RemoveAll(ICollection<I> itemsToRemove)
-                {
-                    _listBuilder.RemoveAll(item => itemsToRemove.Contains(item.Item));
-                    // This is a rare operation, don't bother updating the dictionary for now. It will be recreated as needed.
-                    _dictionaryBuilder = null;
-                }
-
-                /// <summary>
-                /// Removes all items whose normalized path is passed in a collection.
-                /// </summary>
-                public void RemoveAll(ICollection<string> itemPathsToRemove)
-                {
-                    var dictionary = Dictionary;
-                    HashSet<I> itemsToRemove = null;
-                    foreach (string itemValue in itemPathsToRemove)
-                    {
-                        if (dictionary.TryGetValue(itemValue, out var multiItem))
+                        foreach (I item in entries)
                         {
-                            foreach (I item in multiItem)
-                            {
-                                itemsToRemove ??= new HashSet<I>();
-                                itemsToRemove.Add(item);
-                            }
-                            _dictionaryBuilder.Remove(itemValue);
+                            (removed ??= []).Add(item);
                         }
                     }
-
-                    if (itemsToRemove is not null)
-                    {
-                        _listBuilder.RemoveAll(item => itemsToRemove.Contains(item.Item));
-                    }
                 }
-
-                /// <summary>
-                /// Creates an immutable view of this collection.
-                /// </summary>
-                public OrderedItemDataCollection ToImmutable()
+                if (removed is not null)
                 {
-                    return new OrderedItemDataCollection(_listBuilder.ToImmutable());
+                    RemoveAll(removed);
                 }
+            }
 
-                private void AddToDictionary(ref ItemData itemData)
+            /// <summary>
+            ///  Saves a bounded read-only view without copying an append-only item prefix.
+            /// </summary>
+            /// <returns>
+            ///  The saved view.
+            /// </returns>
+            public OrderedItemDataCollection ToImmutable()
+            {
+                _shared = true;
+                return new(_items, Count, _matchedCount);
+            }
+
+            /// <summary>
+            ///  Enumerates all entries in the working prefix.
+            /// </summary>
+            /// <returns>
+            ///  The ordered entry enumerator.
+            /// </returns>
+            public IEnumerator<ItemData> GetEnumerator()
+            {
+                for (int index = 0; index < Count; index++)
                 {
-                    string key = itemData.NormalizedItemValue;
-
-                    if (!_dictionaryBuilder.TryGetValue(key, out var dictionaryValue))
-                    {
-                        dictionaryValue = new ItemDataCollectionValue<I>(itemData.Item);
-                    }
-                    else
-                    {
-                        dictionaryValue.Add(itemData.Item);
-                    }
-                    _dictionaryBuilder[key] = dictionaryValue;
+                    yield return _items[index];
                 }
             }
 
-            #endregion
+            /// <summary>
+            ///  Supplies the non-generic working-prefix enumerator.
+            /// </summary>
+            /// <returns>
+            ///  The ordered entry enumerator.
+            /// </returns>
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
             /// <summary>
-            /// The list of items in the collection. Defines the enumeration order.
+            ///  Detaches a shared prefix before replacing or compacting its existing entries.
             /// </summary>
-            private ImmutableList<ItemData> _list;
-
-            private OrderedItemDataCollection(ImmutableList<ItemData> list)
+            private void EnsureWritable()
             {
-                _list = list;
+                if (_shared)
+                {
+                    var items = new List<ItemData>(Count);
+                    for (int index = 0; index < Count; index++)
+                    {
+                        items.Add(_items[index]);
+                    }
+                    _items = items;
+                    _shared = false;
+                }
             }
 
             /// <summary>
-            /// Creates a new mutable collection.
+            ///  Rejects access beyond the working prefix even when the backing list has a longer tail.
             /// </summary>
-            public static Builder CreateBuilder()
+            /// <param name="index">The requested position.</param>
+            private void ValidateIndex(int index)
             {
-                return new Builder(ImmutableList.CreateBuilder<ItemData>());
+                if ((uint)index >= (uint)Count)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
             }
 
             /// <summary>
-            /// Creates a mutable view of this collection. Changes made to the returned builder are not reflected in this collection.
+            ///  Adds an item to the duplicate-aware normalized-value index.
             /// </summary>
-            public Builder ToBuilder()
+            /// <param name="data">The entry whose normalized value is memoized.</param>
+            private void AddToDictionary(ref ItemData data)
             {
-                return new Builder(_list.ToBuilder());
+                string key = data.NormalizedItemValue;
+                if (_dictionary!.TryGetValue(key, out ItemDataCollectionValue<I> entry))
+                {
+                    entry.Add(data.Item);
+                }
+                else
+                {
+                    entry = new(data.Item);
+                }
+                _dictionary[key] = entry;
             }
         }
     }
