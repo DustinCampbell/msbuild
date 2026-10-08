@@ -13,9 +13,6 @@ using Microsoft.Build.Shared.FileSystem;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-#if DEBUG
-using System.Diagnostics;
-#endif
 using System.Linq;
 using System.Threading;
 
@@ -38,9 +35,9 @@ namespace Microsoft.Build.Evaluation
 
         private int _nextElementOrder = 0;
 
-        private Dictionary<string, LazyItemList> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
-            new Dictionary<string, LazyItemList>() :
-            new Dictionary<string, LazyItemList>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, ItemHistory> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
+            new Dictionary<string, ItemHistory>() :
+            new Dictionary<string, ItemHistory>(StringComparer.OrdinalIgnoreCase);
 
         protected EvaluationContext EvaluationContext { get; }
 
@@ -73,8 +70,8 @@ namespace Microsoft.Build.Evaluation
         ///  Matching items, excluding false-condition items, or an empty collection.
         /// </returns>
         public ICollection<I> GetItems(string itemType)
-            => _itemLists.TryGetValue(itemType, out LazyItemList list)
-                ? list.GetMatchedItems(ImmutableHashSet<string>.Empty)
+            => _itemLists.TryGetValue(itemType, out ItemHistory list)
+                ? list.GetMatchedItems(list.Count)
                 : Array.Empty<I>();
 
         private static bool EvaluateCondition(
@@ -172,342 +169,23 @@ namespace Microsoft.Build.Evaluation
             }
         }
 
-        private class MemoizedOperation
-        {
-            public LazyItemOperation Operation { get; }
-            private Dictionary<ISet<string>, OrderedItemDataCollection> _cache;
-
-            private bool _isReferenced;
-#if DEBUG
-            private int _applyCalls;
-#endif
-
-            public MemoizedOperation(LazyItemOperation operation)
-            {
-                Operation = operation;
-            }
-
-            /// <summary>
-            ///  Gets whether an expression or current-state read requires this operation's result.
-            /// </summary>
-            public bool IsReferenced => _isReferenced;
-
-            public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-#if DEBUG
-                CheckInvariant();
-#endif
-
-                Operation.Apply(listBuilder, globsToIgnore);
-
-                RecordResult(listBuilder, globsToIgnore);
-            }
-
-            /// <summary>
-            ///  Records the result of an operation applied either directly or through a literal batch.
-            /// </summary>
-            /// <param name="listBuilder">The item state immediately after the operation.</param>
-            /// <param name="globsToIgnore">The exclusions under which that state was computed.</param>
-            public void RecordResult(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)
-            {
-                // cache results if somebody is referencing this operation
-                if (_isReferenced)
-                {
-                    AddItemsToCache(globsToIgnore, listBuilder.ToImmutable());
-                }
-#if DEBUG
-                _applyCalls++;
-                CheckInvariant();
-#endif
-            }
-
-#if DEBUG
-            private void CheckInvariant()
-            {
-                if (_isReferenced)
-                {
-                    var cacheCount = _cache?.Count ?? 0;
-                    Debug.Assert(_applyCalls == cacheCount, "Apply should only be called once per globsToIgnore. Otherwise caching is not working");
-                }
-                else
-                {
-                    // non referenced operations should not be cached
-                    // non referenced operations should have as many apply calls as the number of cache keys of the immediate dominator with _isReferenced == true
-                    Debug.Assert(_cache == null);
-                }
-            }
-#endif
-
-            public bool TryGetFromCache(ISet<string> globsToIgnore, out OrderedItemDataCollection items)
-            {
-                if (_cache != null)
-                {
-                    return _cache.TryGetValue(globsToIgnore, out items);
-                }
-
-                items = null;
-                return false;
-            }
-
-            /// <summary>
-            /// Somebody is referencing this operation
-            /// </summary>
-            public void MarkAsReferenced()
-            {
-                _isReferenced = true;
-            }
-
-            private void AddItemsToCache(ImmutableHashSet<string> globsToIgnore, OrderedItemDataCollection items)
-            {
-                if (_cache == null)
-                {
-                    _cache = new Dictionary<ISet<string>, OrderedItemDataCollection>();
-                }
-
-                _cache[globsToIgnore] = items;
-            }
-        }
-
-        private class LazyItemList
-        {
-            private readonly LazyItemList _previous;
-            private readonly MemoizedOperation _memoizedOperation;
-
-            public LazyItemList(LazyItemList previous, LazyItemOperation operation)
-            {
-                _previous = previous;
-                _memoizedOperation = new MemoizedOperation(operation);
-            }
-
-            public ImmutableList<I> GetMatchedItems(ImmutableHashSet<string> globsToIgnore)
-            {
-                ImmutableList<I>.Builder items = ImmutableList.CreateBuilder<I>();
-                foreach (ItemData data in GetItemData(globsToIgnore))
-                {
-                    if (data.ConditionResult)
-                    {
-                        items.Add(data.Item);
-                    }
-                }
-
-                return items.ToImmutable();
-            }
-
-            public OrderedItemDataCollection.Builder GetItemData(ImmutableHashSet<string> globsToIgnore)
-            {
-                // Cache results only on the LazyItemOperations whose results are required by an external caller (via GetItems). This means:
-                //   - Callers of GetItems who have announced ahead of time that they would reference an operation (via MarkAsReferenced())
-                // This includes: item references (Include="@(foo)") and metadata conditions (Condition="@(foo->Count()) == 0")
-                // Without ahead of time notifications more computation is done than needed when the results of a future operation are requested
-                // The future operation is part of another item list referencing this one (making this operation part of the tail).
-                // The future operation will compute this list but since no ahead of time notifications have been made by callers, it won't cache the
-                // intermediary operations that would be requested by those callers.
-                //   - Callers of GetItems that cannot announce ahead of time. This includes item referencing conditions on
-                // Item Groups and Item Elements. However, those conditions are performed eagerly outside of the LazyItemEvaluator, so they will run before
-                // any item referencing operations from inside the LazyItemEvaluator. This
-                //
-                // If the head of this LazyItemList is uncached, then the tail may contain cached and un-cached nodes.
-                // In this case we have to compute the head plus the part of the tail up to the first cached operation.
-                //
-                // The cache is based on a couple of properties:
-                // - uses immutable lists for structural sharing between multiple cached nodes (multiple include operations won't have duplicated memory for the common items)
-                // - if an operation is cached for a certain set of globsToIgnore, then the entire operation tail can be reused. This is because (i) the structure of LazyItemLists
-                // does not mutate: one can add operations on top, but the base never changes, and (ii) the globsToIgnore passed to the tail is the concatenation between
-                // the globsToIgnore received as an arg, and the globsToIgnore produced by the head (if the head is a Remove operation)
-
-                OrderedItemDataCollection items;
-                if (_memoizedOperation.TryGetFromCache(globsToIgnore, out items))
-                {
-                    return items.ToBuilder();
-                }
-                else
-                {
-                    // tell the cache that this operation's result is needed by an external caller
-                    // this is required for callers that cannot tell the item list ahead of time that
-                    // they would be using an operation
-                    MarkAsReferenced();
-
-                    return ComputeItems(this, globsToIgnore);
-                }
-            }
-
-            /// <summary>
-            /// Applies uncached item operations (include, remove, update) in order. Since Remove effectively overwrites Include or Update,
-            /// Remove operations are preprocessed (adding to globsToIgnore) to create a longer list of globs we don't need to process
-            /// properly because we know they will be removed. Update operations are batched as much as possible, meaning rather
-            /// than being applied immediately, they are combined into a dictionary of UpdateOperations that need to be applied. This
-            /// is to optimize the case in which as series of UpdateOperations, each of which affects a single ItemSpec, are applied to all
-            /// items in the list, leading to a quadratic-time operation.
-            /// </summary>
-            private static OrderedItemDataCollection.Builder ComputeItems(LazyItemList lazyItemList, ImmutableHashSet<string> globsToIgnore)
-            {
-                // Stack of operations up to the first one that's cached (exclusive)
-                Stack<LazyItemList> itemListStack = new Stack<LazyItemList>();
-
-                OrderedItemDataCollection.Builder items = null;
-
-                // Keep a separate stack of lists of globs to ignore that only gets modified for Remove operations
-                Stack<ImmutableHashSet<string>> globsToIgnoreStack = null;
-
-                for (var currentList = lazyItemList; currentList != null; currentList = currentList._previous)
-                {
-                    var globsToIgnoreFromFutureOperations = globsToIgnoreStack?.Peek() ?? globsToIgnore;
-
-                    OrderedItemDataCollection itemsFromCache;
-                    if (currentList._memoizedOperation.TryGetFromCache(globsToIgnoreFromFutureOperations, out itemsFromCache))
-                    {
-                        // the base items on top of which to apply the uncached operations are the items of the first operation that is cached
-                        items = itemsFromCache.ToBuilder();
-                        break;
-                    }
-
-                    // If this is a remove operation, then add any globs that will be removed
-                    //  to a list of globs to ignore in previous operations
-                    if (currentList._memoizedOperation.Operation is RemoveOperation removeOperation)
-                    {
-                        globsToIgnoreStack ??= new Stack<ImmutableHashSet<string>>();
-
-                        var globsToIgnoreForPreviousOperations = removeOperation.GetRemovedGlobs();
-                        foreach (var globToRemove in globsToIgnoreFromFutureOperations)
-                        {
-                            globsToIgnoreForPreviousOperations.Add(globToRemove);
-                        }
-
-                        globsToIgnoreStack.Push(globsToIgnoreForPreviousOperations.ToImmutable());
-                    }
-
-                    itemListStack.Push(currentList);
-                }
-
-                if (items == null)
-                {
-                    items = OrderedItemDataCollection.CreateBuilder();
-                }
-
-                ImmutableHashSet<string> currentGlobsToIgnore = globsToIgnoreStack == null ? globsToIgnore : globsToIgnoreStack.Peek();
-
-                Dictionary<string, UpdateOperation> itemsWithNoWildcards = new Dictionary<string, UpdateOperation>(StringComparer.OrdinalIgnoreCase);
-                bool addedToBatch = false;
-
-                // Walk back down the stack of item lists applying operations
-                while (itemListStack.Count > 0)
-                {
-                    var currentList = itemListStack.Pop();
-
-                    if (currentList._memoizedOperation.Operation is UpdateOperation op)
-                    {
-                        bool addToBatch = true;
-                        int i;
-                        // The TextFragments are things like abc.def or x*y.*z.
-                        for (i = 0; i < op.Spec.Fragments.Count; i++)
-                        {
-                            ItemSpecFragment frag = op.Spec.Fragments[i];
-                            if (MSBuildConstants.CharactersForExpansion.Any(frag.TextFragment.Contains))
-                            {
-                                // Fragment contains wild cards, items, or properties. Cannot batch over it using a dictionary.
-                                addToBatch = false;
-                                break;
-                            }
-
-                            string fullPath = FileUtilities.NormalizePathForComparisonNoThrow(frag.TextFragment, frag.ProjectDirectory);
-                            if (itemsWithNoWildcards.ContainsKey(fullPath))
-                            {
-                                // Another update will already happen on this path. Make that happen before evaluating this one.
-                                addToBatch = false;
-                                break;
-                            }
-                            else
-                            {
-                                itemsWithNoWildcards.Add(fullPath, op);
-                            }
-                        }
-                        if (!addToBatch)
-                        {
-                            // We found a wildcard. Remove any fragments associated with the current operation and process them later.
-                            for (int j = 0; j < i; j++)
-                            {
-                                ItemSpecFragment fragment = op.Spec.Fragments[j];
-                                string key = FileUtilities.NormalizePathForComparisonNoThrow(fragment.TextFragment, fragment.ProjectDirectory);
-                                itemsWithNoWildcards.Remove(key);
-                            }
-                        }
-                        else
-                        {
-                            addedToBatch = true;
-                            if (currentList._memoizedOperation.IsReferenced)
-                            {
-                                // Publish demanded prefixes before later updates can join the batch.
-                                ProcessNonWildCardItemUpdates(itemsWithNoWildcards, items);
-                                currentList._memoizedOperation.RecordResult(items, currentGlobsToIgnore);
-                                addedToBatch = false;
-                            }
-                            continue;
-                        }
-                    }
-
-                    if (addedToBatch)
-                    {
-                        addedToBatch = false;
-                        ProcessNonWildCardItemUpdates(itemsWithNoWildcards, items);
-                    }
-
-                    // If this is a remove operation, then it could modify the globs to ignore, so pop the potentially
-                    //  modified entry off the stack of globs to ignore
-                    if (currentList._memoizedOperation.Operation is RemoveOperation)
-                    {
-                        globsToIgnoreStack.Pop();
-                        currentGlobsToIgnore = globsToIgnoreStack.Count == 0 ? globsToIgnore : globsToIgnoreStack.Peek();
-                    }
-
-                    currentList._memoizedOperation.Apply(items, currentGlobsToIgnore);
-                }
-
-                // We finished looping through the operations. Now process the final batch if necessary.
-                ProcessNonWildCardItemUpdates(itemsWithNoWildcards, items);
-
-                return items;
-            }
-
-            private static void ProcessNonWildCardItemUpdates(Dictionary<string, UpdateOperation> itemsWithNoWildcards, OrderedItemDataCollection.Builder items)
-            {
-                if (itemsWithNoWildcards.Count > 0)
-                {
-                    for (int i = 0; i < items.Count; i++)
-                    {
-                        string fullPath = FileUtilities.NormalizePathForComparisonNoThrow(items[i].Item.EvaluatedInclude, items[i].Item.ProjectDirectory);
-                        if (itemsWithNoWildcards.TryGetValue(fullPath, out UpdateOperation op))
-                        {
-                            items[i] = op.UpdateItem(items[i]);
-                        }
-                    }
-                    itemsWithNoWildcards.Clear();
-                }
-            }
-
-            public void MarkAsReferenced()
-            {
-                _memoizedOperation.MarkAsReferenced();
-            }
-        }
-
         /// <summary>
         ///  Captures an existing item history before the operation that references it is appended.
         /// </summary>
         /// <param name="itemType">The referenced item type.</param>
         /// <param name="referencedItemLists">The operation's reference map being constructed.</param>
-        private void AddReferencedItemList(string itemType, ref Dictionary<string, LazyItemList> referencedItemLists)
+        private void AddReferencedItemList(string itemType, ref Dictionary<string, ItemListSnapshot> referencedItemLists)
         {
-            if (_itemLists.TryGetValue(itemType, out LazyItemList itemList))
+            if (_itemLists.TryGetValue(itemType, out ItemHistory itemList))
             {
-                itemList.MarkAsReferenced();
-                referencedItemLists ??= new Dictionary<string, LazyItemList>(_itemLists.Comparer);
-                referencedItemLists[itemType] = itemList;
+                referencedItemLists ??= new Dictionary<string, ItemListSnapshot>(_itemLists.Comparer);
+                referencedItemLists[itemType] = new ItemListSnapshot(itemList);
             }
         }
 
         public IEnumerable<ItemData> GetAllItemsDeferred()
         {
-            return _itemLists.Values.SelectMany(itemList => itemList.GetItemData(ImmutableHashSet<string>.Empty))
+            return _itemLists.Values.SelectMany(itemList => itemList.GetItemData(itemList.Count, ImmutableHashSet<string>.Empty))
                                     .OrderBy(itemData => itemData.ElementOrder);
         }
 
@@ -532,9 +210,11 @@ namespace Microsoft.Build.Evaluation
                 Assumed.Unreachable();
             }
 
-            _itemLists.TryGetValue(itemElement.ItemType, out LazyItemList previousItemList);
-            LazyItemList newList = new LazyItemList(previousItemList, operation);
-            _itemLists[itemElement.ItemType] = newList;
+            if (!_itemLists.TryGetValue(itemElement.ItemType, out ItemHistory history))
+            {
+                _itemLists.Add(itemElement.ItemType, history = new ItemHistory());
+            }
+            history.Add(operation);
         }
 
         /// <summary>
@@ -548,7 +228,7 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         private UpdateOperation BuildUpdateOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            Dictionary<string, LazyItemList> references = null;
+            Dictionary<string, ItemListSnapshot> references = null;
             ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Update, itemElement.UpdateLocation, ref references);
             ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, ref references);
             return new UpdateOperation(itemElement, spec, references, conditionResult, this, metadata);
@@ -566,7 +246,7 @@ namespace Microsoft.Build.Evaluation
         private IncludeOperation BuildIncludeOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
             int elementOrder = _nextElementOrder++;
-            Dictionary<string, LazyItemList> references = null;
+            Dictionary<string, ItemListSnapshot> references = null;
             ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Include, itemElement.IncludeLocation, ref references);
             ImmutableArray<string>.Builder excludes = null;
             if (itemElement.Exclude.Length > 0)
@@ -600,7 +280,7 @@ namespace Microsoft.Build.Evaluation
         /// </returns>
         private RemoveOperation BuildRemoveOperation(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
-            Dictionary<string, LazyItemList> references = null;
+            Dictionary<string, ItemListSnapshot> references = null;
             ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, ref references);
             ImmutableArray<string>.Builder metadataNames = null;
             if (itemElement.MatchOnMetadata.Length > 0)
@@ -639,7 +319,7 @@ namespace Microsoft.Build.Evaluation
         ///  The parsed specification, before it is bound to the operation's expander.
         /// </returns>
         private ItemSpec<P, I> CreateItemSpec(
-            string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, ref Dictionary<string, LazyItemList> references)
+            string rootDirectory, string itemSpec, IElementLocation itemSpecLocation, ref Dictionary<string, ItemListSnapshot> references)
         {
             var spec = new ItemSpec<P, I>(itemSpec, _outerExpander, itemSpecLocation, rootDirectory);
             foreach (ItemSpecFragment fragment in spec.Fragments)
@@ -661,7 +341,7 @@ namespace Microsoft.Build.Evaluation
         ///  The metadata elements in declaration order.
         /// </returns>
         private ImmutableArray<ProjectMetadataElement> ProcessMetadataElements(
-            ProjectItemElement itemElement, ref Dictionary<string, LazyItemList> references)
+            ProjectItemElement itemElement, ref Dictionary<string, ItemListSnapshot> references)
         {
             if (!itemElement.HasMetadata)
             {
@@ -712,7 +392,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="expression">The expression after property expansion.</param>
         /// <param name="references">The operation's reference map being constructed.</param>
         /// <param name="elementLocation">The expression's XML location.</param>
-        private void AddItemReferences(string expression, ref Dictionary<string, LazyItemList> references, IElementLocation elementLocation)
+        private void AddItemReferences(string expression, ref Dictionary<string, ItemListSnapshot> references, IElementLocation elementLocation)
         {
             if (Expander<P, I>.TryExpandSingleItemVectorExpression(
                     expression,
@@ -729,7 +409,7 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="references">The operation's reference map being constructed.</param>
         /// <param name="match">The parsed item expression.</param>
-        private void AddReferencedItemLists(ref Dictionary<string, LazyItemList> references, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(ref Dictionary<string, ItemListSnapshot> references, ExpressionShredder.ItemExpressionCapture match)
         {
             if (match.ItemType != null)
             {

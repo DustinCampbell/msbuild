@@ -23,7 +23,7 @@ namespace Microsoft.Build.Evaluation
         private abstract class LazyItemOperation : IItemProvider<I>
         {
             private readonly string _itemType;
-            private readonly Dictionary<string, LazyItemList> _referencedItemLists;
+            private readonly Dictionary<string, ItemListSnapshot> _referencedItemLists;
 
             protected readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
             protected readonly ProjectItemElement _itemElement;
@@ -47,7 +47,7 @@ namespace Microsoft.Build.Evaluation
             protected LazyItemOperation(
                 ProjectItemElement itemElement,
                 ItemSpec<P, I> itemSpec,
-                Dictionary<string, LazyItemList> references,
+                Dictionary<string, ItemListSnapshot> references,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> lazyEvaluator)
             {
@@ -76,8 +76,8 @@ namespace Microsoft.Build.Evaluation
             ///  Condition-visible captured items, or an empty collection for a missing reference.
             /// </returns>
             public ICollection<I> GetItems(string itemType)
-                => _referencedItemLists is not null && _referencedItemLists.TryGetValue(itemType, out LazyItemList list)
-                    ? list.GetMatchedItems(ImmutableHashSet<string>.Empty)
+                => _referencedItemLists is not null && _referencedItemLists.TryGetValue(itemType, out ItemListSnapshot list)
+                    ? list.GetMatchedItems()
                     : Array.Empty<I>();
 
             public void Apply(OrderedItemDataCollection.Builder listBuilder, ImmutableHashSet<string> globsToIgnore)

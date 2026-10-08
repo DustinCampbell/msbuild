@@ -38,7 +38,7 @@ namespace Microsoft.Build.Evaluation
             public IncludeOperation(
                 ProjectItemElement element,
                 ItemSpec<P, I> spec,
-                Dictionary<string, LazyItemList>? references,
+                Dictionary<string, ItemListSnapshot>? references,
                 bool conditionResult,
                 LazyItemEvaluator<P, I, M, D> evaluator,
                 int elementOrder,
