@@ -879,7 +879,7 @@ public sealed class LazyItemEvaluator_Tests
         env.SetEnvironmentVariable("MSBuildAlwaysEvaluateDangerousGlobs", null);
         var fileSystem = new RecordingFileSystem(useRealFileSystem: false);
         var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel, fileSystem: fileSystem);
-        string glob = Path.Combine(Path.GetPathRoot(fixture.DirectoryPath)!, "**", "*.cs");
+        string glob = Path.DirectorySeparatorChar + Path.Combine("**", "*.cs");
         fixture.Record($"""<ItemGroup><A Include="{glob}" Condition="false" /></ItemGroup>""");
         fixture.GetItems().ShouldBeEmpty();
         fileSystem.Enumerations.ShouldBe(0);
@@ -899,7 +899,7 @@ public sealed class LazyItemEvaluator_Tests
         env.SetEnvironmentVariable("MSBUILDFAILONDRIVEENUMERATINGWILDCARD", null);
         var fileSystem = new RecordingFileSystem(useRealFileSystem: false);
         var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel, fileSystem: fileSystem);
-        string glob = Path.Combine(Path.GetPathRoot(fixture.DirectoryPath)!, "**", "*.cs");
+        string glob = Path.DirectorySeparatorChar + Path.Combine("**", "*.cs");
         fixture.Record($"""<ItemGroup><A Include="{glob}" Condition="false" /></ItemGroup>""");
         fixture.GetItems().ShouldBeEmpty();
         fileSystem.Enumerations.ShouldBeGreaterThan(0);
