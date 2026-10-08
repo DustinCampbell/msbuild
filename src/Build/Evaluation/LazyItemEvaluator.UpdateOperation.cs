@@ -307,7 +307,8 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             PrepareSourceIndex();
             if (_matchingSources is not null)
             {
-                string key = FileUtilities.NormalizePathForComparisonNoThrow(item.EvaluatedInclude, _referenceFragments[0].ProjectDirectory);
+                string key = FileUtilities.NormalizePathForComparisonNoThrow(
+                    item.EvaluatedInclude, _referenceFragments[0].ProjectDirectory);
                 if (_matchingSources.TryGetValue(key, out captured))
                 {
                     matches = true;

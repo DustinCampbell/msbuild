@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Globbing;
@@ -630,6 +631,28 @@ namespace Microsoft.Build.Evaluation
                     return false;
                 }
                 if (!current._children.TryGetValue(_normalize(m), out current))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        ///  Matches an item's metadata tuple without allocating a projected sequence.
+        /// </summary>
+        /// <param name="item">The item whose metadata is matched.</param>
+        /// <param name="metadataNames">The tuple's metadata names in declaration order.</param>
+        /// <returns>
+        ///  Whether all nonempty normalized values follow a stored trie path.
+        /// </returns>
+        public bool Contains(I item, ImmutableArray<string> metadataNames)
+        {
+            MetadataTrie<P, I> current = this;
+            foreach (string name in metadataNames)
+            {
+                string value = item.GetMetadataValue(name);
+                if (string.IsNullOrEmpty(value) || !current._children.TryGetValue(_normalize(value), out current))
                 {
                     return false;
                 }

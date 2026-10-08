@@ -1161,8 +1161,10 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// Evaluate the items in the itemgroup and add the applicable ones to the data passed in
+        ///  Admits item groups in pass order and records successful item elements for caller-owned views.
         /// </summary>
+        /// <param name="itemGroupElement">The item group XML.</param>
+        /// <param name="lazyEvaluator">The owner of item conditions, operation recording, and materialization.</param>
         private void EvaluateItemGroupElement(ProjectItemGroupElement itemGroupElement, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
         {
             bool itemGroupConditionResult = lazyEvaluator.EvaluateConditionWithCurrentState(itemGroupElement, ExpanderOptions.ExpandPropertiesAndItems, ParserOptions.AllowPropertiesAndItemLists);
@@ -1173,7 +1175,10 @@ namespace Microsoft.Build.Evaluation
                 {
                     using (_evaluationProfiler.TrackElement(itemElement))
                     {
-                        EvaluateItemElement(itemGroupConditionResult, itemElement, lazyEvaluator);
+                        if (lazyEvaluator.EvaluateItemElement(_projectRootElement.DirectoryPath, itemElement, itemGroupConditionResult))
+                        {
+                            RecordEvaluatedItemElement(itemElement);
+                        }
                     }
                 }
             }
@@ -1467,25 +1472,6 @@ namespace Microsoft.Build.Evaluation
                 _expander.PropertiesUseTracker.CheckPreexistingUndefinedUsage(propertyElement, evaluatedValue, _evaluationLoggingContext);
 
                 _data.SetProperty(propertyElement, evaluatedValue, _evaluationLoggingContext);
-            }
-        }
-
-        private void EvaluateItemElement(bool itemGroupConditionResult, ProjectItemElement itemElement, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-        {
-            bool itemConditionResult = lazyEvaluator.EvaluateConditionWithCurrentState(itemElement, ExpanderOptions.ExpandPropertiesAndItems, ParserOptions.AllowPropertiesAndItemLists);
-
-            if (!itemConditionResult && !(_data.ShouldEvaluateForDesignTime && _data.CanEvaluateElementsWithFalseConditions))
-            {
-                return;
-            }
-
-            var conditionResult = itemGroupConditionResult && itemConditionResult;
-
-            lazyEvaluator.ProcessItemElement(_projectRootElement.DirectoryPath, itemElement, conditionResult);
-
-            if (conditionResult)
-            {
-                RecordEvaluatedItemElement(itemElement);
             }
         }
 

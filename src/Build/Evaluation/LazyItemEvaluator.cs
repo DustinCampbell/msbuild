@@ -19,32 +19,96 @@ using System.Threading;
 
 namespace Microsoft.Build.Evaluation
 {
+    /// <summary>
+    ///  Records item operations and materializes current or captured earlier states on demand.
+    /// </summary>
+    /// <typeparam name="P">The property model supplied by the outer evaluator.</typeparam>
+    /// <typeparam name="I">The item model created and cloned by the supplied factory.</typeparam>
+    /// <typeparam name="M">The model's metadata type.</typeparam>
+    /// <typeparam name="D">The model's item-definition type.</typeparam>
+    /// <remarks>
+    ///  Conditions request the current history; recorded expressions retain an exclusive earlier
+    ///  operation position. Later glob removals can prune earlier Includes only for a compatible
+    ///  materialization. Saved item containers preserve order and ownership, while updates still
+    ///  clone item objects before changing metadata. This evaluator is owned by one evaluation.
+    /// </remarks>
     internal partial class LazyItemEvaluator<P, I, M, D> : IItemProvider<I>
         where P : class, IProperty, IEquatable<P>, IValued
         where I : class, IItem<M>, IMetadataTable
         where M : class, IMetadatum
         where D : class, IItemDefinition<M>
     {
+        /// <summary>
+        ///  The outer properties, model policy, and root directory, not the recorded item histories.
+        /// </summary>
         private readonly IEvaluatorData<P, I, M, D> _outerEvaluatorData;
+
+        /// <summary>
+        ///  The property-expansion context used while parsing operation specifications.
+        /// </summary>
         private readonly Expander<P, I> _outerExpander;
+
+        /// <summary>
+        ///  The expander whose item provider observes current recorded histories.
+        /// </summary>
         private readonly Expander<P, I> _expander;
+
+        /// <summary>
+        ///  The shared model-specific factory, rebound by each operation before factory calls.
+        /// </summary>
         private readonly IItemFactory<I, I> _itemFactory;
+
+        /// <summary>
+        ///  The logging context for conditions, expressions, and globs.
+        /// </summary>
         private readonly LoggingContext _loggingContext;
+
+        /// <summary>
+        ///  The outer evaluation's element, condition, and glob profiler.
+        /// </summary>
         private readonly EvaluationProfiler _evaluationProfiler;
 
-        private int _nextElementOrder = 0;
+        /// <summary>
+        ///  The next global Include ordinal used for stable publication.
+        /// </summary>
+        private int _nextElementOrder;
 
+        /// <summary>
+        ///  Per-type append-only operation histories under the established item-name policy.
+        /// </summary>
         private readonly Dictionary<string, ItemHistory> _itemLists = Traits.Instance.EscapeHatches.UseCaseSensitiveItemNames ?
             new Dictionary<string, ItemHistory>() :
             new Dictionary<string, ItemHistory>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        ///  Gets the evaluation's shared expression and filesystem services.
+        /// </summary>
         protected EvaluationContext EvaluationContext { get; }
 
+        /// <summary>
+        ///  Gets the filesystem used by condition and glob evaluation.
+        /// </summary>
         protected IFileSystem FileSystem => EvaluationContext.FileSystem;
 
+        /// <summary>
+        ///  Gets the matcher and file-entry caches associated with the evaluation context.
+        /// </summary>
         protected FileMatcher FileMatcher => EvaluationContext.FileMatcher;
 
-        public LazyItemEvaluator(IEvaluatorData<P, I, M, D> data, IItemFactory<I, I> itemFactory, LoggingContext loggingContext, EvaluationProfiler evaluationProfiler, EvaluationContext evaluationContext)
+        /// <summary>
+        ///  Initializes current-state item evaluation over the already evaluated outer properties.
+        /// </summary>
+        /// <param name="data">The outer evaluator's data and model policy.</param>
+        /// <param name="itemFactory">The model-specific item factory.</param>
+        /// <param name="loggingContext">The logging context.</param>
+        /// <param name="evaluationProfiler">The evaluation profiler.</param>
+        /// <param name="evaluationContext">The expression and filesystem context.</param>
+        public LazyItemEvaluator(
+            IEvaluatorData<P, I, M, D> data,
+            IItemFactory<I, I> itemFactory,
+            LoggingContext loggingContext,
+            EvaluationProfiler evaluationProfiler,
+            EvaluationContext evaluationContext)
         {
             _outerEvaluatorData = data;
             _outerExpander = new Expander<P, I>(_outerEvaluatorData, _outerEvaluatorData, evaluationContext, loggingContext);
@@ -56,9 +120,18 @@ namespace Microsoft.Build.Evaluation
             EvaluationContext = evaluationContext;
         }
 
+        /// <summary>
+        ///  Evaluates a condition against the current end of each recorded item history.
+        /// </summary>
+        /// <param name="element">The element owning the condition.</param>
+        /// <param name="expanderOptions">The allowed expansion kinds.</param>
+        /// <param name="parserOptions">The allowed condition syntax.</param>
+        /// <returns>
+        ///  The current-state condition result.
+        /// </returns>
         public bool EvaluateConditionWithCurrentState(ProjectElement element, ExpanderOptions expanderOptions, ParserOptions parserOptions)
         {
-            return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, _expander, this);
+            return EvaluateCondition(element.Condition, element, expanderOptions, parserOptions, _expander);
         }
 
         /// <summary>
@@ -73,13 +146,23 @@ namespace Microsoft.Build.Evaluation
                 ? list.GetMatchedItems(list.Count)
                 : Array.Empty<I>();
 
-        private static bool EvaluateCondition(
+        /// <summary>
+        ///  Evaluates and profiles a condition using the supplied current or captured item context.
+        /// </summary>
+        /// <param name="condition">The unevaluated condition.</param>
+        /// <param name="element">The XML owning the condition.</param>
+        /// <param name="expanderOptions">The allowed expansion kinds.</param>
+        /// <param name="parserOptions">The allowed condition syntax.</param>
+        /// <param name="expander">The current-state or operation-specific expander.</param>
+        /// <returns>
+        ///  The evaluated condition result.
+        /// </returns>
+        private bool EvaluateCondition(
             string condition,
             ProjectElement element,
             ExpanderOptions expanderOptions,
             ParserOptions parserOptions,
-            Expander<P, I> expander,
-            LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+            Expander<P, I> expander)
         {
             if (condition?.Length == 0)
             {
@@ -87,17 +170,17 @@ namespace Microsoft.Build.Evaluation
             }
             MSBuildEventSource.Log.EvaluateConditionStart(condition);
 
-            using (lazyEvaluator._evaluationProfiler.TrackCondition(element.ConditionLocation, condition))
+            using (_evaluationProfiler.TrackCondition(element.ConditionLocation, condition))
             {
                 bool result = ConditionEvaluator.EvaluateCondition(
                     condition,
                     parserOptions,
                     expander,
                     expanderOptions,
-                    GetCurrentDirectoryForConditionEvaluation(element, lazyEvaluator),
+                    GetCurrentDirectoryForConditionEvaluation(element),
                     element.ConditionLocation,
-                    lazyEvaluator.FileSystem,
-                    loggingContext: lazyEvaluator._loggingContext);
+                    FileSystem,
+                    loggingContext: _loggingContext);
                 MSBuildEventSource.Log.EvaluateConditionStop(condition, result);
 
                 return result;
@@ -105,12 +188,13 @@ namespace Microsoft.Build.Evaluation
         }
 
         /// <summary>
-        /// COMPAT: Whidbey used the "current project file/targets" directory for evaluating Import and PropertyGroup conditions
-        /// Orcas broke this by using the current root project file for all conditions
-        /// For Dev10+, we'll fix this, and use the current project file/targets directory for Import, ImportGroup and PropertyGroup
-        /// but the root project file for the rest. Inside of targets will use the root project file as always.
+        ///  Preserves project-file-relative import/property conditions and root-relative item conditions.
         /// </summary>
-        private static string GetCurrentDirectoryForConditionEvaluation(ProjectElement element, LazyItemEvaluator<P, I, M, D> lazyEvaluator)
+        /// <param name="element">The XML owning the condition.</param>
+        /// <returns>
+        ///  The directory required by the element's established condition semantics.
+        /// </returns>
+        private string GetCurrentDirectoryForConditionEvaluation(ProjectElement element)
         {
             if (element is ProjectPropertyGroupElement || element is ProjectImportElement || element is ProjectImportGroupElement)
             {
@@ -118,13 +202,25 @@ namespace Microsoft.Build.Evaluation
             }
             else
             {
-                return lazyEvaluator._outerEvaluatorData.Directory;
+                return _outerEvaluatorData.Directory;
             }
         }
 
+        /// <summary>
+        ///  Keeps an item together with its original Include, ordinal, condition, and path memoization.
+        /// </summary>
         public struct ItemData
         {
-            public ItemData(I item, ProjectItemElement originatingItemElement, int elementOrder, bool conditionResult, string normalizedItemValue = null)
+            /// <summary>
+            ///  Initializes an ordered item entry.
+            /// </summary>
+            /// <param name="item">The evaluated item.</param>
+            /// <param name="originatingItemElement">The Include that originally created it.</param>
+            /// <param name="elementOrder">The Include's global ordinal.</param>
+            /// <param name="conditionResult">The originating combined condition.</param>
+            /// <param name="normalizedItemValue">An optional already normalized path.</param>
+            public ItemData(
+                I item, ProjectItemElement originatingItemElement, int elementOrder, bool conditionResult, string normalizedItemValue = null)
             {
                 Item = item;
                 OriginatingItemElement = originatingItemElement;
@@ -133,10 +229,17 @@ namespace Microsoft.Build.Evaluation
                 _normalizedItemValue = normalizedItemValue;
             }
 
+            /// <summary>
+            ///  Clones an item before metadata mutation while retaining its Include provenance.
+            /// </summary>
+            /// <param name="itemFactory">The operation's rebinding factory.</param>
+            /// <param name="initialItemElementForFactory">The operation XML to restore after cloning.</param>
+            /// <returns>
+            ///  The cloned entry with unchanged ordering and condition data.
+            /// </returns>
             public readonly ItemData Clone(IItemFactory<I, I> itemFactory, ProjectItemElement initialItemElementForFactory)
             {
-                // setting the factory's item element to the original item element that produced the item
-                // otherwise you get weird things like items that appear to have been produced by update elements
+                // Clones belong to their original Include, not the Update currently applying metadata.
                 itemFactory.ItemElement = OriginatingItemElement;
                 var clonedItem = itemFactory.CreateItem(Item, OriginatingItemElement.ContainingProject.FullPath);
                 itemFactory.ItemElement = initialItemElementForFactory;
@@ -144,15 +247,34 @@ namespace Microsoft.Build.Evaluation
                 return new ItemData(clonedItem, OriginatingItemElement, ElementOrder, ConditionResult, _normalizedItemValue);
             }
 
+            /// <summary>
+            ///  Gets the evaluated item object.
+            /// </summary>
             public I Item { get; }
+
+            /// <summary>
+            ///  Gets the Include XML that originally created the item.
+            /// </summary>
             public ProjectItemElement OriginatingItemElement { get; }
+
+            /// <summary>
+            ///  Gets the original Include's global ordinal.
+            /// </summary>
             public int ElementOrder { get; }
+
+            /// <summary>
+            ///  Gets the originating group/item condition result.
+            /// </summary>
             public bool ConditionResult { get; }
 
             /// <summary>
-            /// Lazily created normalized item value.
+            ///  The lazily computed normalized path, independent of metadata mutations.
             /// </summary>
             private string _normalizedItemValue;
+
+            /// <summary>
+            ///  Gets and memoizes the normalized value used by indexed matching.
+            /// </summary>
             public string NormalizedItemValue
             {
                 get
@@ -239,6 +361,12 @@ namespace Microsoft.Build.Evaluation
             return result;
         }
 
+        /// <summary>
+        ///  Constructs and appends an operation after its condition and earlier references are known.
+        /// </summary>
+        /// <param name="rootDirectory">The root project directory.</param>
+        /// <param name="itemElement">The Include, Update, or Remove XML.</param>
+        /// <param name="conditionResult">The already evaluated combined condition.</param>
         public void ProcessItemElement(string rootDirectory, ProjectItemElement itemElement, bool conditionResult)
         {
             LazyItemOperation operation = null;
@@ -265,6 +393,29 @@ namespace Microsoft.Build.Evaluation
                 _itemLists.Add(itemElement.ItemType, history = new ItemHistory());
             }
             history.Add(operation);
+        }
+
+        /// <summary>
+        ///  Evaluates an admitted group's item condition and records the operation when policy allows it.
+        /// </summary>
+        /// <param name="rootDirectory">The root project directory.</param>
+        /// <param name="itemElement">The item operation XML.</param>
+        /// <param name="groupConditionResult">The already evaluated parent group's condition.</param>
+        /// <returns>
+        ///  Whether both conditions were true, allowing the caller to record the evaluated XML element.
+        /// </returns>
+        public bool EvaluateItemElement(string rootDirectory, ProjectItemElement itemElement, bool groupConditionResult)
+        {
+            bool itemCondition = EvaluateConditionWithCurrentState(
+                itemElement, ExpanderOptions.ExpandPropertiesAndItems, ParserOptions.AllowPropertiesAndItemLists);
+            if (!itemCondition
+                && !(_outerEvaluatorData.ShouldEvaluateForDesignTime && _outerEvaluatorData.CanEvaluateElementsWithFalseConditions))
+            {
+                return false;
+            }
+            bool conditionResult = groupConditionResult && itemCondition;
+            ProcessItemElement(rootDirectory, itemElement, conditionResult);
+            return conditionResult;
         }
 
         /// <summary>
@@ -302,7 +453,8 @@ namespace Microsoft.Build.Evaluation
             if (itemElement.Exclude.Length > 0)
             {
                 // A property can introduce an item reference that must capture this earlier state.
-                string evaluatedExclude = _expander.ExpandIntoStringLeaveEscaped(itemElement.Exclude, ExpanderOptions.ExpandProperties, itemElement.ExcludeLocation);
+                string evaluatedExclude = _expander.ExpandIntoStringLeaveEscaped(
+                    itemElement.Exclude, ExpanderOptions.ExpandProperties, itemElement.ExcludeLocation);
                 if (evaluatedExclude.Length > 0)
                 {
                     foreach (string exclude in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude))
@@ -415,14 +567,16 @@ namespace Microsoft.Build.Evaluation
                         expanderOptions,
                         metadatumElement.Location);
 
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(
+                        expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
 
                     expression = _expander.ExpandIntoStringLeaveEscaped(
                         metadatumElement.Condition,
                         expanderOptions,
                         metadatumElement.ConditionLocation);
 
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+                    ExpressionShredder.GetReferencedItemNamesAndMetadata(
+                        expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
                 }
 
                 if (itemsAndMetadataFound.Items != null)
@@ -442,7 +596,8 @@ namespace Microsoft.Build.Evaluation
         /// <param name="expression">The expression after property expansion.</param>
         /// <param name="references">The operation's reference map being constructed.</param>
         /// <param name="elementLocation">The expression's XML location.</param>
-        private void AddItemReferences(string expression, ref Dictionary<string, ItemListSnapshot> references, IElementLocation elementLocation)
+        private void AddItemReferences(
+            string expression, ref Dictionary<string, ItemListSnapshot> references, IElementLocation elementLocation)
         {
             if (Expander<P, I>.TryExpandSingleItemVectorExpression(
                     expression,
@@ -459,7 +614,8 @@ namespace Microsoft.Build.Evaluation
         /// </summary>
         /// <param name="references">The operation's reference map being constructed.</param>
         /// <param name="match">The parsed item expression.</param>
-        private void AddReferencedItemLists(ref Dictionary<string, ItemListSnapshot> references, ExpressionShredder.ItemExpressionCapture match)
+        private void AddReferencedItemLists(
+            ref Dictionary<string, ItemListSnapshot> references, ExpressionShredder.ItemExpressionCapture match)
         {
             if (match.ItemType != null)
             {

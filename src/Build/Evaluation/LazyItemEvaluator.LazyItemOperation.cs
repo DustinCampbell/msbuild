@@ -1,10 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
@@ -13,343 +12,319 @@ using Microsoft.Build.Shared;
 
 #nullable disable
 
-namespace Microsoft.Build.Evaluation
+namespace Microsoft.Build.Evaluation;
+
+internal partial class LazyItemEvaluator<P, I, M, D>
 {
-    internal partial class LazyItemEvaluator<P, I, M, D>
+    /// <summary>
+    ///  Applies one recorded operation with its captured item states and XML context.
+    /// </summary>
+    private abstract class LazyItemOperation : IItemProvider<I>
     {
         /// <summary>
-        ///  Applies one recorded operation with its captured item state and XML context.
+        ///  The privately owned reference map, never changed after operation construction.
         /// </summary>
-        private abstract class LazyItemOperation : IItemProvider<I>
+        private readonly Dictionary<string, ItemListSnapshot> _referencedItemLists;
+
+        /// <summary>
+        ///  The evaluator owning filesystem, logging, profiling, and outer property services.
+        /// </summary>
+        protected readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
+
+        /// <summary>
+        ///  The XML from which the operation was recorded.
+        /// </summary>
+        protected readonly ProjectItemElement _itemElement;
+
+        /// <summary>
+        ///  The property-expanded specification, bound to this operation's stable expander.
+        /// </summary>
+        protected readonly ItemSpec<P, I> _itemSpec;
+
+        /// <summary>
+        ///  The expander whose item provider observes only this operation's captured prefixes.
+        /// </summary>
+        protected readonly Expander<P, I> _expander;
+
+        /// <summary>
+        ///  The already evaluated combined group and item condition.
+        /// </summary>
+        protected readonly bool _conditionResult;
+
+        /// <summary>
+        ///  The wrapper that restores this operation's factory context before each factory call.
+        /// </summary>
+        protected readonly IItemFactory<I, I> _itemFactory;
+
+        /// <summary>
+        ///  Binds a parsed operation to its captured references and model-specific factory.
+        /// </summary>
+        /// <param name="itemElement">The operation XML.</param>
+        /// <param name="itemSpec">The property-expanded specification.</param>
+        /// <param name="references">The earlier item states captured during construction.</param>
+        /// <param name="conditionResult">The combined group and item condition.</param>
+        /// <param name="lazyEvaluator">The owning evaluator.</param>
+        protected LazyItemOperation(
+            ProjectItemElement itemElement,
+            ItemSpec<P, I> itemSpec,
+            Dictionary<string, ItemListSnapshot> references,
+            bool conditionResult,
+            LazyItemEvaluator<P, I, M, D> lazyEvaluator)
         {
-            private readonly string _itemType;
-            private readonly Dictionary<string, ItemListSnapshot> _referencedItemLists;
-
-            protected readonly LazyItemEvaluator<P, I, M, D> _lazyEvaluator;
-            protected readonly ProjectItemElement _itemElement;
-            protected readonly ItemSpec<P, I> _itemSpec;
-            protected readonly Expander<P, I> _expander;
-            protected readonly bool _conditionResult;
-
-            // This is used only when evaluating an expression, which instantiates
-            //  the items and then removes them
-            protected readonly IItemFactory<I, I> _itemFactory;
-            internal ItemSpec<P, I> Spec => _itemSpec;
-
-            /// <summary>
-            ///  Binds a parsed operation to its captured references and model-specific factory.
-            /// </summary>
-            /// <param name="itemElement">The operation's XML.</param>
-            /// <param name="itemSpec">The property-expanded specification.</param>
-            /// <param name="references">The earlier item histories captured during construction.</param>
-            /// <param name="conditionResult">The combined group and item condition.</param>
-            /// <param name="lazyEvaluator">The owning evaluator.</param>
-            protected LazyItemOperation(
-                ProjectItemElement itemElement,
-                ItemSpec<P, I> itemSpec,
-                Dictionary<string, ItemListSnapshot> references,
-                bool conditionResult,
-                LazyItemEvaluator<P, I, M, D> lazyEvaluator)
-            {
-                _itemElement = itemElement;
-                _itemType = itemElement.ItemType;
-                _itemSpec = itemSpec;
-                _referencedItemLists = references;
-                _conditionResult = conditionResult;
-
-                _lazyEvaluator = lazyEvaluator;
-
-                _itemFactory = new ItemFactoryWrapper(_itemElement, _lazyEvaluator._itemFactory);
-                _expander = new Expander<P, I>(
-                    _lazyEvaluator._outerEvaluatorData, this, _lazyEvaluator.EvaluationContext, _lazyEvaluator._loggingContext);
-
-                _itemSpec.Expander = _expander;
-            }
-
-            protected FileMatcher FileMatcher => _lazyEvaluator.FileMatcher;
-
-            /// <summary>
-            ///  Supplies only the earlier item states captured while this operation was constructed.
-            /// </summary>
-            /// <param name="itemType">The requested item type.</param>
-            /// <returns>
-            ///  Condition-visible captured items, or an empty collection for a missing reference.
-            /// </returns>
-            public ICollection<I> GetItems(string itemType)
-                => _referencedItemLists is not null && _referencedItemLists.TryGetValue(itemType, out ItemListSnapshot list)
-                    ? list.GetMatchedItems()
-                    : Array.Empty<I>();
-
-            public void Apply(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore)
-            {
-                MSBuildEventSource.Log.ApplyLazyItemOperationsStart(_itemElement.ItemType);
-                using (_lazyEvaluator._evaluationProfiler.TrackElement(_itemElement))
-                {
-                    ApplyImpl(listBuilder, globsToIgnore);
-                }
-                MSBuildEventSource.Log.ApplyLazyItemOperationsStop(_itemElement.ItemType);
-            }
-
-            /// <summary>
-            ///  Applies the operation to an ordered working item state.
-            /// </summary>
-            /// <param name="listBuilder">The item state to modify.</param>
-            /// <param name="globsToIgnore">Later glob removals applicable to this materialization.</param>
-            protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore);
-
-            [DebuggerDisplay(@"{DebugString()}")]
-            protected readonly struct ItemBatchingContext
-            {
-                public I OperationItem { get; }
-                private Dictionary<string, I> CapturedItems { get; }
-
-                public ItemBatchingContext(I operationItem, Dictionary<string, I> capturedItems = null)
-                {
-                    OperationItem = operationItem;
-
-                    CapturedItems = capturedItems == null || capturedItems.Count == 0
-                        ? null
-                        : capturedItems;
-                }
-
-                public IMetadataTable GetMetadataTable()
-                {
-                    return CapturedItems == null
-                        ? (IMetadataTable)OperationItem
-                        : new ItemOperationMetadataTable(OperationItem, CapturedItems);
-                }
-
-                private string DebugString()
-                {
-                    var referencedItemsString = CapturedItems == null
-                        ? "none"
-                        : string.Join(";", CapturedItems.Select(kvp => $"{kvp.Key} : {kvp.Value.EvaluatedInclude}"));
-
-                    return $"{OperationItem.Key} : {OperationItem.EvaluatedInclude}; CapturedItems: {referencedItemsString}";
-                }
-            }
-
-            private class ItemOperationMetadataTable : IMetadataTable
-            {
-                private readonly I _operationItem;
-                private readonly Dictionary<string, I> _capturedItems;
-
-                public ItemOperationMetadataTable(I operationItem, Dictionary<string, I> capturedItems)
-                {
-                    Assumed.Equal(capturedItems.Comparer, StringComparer.OrdinalIgnoreCase, "MSBuild assumes case insensitive item name comparison");
-
-                    _operationItem = operationItem;
-                    _capturedItems = capturedItems;
-                }
-
-                public string GetEscapedValue(string name)
-                {
-                    return _operationItem.GetEscapedValue(name);
-                }
-
-                public string GetEscapedValue(string itemType, string name)
-                {
-                    IMetadataTable table = GetTable(itemType);
-                    return table is null ? string.Empty : table.GetEscapedValue(itemType, name);
-                }
-
-                public string GetEscapedValueIfPresent(string itemType, string name)
-                {
-                    IMetadataTable table = GetTable(itemType);
-                    return table is null ? string.Empty : table.GetEscapedValueIfPresent(itemType, name);
-                }
-
-                /// <summary>
-                ///  Resolves the item supplying qualified metadata without a forwarding delegate.
-                /// </summary>
-                /// <param name="itemType">The qualifier, or null for the operation item.</param>
-                /// <returns>
-                ///  The operation or captured item table, or null for an uncaptured qualifier.
-                /// </returns>
-                private IMetadataTable GetTable(string itemType)
-                {
-                    if (itemType?.Equals(_operationItem.Key, StringComparison.OrdinalIgnoreCase) != false)
-                    {
-                        return _operationItem;
-                    }
-                    else if (_capturedItems.TryGetValue(itemType, out var item))
-                    {
-                        return item;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-                }
-            }
-
-            protected void DecorateItemsWithMetadata(IEnumerable<ItemBatchingContext> itemBatchingContexts, ImmutableArray<ProjectMetadataElement> metadata, bool? needToExpandMetadata = null)
-            {
-                if (metadata.Length > 0)
-                {
-                    ////////////////////////////////////////////////////
-                    // UNDONE: Implement batching here.
-                    //
-                    // We want to allow built-in metadata in metadata values here.
-                    // For example, so that an Idl file can specify that its Tlb output should be named %(Filename).tlb.
-                    //
-                    // In other words, we want batching. However, we won't need to go to the trouble of using the regular batching code!
-                    // That's because that code is all about grouping into buckets of similar items. In this context, we're not
-                    // invoking a task, and it's fine to process each item individually, which will always give the correct results.
-                    //
-                    // For the CTP, to make the minimal change, we will not do this quite correctly.
-                    //
-                    // We will do this:
-                    // -- check whether any metadata values or their conditions contain any bare built-in metadata expressions,
-                    //    or whether they contain any custom metadata && the Include involved an @(itemlist) expression.
-                    // -- if either case is found, we go ahead and evaluate all the metadata separately for each item.
-                    // -- otherwise we can do the old thing (evaluating all metadata once then applying to all items)
-                    //
-                    // This algorithm gives the correct results except when:
-                    // -- batchable expressions exist on the include, exclude, or condition on the item element itself
-                    //
-                    // It means that 99% of cases still go through the old code, which is best for the CTP.
-                    // When we ultimately implement this correctly, we should make sure we optimize for the case of very many items
-                    // and little metadata, none of which varies between items.
-
-                    // Do not expand properties as they have been already expanded by the lazy evaluator upon item operation construction.
-                    // Prior to lazy evaluation ExpanderOptions.ExpandAll was used.
-                    const ExpanderOptions metadataExpansionOptions = ExpanderOptions.ExpandAll;
-
-                    needToExpandMetadata ??= NeedToExpandMetadataForEachItem(metadata, out _);
-
-                    if (needToExpandMetadata.Value)
-                    {
-                        foreach (var itemContext in itemBatchingContexts)
-                        {
-                            _expander.Metadata = itemContext.GetMetadataTable();
-
-                            foreach (var metadataElement in metadata)
-                            {
-                                if (!EvaluateCondition(metadataElement.Condition, metadataElement, metadataExpansionOptions, ParserOptions.AllowAll, _expander, _lazyEvaluator))
-                                {
-                                    continue;
-                                }
-
-                                string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
-
-                                itemContext.OperationItem.SetMetadata(metadataElement, FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath));
-                            }
-                        }
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
-                    }
-                    // End of pseudo batching
-                    ////////////////////////////////////////////////////
-                    // Start of old code
-                    else
-                    {
-                        // Metadata expressions are allowed here.
-                        // Temporarily gather and expand these in a table so they can reference other metadata elements above.
-                        EvaluatorMetadataTable metadataTable = new EvaluatorMetadataTable(_itemType, capacity: metadata.Length);
-                        _expander.Metadata = metadataTable;
-
-                        // Also keep a list of everything so we can get the predecessor objects correct.
-                        List<KeyValuePair<ProjectMetadataElement, string>> metadataList = new(metadata.Length);
-
-                        foreach (var metadataElement in metadata)
-                        {
-                            // Because of the checking above, it should be safe to expand metadata in conditions; the condition
-                            // will be true for either all the items or none
-                            if (
-                                !EvaluateCondition(
-                                    metadataElement.Condition,
-                                    metadataElement,
-                                    metadataExpansionOptions,
-                                    ParserOptions.AllowAll,
-                                    _expander,
-                                    _lazyEvaluator))
-                            {
-                                continue;
-                            }
-
-                            string evaluatedValue = _expander.ExpandIntoStringLeaveEscaped(metadataElement.Value, metadataExpansionOptions, metadataElement.Location);
-                            evaluatedValue = FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath);
-
-                            metadataTable.SetValue(metadataElement, evaluatedValue);
-                            metadataList.Add(new KeyValuePair<ProjectMetadataElement, string>(metadataElement, evaluatedValue));
-                        }
-
-                        // Apply those metadata to each item
-                        // Note that several items could share the same metadata objects
-
-                        // Set all the items at once to make a potential copy-on-write optimization possible.
-                        // This is valuable in the case where one item element evaluates to
-                        // many items (either by semicolon or wildcards)
-                        // and that item also has the same piece/s of metadata for each item.
-                        _itemFactory.SetMetadata(metadataList, itemBatchingContexts.Select(i => i.OperationItem));
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
-                    }
-                }
-            }
-
-            protected bool NeedToExpandMetadataForEachItem(ImmutableArray<ProjectMetadataElement> metadata, out ItemsAndMetadataPair itemsAndMetadataFound)
-            {
-                itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
-
-                foreach (var metadataElement in metadata)
-                {
-                    string expression = metadataElement.Value;
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
-
-                    expression = metadataElement.Condition;
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
-                }
-
-                bool needToExpandMetadataForEachItem = false;
-
-                if (itemsAndMetadataFound.Metadata?.Values.Count > 0)
-                {
-                    // If there is any metadata present, we need to expand items individually.
-                    // This ensures correct results for:
-                    // - Built-in metadata expressions (like %(FileName)) which vary between items
-                    // - Custom metadata when item list references are involved
-                    needToExpandMetadataForEachItem = true;
-                }
-
-                return needToExpandMetadataForEachItem;
-            }
-
-            /// <summary>
-            /// Is this spec a single reference to a specific item?
-            /// </summary>
-            /// <returns>True if the item is a simple reference to the referenced item type.</returns>
-            protected static bool ItemspecContainsASingleBareItemReference(ItemSpec<P, I> itemSpec, string referencedItemType)
-            {
-                if (itemSpec.Fragments.Count != 1)
-                {
-                    return false;
-                }
-
-                var itemExpressionFragment = itemSpec.Fragments[0] as ItemSpec<P, I>.ItemExpressionFragment;
-                if (itemExpressionFragment == null)
-                {
-                    return false;
-                }
-
-                if (!itemExpressionFragment.Capture.ItemType.Equals(referencedItemType, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-
-                // If the itemSpec is a single call to an item function, like @(X->Something(...)), it may get this
-                // far, but shouldn't be treated as a single reference: the item function may return entirely
-                // different results from a bare reference like @(X).
-                if (itemExpressionFragment.Capture.Captures is object)
-                {
-                    return false;
-                }
-
-                return true;
-            }
+            _itemElement = itemElement;
+            _itemSpec = itemSpec;
+            _referencedItemLists = references;
+            _conditionResult = conditionResult;
+            _lazyEvaluator = lazyEvaluator;
+            _itemFactory = new ItemFactoryWrapper(itemElement, lazyEvaluator._itemFactory);
+            _expander = new Expander<P, I>(
+                lazyEvaluator._outerEvaluatorData, this, lazyEvaluator.EvaluationContext, lazyEvaluator._loggingContext);
+            _itemSpec.Expander = _expander;
         }
+
+        /// <summary>
+        ///  Gets the evaluation's file matcher and entry caches.
+        /// </summary>
+        protected FileMatcher FileMatcher => _lazyEvaluator.FileMatcher;
+
+        /// <summary>
+        ///  Supplies only the earlier item states captured during operation construction.
+        /// </summary>
+        /// <param name="itemType">The requested item type.</param>
+        /// <returns>
+        ///  Captured condition-visible items, or an empty collection for a missing reference.
+        /// </returns>
+        public ICollection<I> GetItems(string itemType)
+            => _referencedItemLists is not null && _referencedItemLists.TryGetValue(itemType, out ItemListSnapshot list)
+                ? list.GetMatchedItems()
+                : Array.Empty<I>();
+
+        /// <summary>
+        ///  Profiles and applies one operation to a working ordered item state.
+        /// </summary>
+        /// <param name="items">The working state.</param>
+        /// <param name="exclusions">Later removals applicable to earlier glob expansion.</param>
+        public void Apply(OrderedItemDataCollection.Builder items, GlobExclusions exclusions)
+        {
+            MSBuildEventSource.Log.ApplyLazyItemOperationsStart(_itemElement.ItemType);
+            using (_lazyEvaluator._evaluationProfiler.TrackElement(_itemElement))
+            {
+                ApplyImpl(items, exclusions);
+            }
+            MSBuildEventSource.Log.ApplyLazyItemOperationsStop(_itemElement.ItemType);
+        }
+
+        /// <summary>
+        ///  Applies the concrete Include, Update, or Remove algorithm.
+        /// </summary>
+        /// <param name="listBuilder">The working item state.</param>
+        /// <param name="globsToIgnore">The applicable later glob removals.</param>
+        protected abstract void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore);
+
+        /// <summary>
+        ///  Associates an operation item with optional matching sources for qualified metadata.
+        /// </summary>
+        protected readonly struct ItemBatchingContext
+        {
+            /// <summary>
+            ///  Gets the item being decorated.
+            /// </summary>
+            public I OperationItem { get; }
+
+            /// <summary>
+            ///  The matching source table, or null when only the operation item is needed.
+            /// </summary>
+            private Dictionary<string, I> CapturedItems { get; }
+
+            /// <summary>
+            ///  Initializes a decoration context.
+            /// </summary>
+            /// <param name="operationItem">The item receiving metadata.</param>
+            /// <param name="capturedItems">The optional matching source items.</param>
+            public ItemBatchingContext(I operationItem, Dictionary<string, I> capturedItems = null)
+            {
+                OperationItem = operationItem;
+                CapturedItems = capturedItems is null || capturedItems.Count == 0 ? null : capturedItems;
+            }
+
+            /// <summary>
+            ///  Resolves unqualified and qualified metadata for this item.
+            /// </summary>
+            /// <returns>
+            ///  The operation item or a table also containing captured source items.
+            /// </returns>
+            public IMetadataTable GetMetadataTable()
+                => CapturedItems is null ? OperationItem : new ItemOperationMetadataTable(OperationItem, CapturedItems);
+        }
+
+        /// <summary>
+        ///  Routes metadata reads to the operation item or a captured matching source.
+        /// </summary>
+        private sealed class ItemOperationMetadataTable : IMetadataTable
+        {
+            /// <summary>
+            ///  The operation item used for unqualified and self-qualified metadata.
+            /// </summary>
+            private readonly I _operationItem;
+
+            /// <summary>
+            ///  The read-only captured source table keyed by item type.
+            /// </summary>
+            private readonly Dictionary<string, I> _capturedItems;
+
+            /// <summary>
+            ///  Initializes qualified metadata routing.
+            /// </summary>
+            /// <param name="operationItem">The operation item.</param>
+            /// <param name="capturedItems">The matching source table.</param>
+            public ItemOperationMetadataTable(I operationItem, Dictionary<string, I> capturedItems)
+            {
+                Assumed.Equal(
+                    capturedItems.Comparer, StringComparer.OrdinalIgnoreCase, "MSBuild assumes case insensitive item name comparison");
+                _operationItem = operationItem;
+                _capturedItems = capturedItems;
+            }
+
+            /// <summary>
+            ///  Reads unqualified metadata from the operation item.
+            /// </summary>
+            /// <param name="name">The metadata name.</param>
+            /// <returns>
+            ///  The escaped metadata value.
+            /// </returns>
+            public string GetEscapedValue(string name) => _operationItem.GetEscapedValue(name);
+
+            /// <summary>
+            ///  Reads qualified metadata from the matching item table.
+            /// </summary>
+            /// <param name="itemType">The qualifier.</param>
+            /// <param name="name">The metadata name.</param>
+            /// <returns>
+            ///  The escaped value, or an empty string for an uncaptured qualifier.
+            /// </returns>
+            public string GetEscapedValue(string itemType, string name)
+            {
+                IMetadataTable table = GetTable(itemType);
+                return table is null ? string.Empty : table.GetEscapedValue(itemType, name);
+            }
+
+            /// <summary>
+            ///  Reads qualified metadata without converting a table's missing-value null to empty.
+            /// </summary>
+            /// <param name="itemType">The qualifier.</param>
+            /// <param name="name">The metadata name.</param>
+            /// <returns>
+            ///  The table's escaped value or null; uncaptured qualifiers retain their empty result.
+            /// </returns>
+            public string GetEscapedValueIfPresent(string itemType, string name)
+            {
+                IMetadataTable table = GetTable(itemType);
+                return table is null ? string.Empty : table.GetEscapedValueIfPresent(itemType, name);
+            }
+
+            /// <summary>
+            ///  Resolves the item supplying qualified metadata.
+            /// </summary>
+            /// <param name="itemType">The qualifier, or null for the operation item.</param>
+            /// <returns>
+            ///  The selected table, or null for an uncaptured item type.
+            /// </returns>
+            private IMetadataTable GetTable(string itemType)
+                => itemType is null || itemType.Equals(_operationItem.Key, StringComparison.OrdinalIgnoreCase)
+                    ? _operationItem
+                    : _capturedItems.TryGetValue(itemType, out I item) ? item : null;
+        }
+
+        /// <summary>
+        ///  Evaluates metadata in declaration order, either per item or once for a shared decoration.
+        /// </summary>
+        /// <param name="contexts">The operation items and their optional matching sources.</param>
+        /// <param name="metadata">The metadata XML in declaration order.</param>
+        /// <param name="needToExpandMetadata">An optional previously prepared per-item requirement.</param>
+        /// <remarks>
+        ///  Construction discovers references but does not replace the metadata XML's values.
+        ///  Full expansion therefore remains necessary here. Constant metadata is evaluated even
+        ///  for an empty selection to preserve diagnostics; per-item metadata has no empty batch.
+        /// </remarks>
+        protected void DecorateItemsWithMetadata(
+            IEnumerable<ItemBatchingContext> contexts, ImmutableArray<ProjectMetadataElement> metadata, bool? needToExpandMetadata = null)
+        {
+            if (metadata.IsEmpty)
+            {
+                return;
+            }
+            const ExpanderOptions options = ExpanderOptions.ExpandAll;
+            needToExpandMetadata ??= NeedToExpandMetadataForEachItem(metadata, out _);
+            if (needToExpandMetadata.Value)
+            {
+                foreach (ItemBatchingContext context in contexts)
+                {
+                    _expander.Metadata = context.GetMetadataTable();
+                    foreach (ProjectMetadataElement element in metadata)
+                    {
+                        if (_lazyEvaluator.EvaluateCondition(element.Condition, element, options, ParserOptions.AllowAll, _expander))
+                        {
+                            string value = _expander.ExpandIntoStringLeaveEscaped(element.Value, options, element.Location);
+                            context.OperationItem.SetMetadata(
+                                element, FileUtilities.MaybeAdjustFilePath(value, element.ContainingProject.DirectoryPath));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                var table = new EvaluatorMetadataTable(_itemElement.ItemType, capacity: metadata.Length);
+                _expander.Metadata = table;
+                var values = new List<KeyValuePair<ProjectMetadataElement, string>>(metadata.Length);
+                foreach (ProjectMetadataElement element in metadata)
+                {
+                    if (_lazyEvaluator.EvaluateCondition(element.Condition, element, options, ParserOptions.AllowAll, _expander))
+                    {
+                        string value = _expander.ExpandIntoStringLeaveEscaped(element.Value, options, element.Location);
+                        value = FileUtilities.MaybeAdjustFilePath(value, element.ContainingProject.DirectoryPath);
+                        table.SetValue(element, value);
+                        values.Add(new(element, value));
+                    }
+                }
+                // Keep bulk factory decoration so model-specific metadata sharing/predecessors survive.
+                _itemFactory.SetMetadata(values, contexts.Select(context => context.OperationItem));
+            }
+            _expander.Metadata = null;
+        }
+
+        /// <summary>
+        ///  Discovers metadata references that require separate expansion for each item.
+        /// </summary>
+        /// <param name="metadata">The metadata XML.</param>
+        /// <param name="references">The discovered item and metadata references.</param>
+        /// <returns>
+        ///  Whether any metadata value or condition references metadata.
+        /// </returns>
+        protected bool NeedToExpandMetadataForEachItem(ImmutableArray<ProjectMetadataElement> metadata, out ItemsAndMetadataPair references)
+        {
+            references = new(null, null);
+            foreach (ProjectMetadataElement element in metadata)
+            {
+                string expression = element.Value;
+                ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref references, ShredderOptions.All);
+                expression = element.Condition;
+                ExpressionShredder.GetReferencedItemNamesAndMetadata(expression, 0, expression.Length, ref references, ShredderOptions.All);
+            }
+            return references.Metadata?.Count > 0;
+        }
+
+        /// <summary>
+        ///  Recognizes only a bare item reference, not a transform or item-function expression.
+        /// </summary>
+        /// <param name="itemSpec">The operation specification.</param>
+        /// <param name="referencedItemType">The expected referenced type.</param>
+        /// <returns>
+        ///  Whether the specification is a single bare reference to that type.
+        /// </returns>
+        protected static bool ItemspecContainsASingleBareItemReference(ItemSpec<P, I> itemSpec, string referencedItemType)
+            => itemSpec.Fragments.Count == 1
+                && itemSpec.Fragments[0] is ItemSpec<P, I>.ItemExpressionFragment fragment
+                && fragment.Capture.ItemType.Equals(referencedItemType, StringComparison.OrdinalIgnoreCase)
+                && fragment.Capture.Captures is null;
     }
 }

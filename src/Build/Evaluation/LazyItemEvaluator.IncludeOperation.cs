@@ -16,17 +16,40 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private class IncludeOperation : LazyItemOperation
+        /// <summary>
+        ///  Creates items in specification order, applies exclusions, and decorates their metadata.
+        /// </summary>
+        private sealed class IncludeOperation : LazyItemOperation
         {
             /// <summary>
             ///  The shared empty exclusion set, which consumers only enumerate.
             /// </summary>
             private static readonly HashSet<string> s_noExclusions = [];
 
+            /// <summary>
+            ///  The Include's global ordinal for stable publication.
+            /// </summary>
             private readonly int _elementOrder;
+
+            /// <summary>
+            ///  The root project directory used for matching and file enumeration.
+            /// </summary>
             private readonly string? _rootDirectory;
+
+            /// <summary>
+            ///  Property-expanded Exclude fragments whose item references use captured states.
+            /// </summary>
             private readonly ImmutableArray<string> _excludes;
+
+            /// <summary>
+            ///  The metadata XML in declaration order.
+            /// </summary>
             private readonly ImmutableArray<ProjectMetadataElement> _metadata;
+
+            /// <summary>
+            ///  The cached requirement for per-item metadata decoration.
+            /// </summary>
+            private bool? _needToExpandMetadataForEachItem;
 
             /// <summary>
             ///  Initializes an Include with normalized construction data.
@@ -66,7 +89,11 @@ namespace Microsoft.Build.Evaluation
             protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore)
             {
                 ImmutableArray<I> items = CreateItems(globsToIgnore);
-                DecorateItemsWithMetadata(items.Select(i => new ItemBatchingContext(i)), _metadata);
+                if (!_metadata.IsEmpty)
+                {
+                    _needToExpandMetadataForEachItem ??= NeedToExpandMetadataForEachItem(_metadata, out _);
+                    DecorateItemsWithMetadata(items.Select(i => new ItemBatchingContext(i)), _metadata, _needToExpandMetadataForEachItem);
+                }
                 foreach (I item in items)
                 {
                     listBuilder.Add(new ItemData(item, _itemElement, _elementOrder, _conditionResult));
@@ -80,7 +107,8 @@ namespace Microsoft.Build.Evaluation
             /// <returns>
             ///  The new items before metadata decoration.
             /// </returns>
-            [SuppressMessage("Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "_lazyEvaluator._evaluationProfiler has own dipose logic.")]
+            [SuppressMessage(
+                "Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "The evaluation profiler owns its tracked scopes.")]
             private ImmutableArray<I> CreateItems(GlobExclusions globsToIgnore)
             {
                 ImmutableArray<I>.Builder? itemsToAdd = null;
@@ -91,7 +119,8 @@ namespace Microsoft.Build.Evaluation
                     // STEP 4: Evaluate, split, expand and subtract any Exclude
                     foreach (string exclude in _excludes)
                     {
-                        string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation);
+                        string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(
+                            exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation);
                         var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded);
                         excludePatterns.AddRange(excludeSplits);
                     }
@@ -151,7 +180,8 @@ namespace Microsoft.Build.Evaluation
                     {
                         // If this item is behind a false condition and represents a full drive/filesystem scan, expanding it is
                         // almost certainly undesired. It should be skipped to avoid evaluation taking an excessive amount of time.
-                        bool skipGlob = !_conditionResult && globFragment.IsFullFileSystemScan && !Traits.Instance.EscapeHatches.AlwaysEvaluateDangerousGlobs;
+                        bool skipGlob = !_conditionResult && globFragment.IsFullFileSystemScan
+                            && !Traits.Instance.EscapeHatches.AlwaysEvaluateDangerousGlobs;
                         if (!skipGlob)
                         {
                             string glob = globFragment.TextFragment;
@@ -164,7 +194,8 @@ namespace Microsoft.Build.Evaluation
                             string[] includeSplitFilesEscaped;
                             if (MSBuildEventSource.Log.IsEnabled())
                             {
-                                MSBuildEventSource.Log.ExpandGlobStart(_rootDirectory ?? string.Empty, glob, string.Join(", ", excludePatternsForGlobs));
+                                MSBuildEventSource.Log.ExpandGlobStart(
+                                    _rootDirectory ?? string.Empty, glob, string.Join(", ", excludePatternsForGlobs));
                             }
 
                             using (_lazyEvaluator?._evaluationProfiler.TrackGlob(_rootDirectory, glob, excludePatternsForGlobs))
@@ -181,13 +212,15 @@ namespace Microsoft.Build.Evaluation
 
                             if (MSBuildEventSource.Log.IsEnabled())
                             {
-                                MSBuildEventSource.Log.ExpandGlobStop(_rootDirectory ?? string.Empty, glob, string.Join(", ", excludePatternsForGlobs));
+                                MSBuildEventSource.Log.ExpandGlobStop(
+                                    _rootDirectory ?? string.Empty, glob, string.Join(", ", excludePatternsForGlobs));
                             }
 
                             foreach (string includeSplitFileEscaped in includeSplitFilesEscaped)
                             {
                                 itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
-                                itemsToAdd.Add(_itemFactory.CreateItem(includeSplitFileEscaped, glob, _itemElement.ContainingProject.FullPath));
+                                itemsToAdd.Add(_itemFactory.CreateItem(
+                                    includeSplitFileEscaped, glob, _itemElement.ContainingProject.FullPath));
                             }
                         }
                     }
@@ -227,6 +260,14 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
+            /// <summary>
+            ///  Combines explicit exclusions and later removal ranges only when a glob is expanded.
+            /// </summary>
+            /// <param name="globsToIgnore">The applicable later removed patterns.</param>
+            /// <param name="excludePatterns">The expanded explicit Exclude patterns.</param>
+            /// <returns>
+            ///  A privately owned ordinal-deduplicated set, or the shared read-only empty set.
+            /// </returns>
             private static ISet<string> BuildExcludePatternsForGlobs(GlobExclusions globsToIgnore, List<string> excludePatterns)
             {
                 var anyExcludes = excludePatterns.Count > 0;

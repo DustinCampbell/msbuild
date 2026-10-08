@@ -116,6 +116,24 @@ alongside time, especially for earlier-state reads: reducing tree overhead must 
 quadratic copying or excessive retained memory. Allocation totals alone do not measure peak
 retention. Keep the runner's SDK, inlining, and power-plan settings identical between comparisons.
 
+The evaluator's operation histories are append-only lists. Item expressions capture an exclusive
+operation position, while current-state conditions can demand materialization during recording.
+Saved item views have fixed bounds: appending can share an earlier prefix, and replacement/removal
+detaches before modifying existing entries. Updates still clone item objects before metadata
+mutation. Glob exclusions are ranges of later removed patterns, not a reason to discard an earlier
+state needed by a condition or captured reference.
+
+Use the snapshot-heavy filters when comparing storage or checkpoint changes:
+
+```powershell
+.\Run-Benchmarks.ps1 -Filter '*EveryStepRead*','*RepeatedRead*','*SnapshotUpdates*' `
+    -Framework net11.0 -LaunchCount 3
+```
+
+Use `'*QualifiedUpdate*'` for indexed source-metadata matching, and `'*ManyGlobRemoves*'` for
+removal-range bookkeeping. An intermediate run is not a replacement for the same full selection
+on the original baseline and final candidate.
+
 ### Run Benchmarks on a Specific TFM
 
 ```

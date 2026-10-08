@@ -571,6 +571,26 @@ public sealed class LazyItemEvaluator_Tests
     }
 
     /// <summary>
+    ///  Item admission owns false-condition model policy and evaluates conditions against current items.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdmissionPreservesModelPolicyAndCurrentConditions(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Admit("""<A Include="hidden" Condition="false" />""").ShouldBeFalse();
+        ItemRecord[] hidden = fixture.GetItems().ToArray();
+        hidden.Length.ShouldBe(instanceModel ? 0 : 1);
+        hidden.ShouldAllBe(i => !i.ConditionResult);
+        fixture.Admit("""<A Include="visible" Condition="'@(A)' == ''" />""").ShouldBeTrue();
+        fixture.Admit("""<Marker Include="seen" Condition="'@(A)' == 'visible'" />""").ShouldBeTrue();
+        Identities(fixture.GetItems().Where(i => i.ConditionResult)).ShouldBe(["visible", "seen"]);
+    }
+
+    /// <summary>
     ///  Distinct literal updates retain metadata ordering at overlap and reference boundaries.
     /// </summary>
     /// <param name="instanceModel">Whether to use instance-model items.</param>

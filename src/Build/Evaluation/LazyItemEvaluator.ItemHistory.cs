@@ -120,6 +120,16 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         private HashSet<int>? _referencedPrefixes;
 
         /// <summary>
+        ///  Prefixes retained by recorded expressions rather than only a completed current-state read.
+        /// </summary>
+        private HashSet<int>? _capturedPrefixes;
+
+        /// <summary>
+        ///  The most recent current-state checkpoint, kept to resume after additional operations.
+        /// </summary>
+        private int _latestCurrentPrefix;
+
+        /// <summary>
         ///  Saved item states keyed by prefix and the exclusions used to produce them.
         /// </summary>
         private Dictionary<(int Count, int ExclusionEnd), OrderedItemDataCollection>? _cache;
@@ -147,7 +157,11 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         ///  Announces an earlier state that must survive later operations.
         /// </summary>
         /// <param name="count">The exclusive operation position identifying that state.</param>
-        public void MarkAsReferenced(int count) => (_referencedPrefixes ??= []).Add(count);
+        public void MarkAsReferenced(int count)
+        {
+            (_referencedPrefixes ??= []).Add(count);
+            (_capturedPrefixes ??= []).Add(count);
+        }
 
         /// <summary>
         ///  Materializes condition-visible items at the requested prefix.
@@ -163,6 +177,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
                 GetItemData(count);
                 items = _cache![(count, 0)];
             }
+            RetirePreviousCurrentRead(count);
             return items!;
         }
 
@@ -175,13 +190,40 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// </returns>
         public OrderedItemDataCollection.Builder GetItemData(int count)
         {
+            OrderedItemDataCollection.Builder result;
             if (TryGetCached(count, 0, out OrderedItemDataCollection? cached))
             {
-                return cached!.ToBuilder();
+                result = cached!.ToBuilder();
             }
+            else
+            {
+                (_referencedPrefixes ??= []).Add(count);
+                result = ComputeItems(count);
+            }
+            RetirePreviousCurrentRead(count);
+            return result;
+        }
 
-            MarkAsReferenced(count);
-            return ComputeItems(count);
+        /// <summary>
+        ///  Releases an obsolete current-read checkpoint only after it has served as a resume point.
+        /// </summary>
+        /// <param name="count">The newly requested operation boundary.</param>
+        /// <remarks>
+        ///  Recorded references still retain their captured prefixes. Condition-only reads need
+        ///  the latest resume checkpoint, not every historical copy of a repeatedly updated list.
+        /// </remarks>
+        private void RetirePreviousCurrentRead(int count)
+        {
+            if (count != Count || count == _latestCurrentPrefix)
+            {
+                return;
+            }
+            if (_latestCurrentPrefix > 0 && _capturedPrefixes?.Contains(_latestCurrentPrefix) != true)
+            {
+                _cache?.Remove((_latestCurrentPrefix, 0));
+                _referencedPrefixes?.Remove(_latestCurrentPrefix);
+            }
+            _latestCurrentPrefix = count;
         }
 
         /// <summary>

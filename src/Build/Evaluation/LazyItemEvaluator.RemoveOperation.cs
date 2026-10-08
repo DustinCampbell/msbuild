@@ -3,7 +3,6 @@
 
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
@@ -14,10 +13,20 @@ namespace Microsoft.Build.Evaluation
 {
     internal partial class LazyItemEvaluator<P, I, M, D>
     {
-        private class RemoveOperation : LazyItemOperation
+        /// <summary>
+        ///  Removes matching items while preserving surviving order and earlier saved states.
+        /// </summary>
+        private sealed class RemoveOperation : LazyItemOperation
         {
+            /// <summary>
+            ///  The metadata tuple names, empty for identity/specification removal.
+            /// </summary>
             private readonly ImmutableArray<string> _matchOnMetadata;
-            private MetadataTrie<P, I> _metadataSet;
+
+            /// <summary>
+            ///  The eagerly built captured metadata set, null for ordinary specification removal.
+            /// </summary>
+            private readonly MetadataTrie<P, I> _metadataSet;
 
             /// <summary>
             ///  Initializes a Remove and eagerly validates/builds its metadata match set.
@@ -41,8 +50,20 @@ namespace Microsoft.Build.Evaluation
             {
                 _matchOnMetadata = metadataNames;
 
+                bool validReferences = true;
+                if (!_matchOnMetadata.IsEmpty)
+                {
+                    foreach (ItemSpecFragment fragment in _itemSpec.Fragments)
+                    {
+                        if (fragment is not ItemSpec<P, I>.ItemExpressionFragment)
+                        {
+                            validReferences = false;
+                            break;
+                        }
+                    }
+                }
                 ProjectFileErrorUtilities.VerifyThrowInvalidProjectFile(
-                    _matchOnMetadata.IsEmpty || _itemSpec.Fragments.All(f => f is ItemSpec<P, I>.ItemExpressionFragment),
+                    validReferences,
                     new BuildEventFileInfo(string.Empty),
                     "OM_MatchOnMetadataIsRestrictedToReferencedItems");
 
@@ -53,10 +74,13 @@ namespace Microsoft.Build.Evaluation
             }
 
             /// <summary>
-            /// Apply the Remove operation.
+            ///  Applies ordinary specification removal or captured metadata-tuple removal.
             /// </summary>
+            /// <param name="listBuilder">The ordered working item state.</param>
+            /// <param name="globsToIgnore">Later removals used only by Include pruning.</param>
             /// <remarks>
-            /// This override exists to apply the removing-everything short-circuit and to avoid creating a redundant list of items to remove.
+            ///  Bare self-removal clears the prefix. Large ordinary removals use the lazy normalized
+            ///  index; metadata matching retains its independent tuple comparison policy.
             /// </remarks>
             protected override void ApplyImpl(OrderedItemDataCollection.Builder listBuilder, GlobExclusions globsToIgnore)
             {
@@ -87,7 +111,6 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                // todo Perf: do not match against the globs: https://github.com/dotnet/msbuild/issues/2329
                 HashSet<I> items = null;
                 foreach (ItemData item in listBuilder)
                 {
@@ -104,10 +127,14 @@ namespace Microsoft.Build.Evaluation
                 }
             }
 
-            private bool MatchesItemOnMetadata(I item)
-            {
-                return _metadataSet.Contains(_matchOnMetadata.Select(m => item.GetMetadataValue(m)));
-            }
+            /// <summary>
+            ///  Tests the item's ordered metadata tuple against the captured source set.
+            /// </summary>
+            /// <param name="item">The candidate item.</param>
+            /// <returns>
+            ///  Whether the metadata tuple matches.
+            /// </returns>
+            private bool MatchesItemOnMetadata(I item) => _metadataSet.Contains(item, _matchOnMetadata);
 
             /// <summary>
             ///  Appends statically known true-condition removed globs to the owning history.

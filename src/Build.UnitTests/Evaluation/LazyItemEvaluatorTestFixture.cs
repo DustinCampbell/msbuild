@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Xml;
 using Microsoft.Build.BackEnd.Components.Logging;
 using Microsoft.Build.Construction;
@@ -163,6 +164,23 @@ internal sealed class LazyItemEvaluatorTestFixture
         ProjectItemGroupElement group = root.AddItemGroup();
         group.Condition = condition;
         return EvaluateCondition(group);
+    }
+
+    /// <summary>
+    ///  Admits one operation through the evaluator's condition and design-time policy entry point.
+    /// </summary>
+    /// <param name="elementXml">The single item element to admit.</param>
+    /// <param name="groupCondition">The already evaluated parent group condition.</param>
+    /// <returns>
+    ///  Whether the operation's group and item conditions were both true.
+    /// </returns>
+    public bool Admit(string elementXml, bool groupCondition = true)
+    {
+        ProjectRootElement root = CreateRoot($"<ItemGroup>{elementXml}</ItemGroup>", Path.Combine(DirectoryPath, "admission.proj"));
+        ProjectItemElement element = root.Items.Single();
+        return _instanceEvaluator is { } instance
+            ? instance.EvaluateItemElement(DirectoryPath, element, groupCondition)
+            : _editableEvaluator!.EvaluateItemElement(DirectoryPath, element, groupCondition);
     }
 
     /// <summary>
