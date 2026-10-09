@@ -132,7 +132,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             public I OperationItem { get; }
 
             /// <summary>
-            ///  The matching source table, or null when only the operation item is needed.
+            ///  The matching source table, or <see langword="null"/> when only the operation item is needed.
             /// </summary>
             private Dictionary<string, I> CapturedItems { get; }
 
@@ -209,12 +209,12 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             }
 
             /// <summary>
-            ///  Reads qualified metadata without converting a table's missing-value null to empty.
+            ///  Reads qualified metadata without converting a table's missing-value <see langword="null"/> to empty.
             /// </summary>
             /// <param name="itemType">The qualifier.</param>
             /// <param name="name">The metadata name.</param>
             /// <returns>
-            ///  The table's escaped value or null; uncaptured qualifiers retain their empty result.
+            ///  The table's escaped value or <see langword="null"/>; uncaptured qualifiers retain their empty result.
             /// </returns>
             public string GetEscapedValueIfPresent(string itemType, string name)
             {
@@ -225,9 +225,9 @@ internal partial class LazyItemEvaluator<P, I, M, D>
             /// <summary>
             ///  Resolves the item supplying qualified metadata.
             /// </summary>
-            /// <param name="itemType">The qualifier, or null for the operation item.</param>
+            /// <param name="itemType">The qualifier, or <see langword="null"/> for the operation item.</param>
             /// <returns>
-            ///  The selected table, or null for an uncaptured item type.
+            ///  The selected table, or <see langword="null"/> for an uncaptured item type.
             /// </returns>
             private IMetadataTable GetTable(string itemType)
                 => itemType is null || itemType.Equals(_operationItem.Key, StringComparison.OrdinalIgnoreCase)

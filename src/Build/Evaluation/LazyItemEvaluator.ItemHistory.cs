@@ -327,7 +327,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         private int GetExclusionKey(int count, int globEnd) => GetGlobEnd(count) == globEnd ? 0 : globEnd;
 
         /// <summary>
-        ///  Adds disjoint literal fragments to a batch, rolling back normalized keys on rejection.
+        ///  Adds a literal operation only after every normalized key is known to be disjoint.
         /// </summary>
         /// <param name="operation">The candidate Update.</param>
         /// <param name="batch">The pending updates keyed by normalized path.</param>

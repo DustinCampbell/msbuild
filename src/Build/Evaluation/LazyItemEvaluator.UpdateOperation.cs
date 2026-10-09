@@ -56,7 +56,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         private bool _literalKeysChecked;
 
         /// <summary>
-        ///  Cached normalized literal keys, or null when the operation cannot be batched.
+        ///  Cached normalized literal keys, or <see langword="null"/> when the operation cannot be batched.
         /// </summary>
         private string[] _literalKeys;
 

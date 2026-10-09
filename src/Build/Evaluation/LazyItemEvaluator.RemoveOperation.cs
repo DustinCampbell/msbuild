@@ -24,7 +24,7 @@ namespace Microsoft.Build.Evaluation
             private readonly ImmutableArray<string> _matchOnMetadata;
 
             /// <summary>
-            ///  The eagerly built captured metadata set, null for ordinary specification removal.
+            ///  The eagerly built captured metadata set, <see langword="null"/> for ordinary specification removal.
             /// </summary>
             private readonly MetadataTrie<P, I> _metadataSet;
 

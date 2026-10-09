@@ -172,7 +172,7 @@ internal sealed class LazyItemEvaluatorTestFixture
     /// <param name="elementXml">The single item element to admit.</param>
     /// <param name="groupCondition">The already evaluated parent group condition.</param>
     /// <returns>
-    ///  Whether the operation's group and item conditions were both true.
+    ///  Whether the operation's group and item conditions were both <see langword="true"/>.
     /// </returns>
     public bool Admit(string elementXml, bool groupCondition = true)
     {
@@ -279,7 +279,7 @@ internal sealed class LazyItemEvaluatorTestFixture
     /// <param name="Item">The evaluated item.</param>
     /// <param name="OriginatingItemElement">The Include element that originally created the item.</param>
     /// <param name="ElementOrder">The global order of that Include element.</param>
-    /// <param name="ConditionResult">Whether the originating operation's conditions were true.</param>
+    /// <param name="ConditionResult">Whether the originating operation's conditions were <see langword="true"/>.</param>
     public readonly record struct ItemRecord(
         IItem Item, ProjectItemElement OriginatingItemElement, int ElementOrder, bool ConditionResult);
 

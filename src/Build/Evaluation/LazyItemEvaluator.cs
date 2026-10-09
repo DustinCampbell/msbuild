@@ -402,7 +402,7 @@ namespace Microsoft.Build.Evaluation
         /// <param name="itemElement">The item operation XML.</param>
         /// <param name="groupConditionResult">The already evaluated parent group's condition.</param>
         /// <returns>
-        ///  Whether both conditions were true, allowing the caller to record the evaluated XML element.
+        ///  Whether both conditions were <see langword="true"/>, allowing the caller to record the evaluated XML element.
         /// </returns>
         public bool EvaluateItemElement(string rootDirectory, ProjectItemElement itemElement, bool groupConditionResult)
         {
