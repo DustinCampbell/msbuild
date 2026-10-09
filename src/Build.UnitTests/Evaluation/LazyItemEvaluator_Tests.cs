@@ -668,6 +668,111 @@ public sealed class LazyItemEvaluator_Tests
     }
 
     /// <summary>
+    ///  Retiring condition-only checkpoints cannot discard a prefix retained by a delayed item reference.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CurrentReadCheckpointRetirementPreservesCapturedPrefixes(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        fixture.Record("""<ItemGroup><A Include="a;b" M="original" /></ItemGroup>""");
+        fixture.EvaluateCondition("'@(A->Count())' == '2'").ShouldBeTrue();
+        fixture.Record("""<ItemGroup><B Include="@(A)" /></ItemGroup>""");
+        fixture.Record("""<ItemGroup><A Update="a" M="changed" /></ItemGroup>""");
+        fixture.EvaluateCondition("'@(A->Count())' == '2'").ShouldBeTrue();
+        fixture.Record("""<ItemGroup><A Remove="b" /><A Include="c" M="latest" /></ItemGroup>""");
+        fixture.EvaluateCondition("'@(A)' == 'a;c'").ShouldBeTrue();
+
+        ItemRecord[] items = fixture.GetItems().ToArray();
+        Values(OfType(items, "A"), "M").ShouldBe(["a:changed", "c:latest"]);
+        Values(OfType(items, "B"), "M").ShouldBe(["a:original", "b:original"]);
+        Values(OfType(fixture.GetItems(), "B"), "M").ShouldBe(["a:original", "b:original"]);
+    }
+
+    /// <summary>
+    ///  A bounded deterministic literal-operation history agrees with a simple eager reference model.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MixedLiteralHistoriesMatchEagerReferenceModel(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        var random = new Random(7621);
+        List<(string Type, string Include, string Metadata)> expected = [];
+
+        for (int step = 0; step < 200; step++)
+        {
+            string type = random.Next(2) == 0 ? "A" : "B";
+            string name = $"item{random.Next(8)}.txt";
+            string metadata = $"value{step}";
+            string element;
+            switch (random.Next(5))
+            {
+                case 0:
+                    element = $"""<{type} Include="{name}" M="{metadata}" />""";
+                    expected.Add((type, name, metadata));
+                    break;
+
+                case 1:
+                    string second = $"item{random.Next(8)}.txt";
+                    element = $"""<{type} Include="{name};{second}" M="{metadata}" />""";
+                    expected.Add((type, name, metadata));
+                    expected.Add((type, second, metadata));
+                    break;
+
+                case 2:
+                    element = $"""<{type} Update="{name}" M="%(M).u{step}" />""";
+                    for (int index = 0; index < expected.Count; index++)
+                    {
+                        var item = expected[index];
+                        if (item.Type == type && item.Include == name)
+                        {
+                            expected[index] = (type, name, $"{item.Metadata}.u{step}");
+                        }
+                    }
+                    break;
+
+                case 3:
+                    element = $"""<{type} Remove="{name}" />""";
+                    expected.RemoveAll(item => item.Type == type && item.Include == name);
+                    break;
+
+                default:
+                    if (expected.Count > 128)
+                    {
+                        element = $"""<{type} Remove="@({type})" />""";
+                        expected.RemoveAll(item => item.Type == type);
+                        break;
+                    }
+                    string sourceType = type == "A" ? "B" : "A";
+                    element = $"""<{type} Include="@({sourceType})" />""";
+                    var source = expected.Where(item => item.Type == sourceType).ToArray();
+                    foreach (var item in source)
+                    {
+                        expected.Add((type, item.Include, item.Metadata));
+                    }
+                    break;
+            }
+
+            fixture.Record($"<ItemGroup>{element}</ItemGroup>");
+            if (step % 17 == 0)
+            {
+                int count = expected.Count(item => item.Type == type);
+                fixture.EvaluateCondition($"'@({type}->Count())' == '{count}'").ShouldBeTrue();
+            }
+        }
+
+        fixture.GetItems().Select(item => $"{item.Item.Key}|{item.Item.EvaluatedInclude}|{item.Item.GetMetadataValue("M")}")
+            .ShouldBe(expected.Select(item => $"{item.Type}|{item.Include}|{item.Metadata}"));
+    }
+
+    /// <summary>
     ///  Scan and dictionary removals preserve duplicate handling and surviving order.
     /// </summary>
     /// <param name="instanceModel">Whether to use instance-model items.</param>
@@ -1099,6 +1204,75 @@ public sealed class LazyItemEvaluator_Tests
         items.Length.ShouldBe(10000);
         items[0].Item.EvaluatedInclude.ShouldBe("item0");
         items[^1].Item.EvaluatedInclude.ShouldBe("item9999");
+    }
+
+    /// <summary>
+    ///  A chain of item-type references retains its captured source metadata across a later source update.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void InterTypeHistoryChainRetainsCapturedMetadata(bool instanceModel)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        StringBuilder body = new("""<ItemGroup><Type0 Include="a" M="original" />""");
+        for (int index = 1; index < 128; index++)
+        {
+            body.Append("<Type").Append(index).Append(" Include=\"@(Type").Append(index - 1).Append(")\" />");
+        }
+        body.Append("""<Type0 Update="a" M="changed" /></ItemGroup>""");
+        fixture.Record(body.ToString());
+
+        ItemRecord[] items = fixture.GetItems().ToArray();
+        items.Length.ShouldBe(128);
+        items[0].Item.GetMetadataValue("M").ShouldBe("changed");
+        items.Skip(1).ShouldAllBe(item => item.Item.GetMetadataValue("M") == "original");
+        items[^1].Item.Key.ShouldBe("Type127");
+    }
+
+    /// <summary>
+    ///  Captured prefixes remain isolated when an operation history crosses a storage-block boundary.
+    /// </summary>
+    /// <param name="instanceModel">Whether to use instance-model items.</param>
+    /// <param name="operationCount">The number of Includes before capturing the prefix.</param>
+    [Theory]
+    [InlineData(false, 1024)]
+    [InlineData(true, 1024)]
+    [InlineData(false, 1025)]
+    [InlineData(true, 1025)]
+    public void OperationBlockBoundariesPreserveCapturedPrefixes(bool instanceModel, int operationCount)
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        var fixture = new LazyItemEvaluatorTestFixture(env, instanceModel);
+        StringBuilder body = new("<ItemGroup>");
+        for (int index = 0; index < operationCount; index++)
+        {
+            body.Append("<A Include=\"item").Append(index).Append("\" M=\"original\" />");
+        }
+        body.Append("</ItemGroup>");
+        fixture.Record(body.ToString());
+        fixture.EvaluateCondition($"'@(A->Count())' == '{operationCount}'").ShouldBeTrue();
+        fixture.Record("""
+            <ItemGroup>
+              <B Include="@(A)" />
+              <A Include="last" />
+              <A Update="item0" M="changed" />
+              <A Remove="item1" />
+            </ItemGroup>
+            """);
+
+        ItemRecord[] items = fixture.GetItems().ToArray();
+        ItemRecord[] final = OfType(items, "A").ToArray();
+        ItemRecord[] captured = OfType(items, "B").ToArray();
+        final.Length.ShouldBe(operationCount);
+        final[0].Item.GetMetadataValue("M").ShouldBe("changed");
+        final[^1].Item.EvaluatedInclude.ShouldBe("last");
+        final.ShouldAllBe(item => item.Item.EvaluatedInclude != "item1");
+        captured.Length.ShouldBe(operationCount);
+        captured[1].Item.EvaluatedInclude.ShouldBe("item1");
+        captured.ShouldAllBe(item => item.Item.GetMetadataValue("M") == "original");
     }
 
     /// <summary>
