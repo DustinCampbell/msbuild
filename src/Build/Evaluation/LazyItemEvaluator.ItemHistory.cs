@@ -90,7 +90,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
     }
 
     /// <summary>
-    ///  Owns a contiguous operation history and caches only requested earlier states.
+    ///  Owns an indexed append-only operation history and caches only requested earlier states.
     /// </summary>
     /// <remarks>
     ///  Operations are appended but never replaced. A prefix and an exclusion context together
@@ -100,19 +100,29 @@ internal partial class LazyItemEvaluator<P, I, M, D>
     private sealed class ItemHistory
     {
         /// <summary>
-        ///  The operations for one item type in declaration order.
+        ///  The power-of-two operation block size, keeping growing arrays off the large-object heap.
         /// </summary>
-        private readonly List<LazyItemOperation> _operations = [];
+        private const int BlockShift = 10;
+
+        /// <summary>
+        ///  The maximum number of operations in one contiguous block.
+        /// </summary>
+        private const int BlockSize = 1 << BlockShift;
+
+        /// <summary>
+        ///  Ordinary arrays of operations and their removal positions, ordered by operation index.
+        /// </summary>
+        /// <remarks>
+        ///  Blocks grow from four entries so small histories retain ordinary-list allocation costs.
+        ///  A single growing reference array caused additional Gen2 collections and a measured
+        ///  recording regression at 10,000 operations on x64. Bounded blocks avoid that cliff.
+        /// </remarks>
+        private readonly List<OperationEntry[]> _operationBlocks = [];
 
         /// <summary>
         ///  True-condition removed glob patterns in operation order.
         /// </summary>
         private readonly List<string> _removedGlobs = [];
-
-        /// <summary>
-        ///  The exclusive removed-pattern end after each operation.
-        /// </summary>
-        private readonly List<int> _globEnds = [];
 
         /// <summary>
         ///  Prefixes that must be saved for a captured reference or current-state read.
@@ -137,7 +147,34 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// <summary>
         ///  Gets the current exclusive end of the operation history.
         /// </summary>
-        public int Count => _operations.Count;
+        public int Count { get; private set; }
+
+        /// <summary>
+        ///  Stores an operation and the removed-pattern boundary immediately following it.
+        /// </summary>
+        private readonly struct OperationEntry
+        {
+            /// <summary>
+            ///  Initializes an indexed operation entry.
+            /// </summary>
+            /// <param name="operation">The recorded operation.</param>
+            /// <param name="globEnd">The exclusive removed-pattern position after this operation.</param>
+            public OperationEntry(LazyItemOperation operation, int globEnd)
+            {
+                Operation = operation;
+                GlobEnd = globEnd;
+            }
+
+            /// <summary>
+            ///  Gets the recorded operation.
+            /// </summary>
+            public LazyItemOperation Operation { get; }
+
+            /// <summary>
+            ///  Gets the removed-pattern boundary after the operation.
+            /// </summary>
+            public int GlobEnd { get; }
+        }
 
         /// <summary>
         ///  Appends a fully constructed operation after its references have been captured.
@@ -145,12 +182,25 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// <param name="operation">The new operation.</param>
         public void Add(LazyItemOperation operation)
         {
-            _operations.Add(operation);
             if (operation is RemoveOperation remove)
             {
                 remove.AppendRemovedGlobs(_removedGlobs);
             }
-            _globEnds.Add(_removedGlobs.Count);
+
+            int blockIndex = Count >> BlockShift;
+            int offset = Count & (BlockSize - 1);
+            if (offset == 0)
+            {
+                _operationBlocks.Add(new OperationEntry[4]);
+            }
+            OperationEntry[] block = _operationBlocks[blockIndex];
+            if (offset == block.Length)
+            {
+                Array.Resize(ref block, block.Length * 2);
+                _operationBlocks[blockIndex] = block;
+            }
+            block[offset] = new OperationEntry(operation, _removedGlobs.Count);
+            Count++;
         }
 
         /// <summary>
@@ -284,9 +334,10 @@ internal partial class LazyItemEvaluator<P, I, M, D>
 
             for (int index = start; index < count; index++)
             {
-                LazyItemOperation operation = _operations[index];
-                int currentGlobStart = GetGlobEnd(index + 1);
-                int exclusionKey = GetExclusionKey(index + 1, globEnd);
+                OperationEntry entry = GetEntry(index);
+                LazyItemOperation operation = entry.Operation;
+                int currentGlobStart = entry.GlobEnd;
+                int exclusionKey = currentGlobStart == globEnd ? 0 : globEnd;
                 if (operation is UpdateOperation update && TryAddToBatch(update, literalUpdates))
                 {
                     if (_referencedPrefixes?.Contains(index + 1) == true)
@@ -314,7 +365,17 @@ internal partial class LazyItemEvaluator<P, I, M, D>
         /// <returns>
         ///  The exclusive removed-pattern position.
         /// </returns>
-        private int GetGlobEnd(int count) => count == 0 ? 0 : _globEnds[count - 1];
+        private int GetGlobEnd(int count) => count == 0 ? 0 : GetEntry(count - 1).GlobEnd;
+
+        /// <summary>
+        ///  Gets an entry by its global operation index in constant time.
+        /// </summary>
+        /// <param name="index">The operation index within the recorded history.</param>
+        /// <returns>
+        ///  The operation and its removed-pattern boundary.
+        /// </returns>
+        private OperationEntry GetEntry(int index)
+            => _operationBlocks[index >> BlockShift][index & (BlockSize - 1)];
 
         /// <summary>
         ///  Canonicalizes the no-later-removal context while distinguishing pruned earlier prefixes.

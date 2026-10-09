@@ -118,6 +118,9 @@ retention. Keep the runner's SDK, inlining, and power-plan settings identical be
 
 The evaluator's operation histories are append-only lists. Item expressions capture an exclusive
 operation position, while current-state conditions can demand materialization during recording.
+Operations are stored in growable, bounded ordinary array blocks so large reference arrays do not
+introduce a large-object-heap collection cliff. Blocks start small; the 10,000-operation recording
+and scaling cases check both allocation reduction and GC behavior.
 Saved item views have fixed bounds: appending can share an earlier prefix, and replacement/removal
 detaches before modifying existing entries. Updates still clone item objects before metadata
 mutation. Glob exclusions are ranges of later removed patterns, not a reason to discard an earlier
