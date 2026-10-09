@@ -137,6 +137,34 @@ Use `'*QualifiedUpdate*'` for indexed source-metadata matching, and `'*ManyGlobR
 removal-range bookkeeping. An intermediate run is not a replacement for the same full selection
 on the original baseline and final candidate.
 
+#### Recorded evaluator comparison
+
+The original evaluator and the implementation at `b9cad82226` were compared using the same
+53 cases per runtime and three independent launches per case. The runtime/architecture pairs were
+.NET 11 x64 and .NET Framework 4.8.1 x86, on the same Windows machine with unchanged runner options.
+Representative means, in milliseconds:
+
+| Workload | Size | .NET 11 before | .NET 11 after | .NET Framework before | .NET Framework after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Read every growing prefix | 1,000 | 102.12 | 16.60 | 253.41 | 46.00 |
+| Read after every Update | 1,000 | 4,281.49 | 160.80 | 14,802.98 | 336.92 |
+| Qualified metadata Update | 1,000 | 429.10 | 3.44 | 1,873.33 | 11.70 |
+| Many glob removals | 500 | 16.47 | 0.292 | 65.22 | 1.523 |
+| Recording only | 10,000 | 7.14 | 5.91 | 17.85 | 14.49 |
+
+For the 1,000-item Update/read case, allocations fell from 2,973,574 KB to 98,694 KB on .NET 11,
+and from 2,253,842 KB to 54,224 KB on .NET Framework. These are total allocated bytes per operation,
+not peak retained memory.
+
+The initial flat operation array produced a large-object-heap regression at 10,000 operations on
+x64. The bounded-block correction removed the extra Gen2 collections in recording-only runs.
+The final cold-project controls remained within approximately 2% of the original means; do not
+interpret the isolated evaluator gains as equivalent project-wide speedups.
+
+Raw reports remain local under `artifacts\BenchmarkDotNet\LazyItems\baseline-fixed` and
+`artifacts\BenchmarkDotNet\LazyItems\candidate-final`. Compare each runtime against its own
+baseline, not against the other architecture.
+
 ### Run Benchmarks on a Specific TFM
 
 ```
