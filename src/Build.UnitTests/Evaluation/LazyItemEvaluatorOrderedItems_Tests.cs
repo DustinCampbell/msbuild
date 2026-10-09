@@ -115,13 +115,16 @@ public sealed class LazyItemEvaluatorOrderedItems_Tests
         var builder = ItemEvaluator.OrderedItemDataCollection.CreateBuilder();
         builder.Add(data[0]);
         builder.Add(data[1]);
-        builder.Dictionary.Count.ShouldBe(1);
+        Dictionary<string, ItemDataCollectionValue<ProjectItemInstance>> index = builder.Dictionary;
+        index.Count.ShouldBe(1);
         builder[0] = data[2];
         builder.Dictionary.Count.ShouldBe(2);
         builder.RemoveAll(new[] { data[0].NormalizedItemValue });
 
         builder.Select(i => i.Item.EvaluatedInclude).ShouldBe(["b"]);
+        builder.Dictionary.ShouldBeSameAs(index);
         builder.Dictionary.Count.ShouldBe(1);
+        index.ContainsKey(data[0].NormalizedItemValue).ShouldBeFalse();
         List<ProjectItemInstance> indexed = [];
         foreach (ProjectItemInstance item in builder.Dictionary[data[2].NormalizedItemValue])
         {

@@ -358,11 +358,14 @@ internal partial class LazyItemEvaluator<P, I, M, D>
                         {
                             (removed ??= []).Add(item);
                         }
+                        dictionary.Remove(path);
                     }
                 }
                 if (removed is not null)
                 {
                     RemoveAll(removed);
+                    // Path-based removal has already updated the index; retain it for later operations.
+                    _dictionary = dictionary;
                 }
             }
 
