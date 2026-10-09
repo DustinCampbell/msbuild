@@ -31,6 +31,7 @@ namespace Microsoft.Build.Evaluation
     ///  operation position. Later glob removals can prune earlier Includes only for a compatible
     ///  materialization. Saved item containers preserve order and ownership, while updates still
     ///  clone item objects before changing metadata. This evaluator is owned by one evaluation.
+    ///  Temporary array builders are scoped and pooled; operation arrays own their copied elements.
     /// </remarks>
     internal partial class LazyItemEvaluator<P, I, M, D> : IItemProvider<I>
         where P : class, IProperty, IEquatable<P>, IValued
@@ -449,7 +450,7 @@ namespace Microsoft.Build.Evaluation
             int elementOrder = _nextElementOrder++;
             Dictionary<string, ItemListSnapshot> references = null;
             ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Include, itemElement.IncludeLocation, ref references);
-            ImmutableArray<string>.Builder excludes = null;
+            using RefArrayBuilder<string> excludes = default;
             if (itemElement.Exclude.Length > 0)
             {
                 // A property can introduce an item reference that must capture this earlier state.
@@ -459,7 +460,7 @@ namespace Microsoft.Build.Evaluation
                 {
                     foreach (string exclude in ExpressionShredder.SplitSemiColonSeparatedList(evaluatedExclude))
                     {
-                        (excludes ??= ImmutableArray.CreateBuilder<string>()).Add(exclude);
+                        excludes.Add(exclude);
                         AddItemReferences(exclude, ref references, itemElement.ExcludeLocation);
                     }
                 }
@@ -468,7 +469,7 @@ namespace Microsoft.Build.Evaluation
             ImmutableArray<ProjectMetadataElement> metadata = ProcessMetadataElements(itemElement, ref references);
             return new IncludeOperation(
                 itemElement, spec, references, conditionResult, this, elementOrder, rootDirectory,
-                excludes?.ToImmutable() ?? ImmutableArray<string>.Empty, metadata);
+                excludes.ToImmutable(), metadata);
         }
 
         /// <summary>
@@ -484,7 +485,7 @@ namespace Microsoft.Build.Evaluation
         {
             Dictionary<string, ItemListSnapshot> references = null;
             ItemSpec<P, I> spec = CreateItemSpec(rootDirectory, itemElement.Remove, itemElement.RemoveLocation, ref references);
-            ImmutableArray<string>.Builder metadataNames = null;
+            using RefArrayBuilder<string> metadataNames = default;
             if (itemElement.MatchOnMetadata.Length > 0)
             {
                 string evaluatedNames = _expander.ExpandIntoStringLeaveEscaped(
@@ -496,8 +497,10 @@ namespace Microsoft.Build.Evaluation
                         AddItemReferences(name, ref references, itemElement.MatchOnMetadataLocation);
                         string expanded = _expander.ExpandIntoStringLeaveEscaped(
                             name, ExpanderOptions.ExpandPropertiesAndItems, itemElement.MatchOnMetadataLocation);
-                        (metadataNames ??= ImmutableArray.CreateBuilder<string>()).AddRange(
-                            ExpressionShredder.SplitSemiColonSeparatedList(expanded));
+                        foreach (string metadataName in ExpressionShredder.SplitSemiColonSeparatedList(expanded))
+                        {
+                            metadataNames.Add(metadataName);
+                        }
                     }
                 }
             }
@@ -507,7 +510,7 @@ namespace Microsoft.Build.Evaluation
                 : MatchOnMetadataOptions.CaseSensitive;
             return new RemoveOperation(
                 itemElement, spec, references, conditionResult, this,
-                metadataNames?.ToImmutable() ?? ImmutableArray<string>.Empty, options);
+                metadataNames.ToImmutable(), options);
         }
 
         /// <summary>
@@ -531,6 +534,7 @@ namespace Microsoft.Build.Evaluation
                     AddReferencedItemLists(ref references, itemExpression.Capture);
                 }
             }
+
             return spec;
         }
 
@@ -547,46 +551,45 @@ namespace Microsoft.Build.Evaluation
         {
             if (!itemElement.HasMetadata)
             {
-                return ImmutableArray<ProjectMetadataElement>.Empty;
+                return [];
             }
-            var metadata = ImmutableArray.CreateBuilder<ProjectMetadataElement>();
-            if (itemElement.HasMetadata)
+
+            using RefArrayBuilder<ProjectMetadataElement> metadata = default;
+            ItemsAndMetadataPair itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+
+            // Since we're just attempting to expand properties in order to find referenced items and not expanding metadata,
+            // unexpected errors may occur when evaluating property functions on unexpanded metadata. Just ignore them if that happens.
+            // See: https://github.com/dotnet/msbuild/issues/3460
+            const ExpanderOptions expanderOptions = ExpanderOptions.ExpandProperties | ExpanderOptions.LeavePropertiesUnexpandedOnError;
+            foreach (var metadatumElement in itemElement.MetadataEnumerable)
             {
-                ItemsAndMetadataPair itemsAndMetadataFound = new ItemsAndMetadataPair(null, null);
+                metadata.Add(metadatumElement);
 
-                // Since we're just attempting to expand properties in order to find referenced items and not expanding metadata,
-                // unexpected errors may occur when evaluating property functions on unexpanded metadata. Just ignore them if that happens.
-                // See: https://github.com/dotnet/msbuild/issues/3460
-                const ExpanderOptions expanderOptions = ExpanderOptions.ExpandProperties | ExpanderOptions.LeavePropertiesUnexpandedOnError;
-                foreach (var metadatumElement in itemElement.MetadataEnumerable)
+                string expression = _expander.ExpandIntoStringLeaveEscaped(
+                    metadatumElement.Value,
+                    expanderOptions,
+                    metadatumElement.Location);
+
+                ExpressionShredder.GetReferencedItemNamesAndMetadata(
+                    expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+
+                expression = _expander.ExpandIntoStringLeaveEscaped(
+                    metadatumElement.Condition,
+                    expanderOptions,
+                    metadatumElement.ConditionLocation);
+
+                ExpressionShredder.GetReferencedItemNamesAndMetadata(
+                    expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
+            }
+
+            if (itemsAndMetadataFound.Items != null)
+            {
+                foreach (var itemType in itemsAndMetadataFound.Items)
                 {
-                    metadata.Add(metadatumElement);
-
-                    string expression = _expander.ExpandIntoStringLeaveEscaped(
-                        metadatumElement.Value,
-                        expanderOptions,
-                        metadatumElement.Location);
-
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(
-                        expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
-
-                    expression = _expander.ExpandIntoStringLeaveEscaped(
-                        metadatumElement.Condition,
-                        expanderOptions,
-                        metadatumElement.ConditionLocation);
-
-                    ExpressionShredder.GetReferencedItemNamesAndMetadata(
-                        expression, 0, expression.Length, ref itemsAndMetadataFound, ShredderOptions.All);
-                }
-
-                if (itemsAndMetadataFound.Items != null)
-                {
-                    foreach (var itemType in itemsAndMetadataFound.Items)
-                    {
-                        AddReferencedItemList(itemType, ref references);
-                    }
+                    AddReferencedItemList(itemType, ref references);
                 }
             }
+
             return metadata.ToImmutable();
         }
 

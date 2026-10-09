@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Eventing;
 using Microsoft.Build.Framework;
@@ -111,7 +112,7 @@ namespace Microsoft.Build.Evaluation
                 "Microsoft.Dispose", "CA2000:Dispose objects before losing scope", Justification = "The evaluation profiler owns its tracked scopes.")]
             private ImmutableArray<I> CreateItems(GlobExclusions globsToIgnore)
             {
-                ImmutableArray<I>.Builder? itemsToAdd = null;
+                using RefArrayBuilder<I> itemsToAdd = default;
 
                 List<string> excludePatterns = [];
                 if (!_excludes.IsEmpty)
@@ -121,8 +122,10 @@ namespace Microsoft.Build.Evaluation
                     {
                         string excludeExpanded = _expander.ExpandIntoStringLeaveEscaped(
                             exclude, ExpanderOptions.ExpandPropertiesAndItems, _itemElement.ExcludeLocation);
-                        var excludeSplits = ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded);
-                        excludePatterns.AddRange(excludeSplits);
+                        foreach (var excludeSplit in ExpressionShredder.SplitSemiColonSeparatedList(excludeExpanded))
+                        {
+                            excludePatterns.Add(excludeSplit);
+                        }
                     }
                 }
 
@@ -143,8 +146,6 @@ namespace Microsoft.Build.Evaluation
                             isTransformExpression: out _,
                             elementLocation: _itemElement.IncludeLocation);
 
-                        itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
-
                         if (excludePatterns.Count > 0)
                         {
                             matchers ??= new FileSpecMatcherTester?[excludePatterns.Count];
@@ -159,7 +160,10 @@ namespace Microsoft.Build.Evaluation
                         }
                         else
                         {
-                            itemsToAdd.AddRange(itemsFromExpression);
+                            foreach (I item in itemsFromExpression)
+                            {
+                                itemsToAdd.Add(item);
+                            }
                         }
                     }
                     else if (fragment is ValueFragment valueFragment)
@@ -173,7 +177,7 @@ namespace Microsoft.Build.Evaluation
                                 continue;
                             }
                         }
-                        itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
+
                         itemsToAdd.Add(_itemFactory.CreateItem(value, value, _itemElement.ContainingProject.FullPath));
                     }
                     else if (fragment is GlobFragment globFragment)
@@ -218,7 +222,6 @@ namespace Microsoft.Build.Evaluation
 
                             foreach (string includeSplitFileEscaped in includeSplitFilesEscaped)
                             {
-                                itemsToAdd ??= ImmutableArray.CreateBuilder<I>();
                                 itemsToAdd.Add(_itemFactory.CreateItem(
                                     includeSplitFileEscaped, glob, _itemElement.ContainingProject.FullPath));
                             }
@@ -230,7 +233,7 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
 
-                return itemsToAdd?.ToImmutable() ?? ImmutableArray<I>.Empty;
+                return itemsToAdd.ToImmutable();
 
                 static bool ExcludeTester(string? directory, List<string> excludePatterns, FileSpecMatcherTester?[] matchers, string item)
                 {

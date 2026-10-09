@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Microsoft.Build.Collections;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -251,8 +252,9 @@ internal partial class LazyItemEvaluator<P, I, M, D>
 
             if (qualified && !Traits.Instance.EscapeHatches.DoNotExpandQualifiedMetadataInUpdateOperation)
             {
-                var itemReferences = ImmutableArray.CreateBuilder<ItemSpec<P, I>.ItemExpressionFragment>();
-                var other = ImmutableArray.CreateBuilder<ItemSpecFragment>();
+                using RefArrayBuilder<ItemSpec<P, I>.ItemExpressionFragment> itemReferences = default;
+                using RefArrayBuilder<ItemSpecFragment> other = default;
+
                 foreach (ItemSpecFragment fragment in _itemSpec.Fragments)
                 {
                     if (fragment is ItemSpec<P, I>.ItemExpressionFragment itemReference)
@@ -264,6 +266,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
                         other.Add(fragment);
                     }
                 }
+
                 if (itemReferences.Count > 0)
                 {
                     _referenceFragments = itemReferences.ToImmutable();
@@ -272,6 +275,7 @@ internal partial class LazyItemEvaluator<P, I, M, D>
                     return;
                 }
             }
+
             _matchKind = MatchKind.Specification;
         }
 
