@@ -191,9 +191,8 @@ internal partial class Expander<P, I>
                     results.Add(expression.AsMemory(markerIndex));
                     return results.GetResult();
                 }
-
                 // Expand the property body between the "$(" marker and its matching closing parenthesis.
-                int endIndex = closingParenIndex - 1;
+                // Expand the property body between the "$(" marker and its matching closing parenthesis.
                 int length = closingParenIndex - startIndex;
 
                 object propertyValue;
@@ -205,14 +204,14 @@ internal partial class Expander<P, I>
                 }
                 else if (!isPotentialPropertyFunction && !isPotentialRegistryFunction)
                 {
-                    propertyValue = LookupProperty(expression, startIndex, endIndex);
+                    propertyValue = LookupProperty(expression, startIndex, length);
                 }
                 else
                 {
                     propertyValue = ExpandProperty(
                         expression,
                         startIndex,
-                        endIndex,
+                        length,
                         isPotentialRegistryFunction,
                         isPotentialPropertyFunction);
                 }
@@ -316,13 +315,10 @@ internal partial class Expander<P, I>
         private object ExpandProperty(
             string expression,
             int startIndex,
-            int endIndex,
+            int length,
             bool tryExtractRegistryFunction,
             bool tryExtractPropertyFunction)
         {
-            // startIndex and endIndex inclusively delimit the property body.
-            int length = endIndex - startIndex + 1;
-
             // Compat hack: as a special case, $(HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\VisualStudio\9.0\VSTSDB@VSTSDBDirectory) should return string.Empty
             // Note that very few properties have this exact length, so this check should be fast.
             if (length == VstsDbDirectoryProperty.Length &&
@@ -361,7 +357,7 @@ internal partial class Expander<P, I>
             }
 
             // This is a regular property
-            return LookupProperty(expression, startIndex, endIndex);
+            return LookupProperty(expression, startIndex, length);
         }
 
         /// <summary>
@@ -440,7 +436,7 @@ internal partial class Expander<P, I>
                     }
                     else
                     {
-                        propertyValue = LookupProperty(propertyBody, 0, indexerStart - 1);
+                        propertyValue = LookupProperty(propertyBody, 0, indexerStart);
                         propertyBody = propertyBody.Substring(indexerStart);
 
                         // recurse so that the function representing the indexer can be executed on the property value
@@ -563,30 +559,30 @@ internal partial class Expander<P, I>
         /// </summary>
         private object LookupProperty(string propertyName)
         {
-            return LookupProperty(propertyName, 0, propertyName.Length - 1);
+            return LookupProperty(propertyName, 0, propertyName.Length);
         }
 
         /// <summary>
         /// Look up a simple property reference by the name of the property, e.g. "Foo" when expanding $(Foo).
         /// </summary>
-        private object LookupProperty(string propertyName, int startIndex, int endIndex)
+        private object LookupProperty(string propertyName, int startIndex, int length)
         {
-            P property = _properties.GetProperty(propertyName, startIndex, endIndex);
+            P property = _properties.GetProperty(propertyName, startIndex, length);
 
             object propertyValue;
 
-            bool isArtificial = property == null && ((endIndex - startIndex) >= 7) &&
+            bool isArtificial = property == null && length > 7 &&
                                MSBuildNameIgnoreCaseComparer.Default.Equals("MSBuild", propertyName, startIndex, 7);
 
-            _propertiesUseTracker.TrackRead(propertyName, startIndex, endIndex, _elementLocation, property == null, isArtificial);
+            _propertiesUseTracker.TrackRead(propertyName, startIndex, length, _elementLocation, property == null, isArtificial);
 
             if (isArtificial)
             {
                 // It could be one of the MSBuildThisFileXXXX properties,
                 // whose values vary according to the file they are in.
-                if (startIndex != 0 || endIndex != propertyName.Length)
+                if (startIndex != 0 || length != propertyName.Length)
                 {
-                    propertyValue = ExpandMSBuildThisFileProperty(propertyName.Substring(startIndex, endIndex - startIndex + 1));
+                    propertyValue = ExpandMSBuildThisFileProperty(propertyName.Substring(startIndex, length));
                 }
                 else
                 {
