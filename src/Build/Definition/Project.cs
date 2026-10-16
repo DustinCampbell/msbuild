@@ -4461,6 +4461,11 @@ namespace Microsoft.Build.Evaluation
                 return Items[itemType];
             }
 
+            IReadOnlyCollection<ProjectItem> IItemProvider<ProjectItem>.GetItems(string itemType)
+            {
+                return Items.GetItems(itemType);
+            }
+
             #endregion
 
             #region IPropertyProvider<ProjectProperty> Members

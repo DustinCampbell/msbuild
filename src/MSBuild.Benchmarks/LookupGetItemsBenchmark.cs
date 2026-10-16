@@ -106,7 +106,7 @@ public class LookupGetItemsBenchmark
         foreach (List<ProjectItemInstance> batch in _removeBatches)
         {
             lookup.RemoveItems(ItemType, batch);
-            ICollection<ProjectItemInstance> items = lookup.GetItems(ItemType);
+            IReadOnlyCollection<ProjectItemInstance> items = lookup.GetItems(ItemType);
             observedCount = items.Count;
         }
 
@@ -130,7 +130,7 @@ public class LookupGetItemsBenchmark
         {
             Lookup.Scope inner = lookup.EnterScope("batch");
             lookup.RemoveItems(ItemType, batch);
-            ICollection<ProjectItemInstance> items = lookup.GetItems(ItemType);
+            IReadOnlyCollection<ProjectItemInstance> items = lookup.GetItems(ItemType);
             observedCount = items.Count;
             inner.LeaveScope();
         }
@@ -155,7 +155,7 @@ public class LookupGetItemsBenchmark
         // Same number of GetItems calls as the other scenarios for fair comparison.
         for (int i = 0; i < _removeBatches.Count; i++)
         {
-            ICollection<ProjectItemInstance> items = lookup.GetItems(ItemType);
+            IReadOnlyCollection<ProjectItemInstance> items = lookup.GetItems(ItemType);
             observedCount = items.Count;
         }
 

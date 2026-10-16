@@ -3,23 +3,21 @@
 
 using System.Collections.Generic;
 
-#nullable disable
+namespace Microsoft.Build.Evaluation;
 
-namespace Microsoft.Build.Evaluation
+/// <summary>
+///  Provides items to an <see cref="Expander{P, I}"/>.
+/// </summary>
+/// <typeparam name="T">The type of item provided.</typeparam>
+internal interface IItemProvider<out T>
+    where T : class, IItem
 {
     /// <summary>
-    /// This interface represents an object which can act as a source of items for the Expander.
+    ///  Gets the items with the specified item type.
     /// </summary>
-    /// <typeparam name="T">The type of items provided by the implementation.</typeparam>
-    internal interface IItemProvider<T> where T : IItem
-    {
-        /// <summary>
-        /// Returns a list of items with the specified item type.
-        ///
-        /// If there are no items of this type, returns an empty list.
-        /// </summary>
-        /// <param name="itemType">The item type of items to return.</param>
-        /// <returns>A list of matching items.</returns>
-        ICollection<T> GetItems(string itemType);
-    }
+    /// <param name="itemType">The item type.</param>
+    /// <returns>
+    ///  A read-only collection of matching items, or an empty collection if no items have the specified type.
+    /// </returns>
+    IReadOnlyCollection<T> GetItems(string itemType);
 }

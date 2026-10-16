@@ -1818,9 +1818,9 @@ namespace Microsoft.Build.Execution
         /// <comments>
         /// Already a readonly collection
         /// </comments>
-        ICollection<ProjectItemInstance> IItemProvider<ProjectItemInstance>.GetItems(string itemType)
+        IReadOnlyCollection<ProjectItemInstance> IItemProvider<ProjectItemInstance>.GetItems(string itemType)
         {
-            return _items[itemType];
+            return _items.GetItems(itemType);
         }
 
         /// <summary>
@@ -2132,8 +2132,7 @@ namespace Microsoft.Build.Execution
         {
             VerifyThrowEvaluationStageReached(ProjectEvaluationStage.Items, nameof(GetItems));
 
-            // GetItems already returns a readonly collection
-            return ((IItemProvider<ProjectItemInstance>)this).GetItems(itemType);
+            return _items[itemType];
         }
 
         /// <summary>

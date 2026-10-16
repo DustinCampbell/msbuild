@@ -117,20 +117,16 @@ namespace Microsoft.Build.Collections
         /// Use AddItem or RemoveItem to modify items in this project.
         /// Using the return value from this in a multithreaded situation is unsafe.
         /// </summary>
-        public ICollection<T> this[string itemtype]
-        {
-            get
-            {
-                List<T> list;
-                lock (_itemLists)
-                {
-                    if (!_itemLists.TryGetValue(itemtype, out list))
-                    {
-                        return Array.Empty<T>();
-                    }
-                }
+        public ICollection<T> this[string itemType]
+            => TryGetItemList(itemType, out List<T> list)
+                ? new ReadOnlyCollection<T>(list)
+                : Array.Empty<T>();
 
-                return new ReadOnlyCollection<T>(list);
+        private bool TryGetItemList(string itemType, out List<T> list)
+        {
+            lock (_itemLists)
+            {
+                return _itemLists.TryGetValue(itemType, out list);
             }
         }
 
@@ -218,12 +214,10 @@ namespace Microsoft.Build.Collections
         /// </summary>
         /// <param name="itemType">The item type to return</param>
         /// <returns>The list of matching items.</returns>
-        public ICollection<T> GetItems(string itemType)
-        {
-            ICollection<T> result = this[itemType];
-
-            return result ?? Array.Empty<T>();
-        }
+        public IReadOnlyCollection<T> GetItems(string itemType)
+            => TryGetItemList(itemType, out List<T> list)
+                ? new ReadOnlyCollection<T>(list)
+                : Array.Empty<T>();
 
         #endregion
 

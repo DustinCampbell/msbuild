@@ -112,7 +112,7 @@ internal partial class Expander<P, I>
             ExpanderOptions options,
             bool includeNullEntries,
             List<ExpressionShredder.ItemExpressionCapture> captures,
-            ICollection<I> itemsOfType,
+            IReadOnlyCollection<I> itemsOfType,
             out List<TransformEntry> result)
         {
             // Each transform runs on the full set of transformed items from the previous result.
@@ -251,7 +251,7 @@ internal partial class Expander<P, I>
         /// <summary>
         ///  Creates transform entries from the given items, pairing each with its evaluated include.
         /// </summary>
-        private static List<TransformEntry> CreateEntries(ICollection<I> items)
+        private static List<TransformEntry> CreateEntries(IReadOnlyCollection<I> items)
         {
             List<TransformEntry> entries = new(items.Count);
 
@@ -480,7 +480,7 @@ internal partial class Expander<P, I>
             // An empty item type indicates that the expression could not be parsed correctly.
             ProjectErrorUtilities.VerifyThrowInvalidProject(!itemVector.ItemType.IsNullOrEmpty(), elementLocation, "InvalidFunctionPropertyExpression");
 
-            ICollection<I> items = evaluatedItems.GetItems(itemVector.ItemType);
+            IReadOnlyCollection<I> items = evaluatedItems.GetItems(itemVector.ItemType);
             List<ExpressionShredder.ItemExpressionCapture> captures = itemVector.Captures;
             string separator = itemVector.Separator;
 
@@ -566,7 +566,7 @@ internal partial class Expander<P, I>
                 return false;
             }
 
-            static bool TryJoinItems(ICollection<I> items, string separator, bool breakOnNotEmpty, out string result)
+            static bool TryJoinItems(IReadOnlyCollection<I> items, string separator, bool breakOnNotEmpty, out string result)
             {
                 using IEnumerator<I> enumerator = items.GetEnumerator();
                 if (!enumerator.MoveNext())

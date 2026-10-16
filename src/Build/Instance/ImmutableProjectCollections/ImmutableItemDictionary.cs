@@ -119,7 +119,7 @@ namespace Microsoft.Build.Instance
         }
 
         /// <inheritdoc />
-        public ICollection<T> GetItems(string itemType)
+        public IReadOnlyCollection<T> GetItems(string itemType)
         {
             if (_itemsByType.TryGetValue(itemType, out ICollection<TCached>? items))
             {
@@ -141,7 +141,7 @@ namespace Microsoft.Build.Instance
         /// <inheritdoc />
         public void RemoveItemsOfType(string itemType, IEnumerable<T> other) => throw new NotSupportedException();
 
-        private sealed class ListConverter : ICollection<T>
+        private sealed class ListConverter : ICollection<T>, IReadOnlyCollection<T>
         {
             private readonly ICollection<TCached> _list;
             private readonly Func<TCached, T?> _getInstance;

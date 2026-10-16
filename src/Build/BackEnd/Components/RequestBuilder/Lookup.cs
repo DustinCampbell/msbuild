@@ -460,7 +460,7 @@ namespace Microsoft.Build.BackEnd
         /// If no match is found, returns an empty list.
         /// Caller must not modify the group returned.
         /// </summary>
-        public ICollection<ProjectItemInstance> GetItems(string itemType)
+        public IReadOnlyCollection<ProjectItemInstance> GetItems(string itemType)
         {
             // The visible items consist of the adds (accumulated as we go down)
             // plus the first set of regular items we encounter
@@ -469,7 +469,7 @@ namespace Microsoft.Build.BackEnd
             List<List<ProjectItemInstance>> allAdds = null;
             List<List<ProjectItemInstance>> allRemoves = null;
             Dictionary<ProjectItemInstance, MetadataModifications> allModifies = null;
-            ICollection<ProjectItemInstance> groupFound = null;
+            IReadOnlyCollection<ProjectItemInstance> groupFound = null;
 
             // Iterate through all scopes *except* the outer scope.
             // The outer scope will always be empty and is currently only used for tracking base properties.
@@ -537,7 +537,7 @@ namespace Microsoft.Build.BackEnd
             // If we've made it to the root scope, use the original items.
             if (groupFound == null && scope.Parent == null)
             {
-                groupFound = _baseItems[itemType];
+                groupFound = _baseItems.GetItems(itemType);
             }
 
             if ((allAdds == null) &&
@@ -612,7 +612,7 @@ namespace Microsoft.Build.BackEnd
             {
                 if (removeSet == null)
                 {
-                    // No removes (or nothing to filter), so use fast path for ICollection<T>.
+                    // No removes (or nothing to filter), so use the fast path.
                     result.AddRange(groupFound);
                 }
                 else
@@ -911,7 +911,7 @@ namespace Microsoft.Build.BackEnd
         /// Modifies items in this scope with the same set of metadata modifications.
         /// Assumes all the items in the group have the same, provided, type.
         /// </summary>
-        internal void ModifyItems(string itemType, ICollection<ProjectItemInstance> group, MetadataModifications metadataChanges)
+        internal void ModifyItems(string itemType, IEnumerable<ProjectItemInstance> group, MetadataModifications metadataChanges)
         {
             // Modifying in outer scope could be easily implemented, but our code does not do it at present
             MustNotBeOuterScope();

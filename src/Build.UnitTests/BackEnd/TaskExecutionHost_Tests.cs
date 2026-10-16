@@ -1676,7 +1676,7 @@ namespace Microsoft.Build.UnitTests.BackEnd
             _host.GatherTaskOutputs("ItemArrayWithNullOutput", ElementLocation.Create(".", 1, 1), true, "output").ShouldBeTrue();
             _outputsReadFromTask.ShouldContainKey("ItemArrayWithNullOutput");
 
-            ICollection<ProjectItemInstance> outputItems = _bucket.Lookup.GetItems("output");
+            IReadOnlyCollection<ProjectItemInstance> outputItems = _bucket.Lookup.GetItems("output");
             outputItems.Count.ShouldBe(_twoItems.Length);
 
             int index = 0;
