@@ -25,12 +25,6 @@ internal partial class LazyItemEvaluator<P, I, M, D> : IItemProvider<I>
     where M : class, IMetadatum
     where D : class, IItemDefinition<M>
 {
-    /// <summary>
-    ///  Provides the shared starting later Remove glob patterns using the filesystem's path-comparison policy.
-    /// </summary>
-    private static readonly ImmutableHashSet<string> s_emptyRemoveGlobPatterns =
-        ImmutableHashSet.Create<string>(FileUtilities.PathComparer);
-
     private readonly IEvaluatorData<P, I, M, D> _data;
     private readonly Expander<P, I> _outerExpander;
     private readonly Expander<P, I> _expander;
@@ -62,6 +56,23 @@ internal partial class LazyItemEvaluator<P, I, M, D> : IItemProvider<I>
     ///  Gets the cached snapshot count for deterministic lifetime tests.
     /// </summary>
     internal int TestOnlyCachedSnapshotCount => _itemCache.Count;
+
+    /// <summary>
+    ///  Gets the number of cached Remove glob pattern ranges for deterministic planning tests.
+    /// </summary>
+    internal int TestOnlyCachedRemoveGlobRangeCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (ItemOperationSequence sequence in _itemLists.Values)
+            {
+                count += sequence.CachedRemoveGlobRangeCount;
+            }
+
+            return count;
+        }
+    }
 
     protected EvaluationContext EvaluationContext { get; }
 
@@ -308,17 +319,26 @@ internal partial class LazyItemEvaluator<P, I, M, D> : IItemProvider<I>
 
     private bool TryGetCachedItems(
         ItemOperation operation,
-        ImmutableHashSet<string> laterRemoveGlobPatterns,
+        RemoveGlobPatterns laterRemoveGlobPatterns,
         [NotNullWhen(true)] out OrderedItemDataCollection items)
         => _itemCache.TryGetValue(new ItemCacheKey(operation, laterRemoveGlobPatterns), out items);
 
-    private OrderedItemDataCollection GetCachedItems(ItemOperation operation, ImmutableHashSet<string> laterRemoveGlobPatterns)
+    private OrderedItemDataCollection GetCachedItems(ItemOperation operation, RemoveGlobPatterns laterRemoveGlobPatterns)
         => _itemCache[new ItemCacheKey(operation, laterRemoveGlobPatterns)];
 
-    private void CacheItems(ItemOperation operation, ImmutableHashSet<string> laterRemoveGlobPatterns, OrderedItemDataCollection items)
-        => _itemCache[new ItemCacheKey(operation, laterRemoveGlobPatterns)] = items;
+    private void CacheItems(ItemOperation operation, RemoveGlobPatterns laterRemoveGlobPatterns, OrderedItemDataCollection items)
+    {
+        int previousCount = _itemCache.Count;
+        _itemCache[new ItemCacheKey(operation, laterRemoveGlobPatterns)] = items;
 
-    private void RemoveCachedItems(ItemOperation operation, ImmutableHashSet<string> laterRemoveGlobPatterns)
+        // Updating an equivalent key preserves its original range; retain only newly stored ranges.
+        if (_itemCache.Count > previousCount)
+        {
+            laterRemoveGlobPatterns.Retain();
+        }
+    }
+
+    private void RemoveCachedItems(ItemOperation operation, RemoveGlobPatterns laterRemoveGlobPatterns)
         => _itemCache.Remove(new ItemCacheKey(operation, laterRemoveGlobPatterns));
 
     private void AddItemOperation(ProjectItemElement itemElement, bool conditionResult, string rootDirectory)
