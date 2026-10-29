@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -121,6 +122,19 @@ internal static partial class Extensions
             return TryParseInt32AsDouble(value, style, numberFormat, out result) ||
                 double.TryParse(value.Value, style, numberFormat, out result);
         }
+#endif
+    }
+
+    extension(Version)
+    {
+        /// <summary>
+        ///  Converts a version represented by a <see cref="StringSegment"/> to a <see cref="Version"/>.
+        /// </summary>
+        public static bool TryParse(StringSegment value, [NotNullWhen(true)] out Version? result)
+#if NET
+            => Version.TryParse(value.AsSpan(), out result);
+#else
+            => TryParseVersion(value, out result);
 #endif
     }
 

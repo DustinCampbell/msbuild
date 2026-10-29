@@ -251,6 +251,71 @@ public class StringSegmentParsing_Tests
         provider.CallCount.ShouldBe(0);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("1")]
+    [InlineData("1.2")]
+    [InlineData("1.2.3")]
+    [InlineData("1.2.3.4")]
+    [InlineData("0.0")]
+    [InlineData("-0.+0.-0.+0")]
+    [InlineData(" 1 . +2 . 3 . 4 ")]
+    [InlineData("\t1\r.\n2\f.\v3 . 4\t")]
+    [InlineData("0001.0002.0003.0004")]
+    [InlineData("2147483647.2147483647.2147483647.2147483647")]
+    [InlineData("2147483648.0")]
+    [InlineData("1.2147483648")]
+    [InlineData("1.2.2147483648")]
+    [InlineData("1.2.3.2147483648")]
+    [InlineData("-1.2")]
+    [InlineData("1.-2")]
+    [InlineData("1.2.-3")]
+    [InlineData("1.2.3.-4")]
+    [InlineData(".1")]
+    [InlineData("1.")]
+    [InlineData("1..2")]
+    [InlineData("1.2.")]
+    [InlineData("1.2..3")]
+    [InlineData("1.2.3.")]
+    [InlineData("1.2.3.4.5")]
+    [InlineData("1.a")]
+    [InlineData("1.2.3-beta")]
+    [InlineData("1\u00a0.2")]
+    [InlineData("1\0.2")]
+    [InlineData("1.2\0")]
+    [InlineData("1.2.3\0")]
+    [InlineData("1.2.3.4\0")]
+    [InlineData("1.2\0x")]
+    public void VersionTryParse_MatchesRuntimeStringParsing(string? text)
+    {
+        StringSegment segment = CreateSegment(text);
+
+        Version.TryParse(segment, out Version? result)
+            .ShouldBe(Version.TryParse(text, out Version? expected));
+
+        result.ShouldBe(expected);
+    }
+
+    [Fact]
+    public void VersionTryParse_PreservesUnspecifiedComponents()
+    {
+        Version.TryParse(CreateSegment("1.2"), out Version? twoComponents).ShouldBeTrue();
+        twoComponents.ShouldNotBeNull();
+        twoComponents.Build.ShouldBe(-1);
+        twoComponents.Revision.ShouldBe(-1);
+
+        Version.TryParse(CreateSegment("1.2.0"), out Version? threeComponents).ShouldBeTrue();
+        threeComponents.ShouldNotBeNull();
+        threeComponents.Build.ShouldBe(0);
+        threeComponents.Revision.ShouldBe(-1);
+
+        Version.TryParse(CreateSegment("1.2.0.0"), out Version? fourComponents).ShouldBeTrue();
+        fourComponents.ShouldNotBeNull();
+        fourComponents.Build.ShouldBe(0);
+        fourComponents.Revision.ShouldBe(0);
+    }
+
     private static void AssertNumericParsing(string? text, NumberStyles style, IFormatProvider? provider)
     {
         AssertIntegerParsing(text, style, provider);
