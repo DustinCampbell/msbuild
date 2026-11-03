@@ -574,6 +574,11 @@ internal partial class Expander<P, I>
             bool isConstructor,
             ref readonly ExpansionContext context)
         {
+            if ((context.Options & ExpanderOptions.UseReflectionForPropertyFunctions) != 0)
+            {
+                return InvokerResult.Unhandled;
+            }
+
             if (isConstructor)
             {
                 return WellKnownFunctions.TryInvokeConstructor(_receiverType, args);
