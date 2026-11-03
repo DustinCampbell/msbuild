@@ -70,6 +70,15 @@ internal enum ExpanderOptions
     LogOnItemMetadataSelfReference = 0x80,
 
     /// <summary>
+    ///  Skip well-known functions and use the existing reflection and argument conversion code.
+    /// </summary>
+    /// <remarks>
+    ///  Used by comparison tests. This also skips well-known constructors and functions that need
+    ///  evaluation context, so MSBuild-only operations may fail or behave differently.
+    /// </remarks>
+    UseReflectionForPropertyFunctions = 0x100,
+
+    /// <summary>
     /// Expand only properties and then item lists
     /// </summary>
     ExpandPropertiesAndItems = ExpandProperties | ExpandItems,

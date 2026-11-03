@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -374,6 +375,21 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
+        ///  Changes <see cref="CultureInfo.CurrentCulture"/> until this test environment is disposed.
+        /// </summary>
+        /// <param name="cultureName">The name of the culture to use.</param>
+        /// <returns>
+        ///  The registered state that restores the previous culture.
+        /// </returns>
+        /// <remarks>
+        ///  Does not change <see cref="CultureInfo.CurrentUICulture"/>.
+        /// </remarks>
+        public TransientTestState SetCurrentCulture(string cultureName)
+        {
+            return WithTransientTestState(new CurrentCultureState(cultureName));
+        }
+
+        /// <summary>
         /// Register process ID to be finished/killed after tests ends.
         /// </summary>
         public TransientTestProcess WithTransientProcess(int processId)
@@ -393,6 +409,21 @@ namespace Microsoft.Build.UnitTests
         }
 
         #endregion
+
+        private sealed class CurrentCultureState : TransientTestState
+        {
+            private readonly CultureInfo _originalCulture = CultureInfo.CurrentCulture;
+
+            public CurrentCultureState(string cultureName)
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+            }
+
+            public override void Revert()
+            {
+                CultureInfo.CurrentCulture = _originalCulture;
+            }
+        }
 
         private sealed class DefaultOutput : ITestOutputHelper
         {

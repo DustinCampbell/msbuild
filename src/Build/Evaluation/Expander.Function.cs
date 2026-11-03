@@ -573,6 +573,12 @@ internal partial class Expander<P, I>
             ref readonly ExpansionContext context,
             out object result)
         {
+            if ((context.Options & ExpanderOptions.UseReflectionForPropertyFunctions) != 0)
+            {
+                result = null;
+                return false;
+            }
+
             return isConstructor
                 ? WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out result, args)
                 : WellKnownFunctions.TryExecuteWellKnownFunction(
