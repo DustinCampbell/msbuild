@@ -200,7 +200,7 @@ namespace Microsoft.Build.Evaluation
                     {
                         foreach (var itemContext in itemBatchingContexts)
                         {
-                            _expander.Metadata = itemContext.GetMetadataTable();
+                            using var metadataScope = _expander.UpdateMetadata(itemContext.GetMetadataTable());
 
                             foreach (var metadataElement in metadata)
                             {
@@ -214,9 +214,6 @@ namespace Microsoft.Build.Evaluation
                                 itemContext.OperationItem.SetMetadata(metadataElement, FileUtilities.MaybeAdjustFilePath(evaluatedValue, metadataElement.ContainingProject.DirectoryPath));
                             }
                         }
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
                     }
                     // End of pseudo batching
                     ////////////////////////////////////////////////////
@@ -226,7 +223,7 @@ namespace Microsoft.Build.Evaluation
                         // Metadata expressions are allowed here.
                         // Temporarily gather and expand these in a table so they can reference other metadata elements above.
                         EvaluatorMetadataTable metadataTable = new EvaluatorMetadataTable(_itemType, capacity: metadata.Length);
-                        _expander.Metadata = metadataTable;
+                        using var metadataScope = _expander.UpdateMetadata(metadataTable);
 
                         // Also keep a list of everything so we can get the predecessor objects correct.
                         List<KeyValuePair<ProjectMetadataElement, string>> metadataList = new(metadata.Length);
@@ -262,9 +259,6 @@ namespace Microsoft.Build.Evaluation
                         // many items (either by semicolon or wildcards)
                         // and that item also has the same piece/s of metadata for each item.
                         _itemFactory.SetMetadata(metadataList, itemBatchingContexts.Select(i => i.OperationItem));
-
-                        // End of legal area for metadata expressions.
-                        _expander.Metadata = null;
                     }
                 }
             }

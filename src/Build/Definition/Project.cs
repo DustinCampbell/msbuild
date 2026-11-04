@@ -3441,11 +3441,8 @@ namespace Microsoft.Build.Evaluation
             {
                 Assumed.Null(_data.Expander.Metadata, "Should be null");
 
-                _data.Expander.Metadata = metadataTable;
-                string evaluatedValueEscaped = _data.Expander.ExpandIntoStringLeaveEscaped(unevaluatedValue, ExpanderOptions.ExpandAll, metadataLocation);
-                _data.Expander.Metadata = null;
-
-                return evaluatedValueEscaped;
+                using var metadataScope = _data.Expander.UpdateMetadata(metadataTable);
+                return _data.Expander.ExpandIntoStringLeaveEscaped(unevaluatedValue, ExpanderOptions.ExpandAll, metadataLocation);
             }
 
             /// <summary>
