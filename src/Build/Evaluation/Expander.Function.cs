@@ -110,13 +110,6 @@ internal partial class Expander<P, I>
         private readonly string _remainder;
 
         /// <summary>
-        /// List of properties which have been used but have not been initialized yet.
-        /// </summary>
-        private PropertiesUseTracker _propertiesUseTracker;
-
-        private readonly IFileSystem _fileSystem;
-
-        /// <summary>
         /// Construct a function that will be executed during property evaluation.
         /// </summary>
         internal Function(
@@ -130,9 +123,7 @@ internal partial class Expander<P, I>
             string methodName,
             string[] arguments,
             BindingFlags bindingFlags,
-            string remainder,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem)
+            string remainder)
         {
             _methodMethodName = methodName;
             if (arguments == null)
@@ -159,8 +150,6 @@ internal partial class Expander<P, I>
             _bindingFlags = bindingFlags & AllowedBindingFlags;
 
             _remainder = remainder;
-            _propertiesUseTracker = propertiesUseTracker;
-            _fileSystem = fileSystem;
         }
 
         /// <summary>
@@ -197,17 +186,13 @@ internal partial class Expander<P, I>
         /// <c>DynamicallyAccessedMembers</c> constraint on an <see cref="object"/> parameter, so the unavoidable
         /// trim suppression lives, minimized, in <c>FunctionBuilder.SetReceiverType</c>.
         /// </param>
-        /// <param name="propertiesUseTracker">Tracks property reads and supplies the logging context.</param>
-        /// <param name="fileSystem">File system abstraction used by file and directory property functions.</param>
         internal static Function ExtractPropertyFunction(
             string expressionFunction,
             IElementLocation elementLocation,
-            object propertyValue,
-            PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem)
+            object propertyValue)
         {
             // Used to aggregate all the components needed for a Function
-            FunctionBuilder functionBuilder = new FunctionBuilder { FileSystem = fileSystem };
+            FunctionBuilder functionBuilder = new();
 
             // By default the expression root is the whole function expression
             ReadOnlySpan<char> expressionRoot = expressionFunction == null ? ReadOnlySpan<char>.Empty : expressionFunction.AsSpan();
@@ -226,7 +211,6 @@ internal partial class Expander<P, I>
             ProjectErrorUtilities.VerifyThrowInvalidProject(!expressionRoot.IsEmpty, elementLocation, "InvalidFunctionPropertyExpression", expressionFunction, String.Empty);
 
             functionBuilder.Expression = expressionFunction;
-            functionBuilder.PropertiesUseTracker = propertiesUseTracker;
 
             // This is a static method call
             // A static method is the content that follows the last "::", the rest being the type
@@ -353,13 +337,28 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Execute the function on the given instance.
+        ///  Executes the function on the given instance.
         /// </summary>
+        /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static call.</param>
+        /// <param name="properties">The properties used to expand function arguments.</param>
+        /// <param name="options">The expansion options.</param>
+        /// <param name="elementLocation">The location used for diagnostics and source-relative functions.</param>
+        /// <param name="propertiesUseTracker">Tracks property reads and supplies the logging context.</param>
+        /// <param name="fileSystem">The filesystem used during execution.</param>
+        /// <returns>
+        ///  The function result, including any remaining chained calls.
+        /// </returns>
         [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
             Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
         [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
             Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
-        internal object Execute(object objectInstance, IPropertyProvider<P> properties, ExpanderOptions options, IElementLocation elementLocation)
+        internal object Execute(
+            object objectInstance,
+            IPropertyProvider<P> properties,
+            ExpanderOptions options,
+            IElementLocation elementLocation,
+            PropertiesUseTracker propertiesUseTracker,
+            IFileSystem fileSystem)
         {
             Debug.Assert((options & ExpanderOptions.ExpandProperties) != 0, $"{ExpanderOptions.ExpandProperties} must be set.");
 
@@ -409,8 +408,8 @@ internal partial class Expander<P, I>
                         properties,
                         options,
                         elementLocation,
-                        _propertiesUseTracker,
-                        _fileSystem);
+                        propertiesUseTracker,
+                        fileSystem);
 
                     if (argument is string argumentValue)
                     {
@@ -503,13 +502,13 @@ internal partial class Expander<P, I>
                     {
                         // First attempt to recognize some well-known functions to avoid binding
                         // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, _fileSystem, out functionResult, objectInstance, args);
+                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(_methodMethodName, _receiverType, fileSystem, out functionResult, objectInstance, args);
 
                         if (!wellKnownFunctionSuccess)
                         {
                             // Some well-known functions need evaluated value from properties.
                             wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
-                                _methodMethodName, _receiverType, _propertiesUseTracker.LoggingContext, properties,
+                                _methodMethodName, _receiverType, propertiesUseTracker.LoggingContext, properties,
                                 out functionResult, objectInstance, args);
                         }
                     }
@@ -579,8 +578,8 @@ internal partial class Expander<P, I>
                     properties,
                     options,
                     elementLocation,
-                    _propertiesUseTracker,
-                    _fileSystem);
+                    propertiesUseTracker,
+                    fileSystem);
             }
 
             // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
