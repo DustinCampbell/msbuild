@@ -481,12 +481,7 @@ internal partial class Expander<P, I>
                     Console.WriteLine($"Expanding: {materializedPropertyBody}");
                 }
 
-                Function function = Function.ExtractPropertyFunction(
-                    materializedPropertyBody,
-                    _elementLocation,
-                    propertyValue,
-                    _propertiesUseTracker,
-                    _fileSystem);
+                Function function = Function.ExtractPropertyFunction(materializedPropertyBody, _elementLocation, propertyValue);
 
                 if (function is null)
                 {
@@ -508,7 +503,8 @@ internal partial class Expander<P, I>
                 try
                 {
                     // Static functions have no receiver, so propertyValue may be null.
-                    return function.Execute(propertyValue, _properties, _options, _elementLocation);
+                    return function.Execute(
+                        propertyValue, _properties, _options, _elementLocation, _propertiesUseTracker, _fileSystem);
                 }
                 catch (Exception) when (_options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {

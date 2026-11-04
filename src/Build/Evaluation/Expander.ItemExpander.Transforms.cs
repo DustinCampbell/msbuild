@@ -823,11 +823,11 @@ internal partial class Expander<P, I>
                         functionName,
                         arguments,
                         BindingFlags.Public | BindingFlags.InvokeMethod,
-                        string.Empty,
-                        expander.PropertiesUseTracker,
-                        expander.FileSystem);
+                        string.Empty);
 
-                    object result = function.Execute(item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation);
+                    object result = function.Execute(
+                        item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation,
+                        expander.PropertiesUseTracker, expander.FileSystem);
 
                     string include = PropertyValueConverter.ToString(result);
 
