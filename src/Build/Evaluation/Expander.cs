@@ -187,14 +187,22 @@ internal partial class Expander<P, I>
     }
 
     /// <summary>
-    /// Accessor for the metadata.
-    /// Set temporarily during item metadata evaluation.
+    ///  Gets the metadata currently used for expansion.
     /// </summary>
-    internal IMetadataTable Metadata
-    {
-        get { return _metadata; }
-        set { _metadata = value; }
-    }
+    internal IMetadataTable Metadata => _metadata;
+
+    /// <summary>
+    ///  Temporarily replaces the metadata used for expansion.
+    /// </summary>
+    /// <param name="metadata">The metadata to use, or <see langword="null"/> when no metadata is available.</param>
+    /// <returns>
+    ///  A scope that restores the previous metadata when disposed.
+    /// </returns>
+    /// <remarks>
+    ///  Dispose nested scopes in reverse order of creation.
+    /// </remarks>
+    public MetadataScope UpdateMetadata(IMetadataTable metadata)
+        => new(this, metadata);
 
     /// <summary>
     /// Tests to see if the expression may contain expandable expressions, i.e.

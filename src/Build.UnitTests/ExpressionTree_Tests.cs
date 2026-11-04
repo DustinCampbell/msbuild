@@ -12,6 +12,7 @@ using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
+using Shouldly;
 using Xunit;
 
 #nullable disable
@@ -99,7 +100,7 @@ namespace Microsoft.Build.UnitTests
             Parser p = new Parser();
             GenericExpressionNode tree;
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(new PropertyDictionary<ProjectPropertyInstance>(), new ItemDictionary<ProjectItemInstance>(), FileSystems.Default, null);
-            expander.Metadata = new StringMetadataTable(null);
+            using var metadataScope = expander.UpdateMetadata(new StringMetadataTable(null));
             bool value;
 
             string fileThatMustAlwaysExist = FileUtilities.GetTemporaryFileName();
@@ -430,10 +431,7 @@ namespace Microsoft.Build.UnitTests
 
         private void AssertParseEvaluate(Parser p, string expression, Expander<ProjectPropertyInstance, ProjectItemInstance> expander, bool expected, ConditionEvaluator.IConditionEvaluationState state)
         {
-            if (expander.Metadata == null)
-            {
-                expander.Metadata = new StringMetadataTable(null);
-            }
+            using var metadataScope = expander.UpdateMetadata(expander.Metadata ?? new StringMetadataTable(null));
 
             GenericExpressionNode tree = p.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
 
@@ -451,7 +449,7 @@ namespace Microsoft.Build.UnitTests
             }
 
             bool result = tree.Evaluate(state);
-            Assert.Equal(expected, result);
+            result.ShouldBe(expected);
         }
 
 
@@ -464,10 +462,7 @@ namespace Microsoft.Build.UnitTests
         {
             bool fExceptionCaught;
 
-            if (expander.Metadata == null)
-            {
-                expander.Metadata = new StringMetadataTable(null);
-            }
+            using var metadataScope = expander.UpdateMetadata(expander.Metadata ?? new StringMetadataTable(null));
 
             try
             {
@@ -493,7 +488,7 @@ namespace Microsoft.Build.UnitTests
                 fExceptionCaught = true;
             }
 
-            Assert.True(fExceptionCaught);
+            fExceptionCaught.ShouldBeTrue();
         }
 
         /// <summary>

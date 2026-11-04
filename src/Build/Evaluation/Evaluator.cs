@@ -1503,23 +1503,19 @@ namespace Microsoft.Build.Evaluation
 
             // The expander should use the metadata from this item definition for further expansion, if any.
             // Otherwise, use a temporary, empty table.
-            if (itemDefinition != null)
-            {
-                _expander.Metadata = itemDefinition;
-            }
-            else
-            {
-                _expander.Metadata = new EvaluatorMetadataTable(itemDefinitionElement.ItemType);
-            }
+            IMetadataTable metadataTable = itemDefinition is not null
+                ? itemDefinition
+                : new EvaluatorMetadataTable(itemDefinitionElement.ItemType);
+            using var metadataScope = _expander.UpdateMetadata(metadataTable);
 
             if (EvaluateCondition(itemDefinitionElement, ExpanderOptions.ExpandPropertiesAndMetadata, ParserOptions.AllowPropertiesAndCustomMetadata))
             {
                 if (itemDefinition == null)
                 {
                     itemDefinition = _data.AddItemDefinition(itemDefinitionElement.ItemType);
-                    _expander.Metadata = itemDefinition;
                 }
 
+                using var itemDefinitionMetadataScope = _expander.UpdateMetadata(itemDefinition);
                 foreach (ProjectMetadataElement metadataElement in itemDefinitionElement.Metadata)
                 {
                     if (EvaluateCondition(metadataElement, ExpanderOptions.ExpandPropertiesAndMetadata, ParserOptions.AllowPropertiesAndCustomMetadata))
@@ -1537,9 +1533,6 @@ namespace Microsoft.Build.Evaluation
                     }
                 }
             }
-
-            // End of valid area for metadata expansion.
-            _expander.Metadata = null;
         }
 
         /// <summary>
