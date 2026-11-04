@@ -800,17 +800,21 @@ internal partial class Expander<P, I>
             }
 
             /// <summary>
-            /// Intrinsic function that transforms expressions by invoking methods of System.String on the itemspec
-            /// of the item in the pipeline.
+            ///  Transforms each item's include by invoking a <see cref="string"/> member.
             /// </summary>
+            /// <param name="input">The entries to transform.</param>
+            /// <param name="output">The collection receiving transformed entries.</param>
+            /// <param name="arguments">The unexpanded function arguments.</param>
+            /// <param name="includeNullEntries">Whether to retain entries whose transformed include is empty.</param>
+            /// <param name="functionName">The name of the string member to invoke.</param>
+            /// <param name="context">The properties, options, and services used during expansion.</param>
             internal static void ExecuteStringFunction(
-                Expander<P, I> expander,
                 List<TransformEntry> input,
                 List<TransformEntry> output,
                 string[] arguments,
                 bool includeNullEntries,
                 string functionName,
-                IElementLocation elementLocation)
+                ref readonly ExpansionContext context)
             {
                 // Transform: expression is like @(Compile->'%(foo)'), so create completely new items,
                 // using the Include from the source items
@@ -825,9 +829,7 @@ internal partial class Expander<P, I>
                         BindingFlags.Public | BindingFlags.InvokeMethod,
                         string.Empty);
 
-                    object result = function.Execute(
-                        item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation,
-                        expander.PropertiesUseTracker, expander.FileSystem);
+                    object result = function.Execute(item.Value, in context);
 
                     string include = PropertyValueConverter.ToString(result);
 

@@ -201,7 +201,9 @@ internal partial class Expander<P, I>
 
                         break;
                     case TransformKind.ExecuteStringFunction:
-                        Transforms.ExecuteStringFunction(expander, input, output, arguments, includeNullEntries, functionName, elementLocation);
+                        ExpansionContext expansionContext = new(
+                            expander._properties, ExpanderOptions.ExpandAll, elementLocation, expander.PropertiesUseTracker, expander.FileSystem);
+                        Transforms.ExecuteStringFunction(input, output, arguments, includeNullEntries, functionName, in expansionContext);
                         break;
                     case TransformKind.ClearMetadata:
                         Transforms.ClearMetadata(input, output, arguments, includeNullEntries, functionName, elementLocation);

@@ -6,9 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Framework;
-using Microsoft.Build.Shared.FileSystem;
 using ParseArgs = Microsoft.Build.Evaluation.Expander.ArgumentParser;
 
 namespace Microsoft.Build.Evaluation.Expander
@@ -355,7 +353,11 @@ namespace Microsoft.Build.Evaluation.Expander
             return false;
         }
 
-        internal static bool TryExecuteIntrinsicFunction(string methodName, out object? returnVal, IFileSystem fileSystem, object[] args)
+        internal static bool TryExecuteIntrinsicFunction(
+            string methodName,
+            out object? returnVal,
+            ref readonly ExpansionContext context,
+            object[] args)
         {
             returnVal = default;
             if (string.Equals(methodName, nameof(IntrinsicFunctions.EnsureTrailingSlash), StringComparison.OrdinalIgnoreCase))
@@ -386,7 +388,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, fileSystem);
+                    returnVal = IntrinsicFunctions.GetDirectoryNameOfFileAbove(arg0, arg1, context.FileSystem);
                     return true;
                 }
             }
@@ -427,7 +429,7 @@ namespace Microsoft.Build.Evaluation.Expander
             {
                 if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
-                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, fileSystem);
+                    returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem);
                     return true;
                 }
             }
@@ -761,25 +763,43 @@ namespace Microsoft.Build.Evaluation.Expander
                     return true;
                 }
             }
+            else if (string.Equals(methodName, nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase))
+            {
+                string projectPath = context.Properties!.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
+                var loggingContext = context.LoggingContext;
+                Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
+                if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
+                {
+                    returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
+                    return true;
+                }
+            }
             return false;
         }
 
         /// <summary>
-        /// Shortcut to avoid calling into binding if we recognize some most common functions.
-        /// Binding is expensive and throws first-chance MissingMethodExceptions, which is
-        /// bad for debugging experience and has a performance cost.
-        /// A typical binding operation with exception can take ~1.500 ms; this call is ~0.050 ms
-        /// (rough numbers just for comparison).
-        /// See https://github.com/dotnet/msbuild/issues/2217.
+        ///  Executes recognized functions without reflection binding.
         /// </summary>
-        /// <param name="methodName"> </param>
-        /// <param name="receiverType"> </param>
-        /// <param name="fileSystem"> </param>
-        /// <param name="returnVal">The value returned from the function call.</param>
-        /// <param name="objectInstance">Object that the function is called on.</param>
-        /// <param name="args">arguments.</param>
-        /// <returns>True if the well known function call binding was successful.</returns>
-        internal static bool TryExecuteWellKnownFunction(string methodName, Type receiverType, IFileSystem fileSystem, out object? returnVal, object objectInstance, object[] args)
+        /// <param name="methodName">The name of the function.</param>
+        /// <param name="receiverType">The type on which to look up a static function.</param>
+        /// <param name="context">The properties, options, and services used during expansion.</param>
+        /// <param name="returnVal">The value returned when the function is handled.</param>
+        /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static call.</param>
+        /// <param name="args">The prepared function arguments.</param>
+        /// <returns>
+        ///  <see langword="true"/> if the function was handled; otherwise, <see langword="false"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Avoids the cost of reflection binding and first-chance missing-method exceptions.
+        ///  See https://github.com/dotnet/msbuild/issues/2217.
+        /// </remarks>
+        internal static bool TryExecuteWellKnownFunction(
+            string methodName,
+            Type receiverType,
+            ref readonly ExpansionContext context,
+            out object? returnVal,
+            object objectInstance,
+            object[] args)
         {
             returnVal = null;
 
@@ -848,7 +868,7 @@ namespace Microsoft.Build.Evaluation.Expander
                 }
                 else if (receiverType == typeof(IntrinsicFunctions))
                 {
-                    return TryExecuteIntrinsicFunction(methodName, out returnVal, fileSystem, args);
+                    return TryExecuteIntrinsicFunction(methodName, out returnVal, in context, args);
                 }
                 else if (receiverType == typeof(Path))
                 {
@@ -930,29 +950,6 @@ namespace Microsoft.Build.Evaluation.Expander
             if (Traits.Instance.LogPropertyFunctionsRequiringReflection)
             {
                 LogFunctionCall(receiverType, methodName, "PropertyFunctionsRequiringReflection", objectInstance, args);
-            }
-
-            return false;
-        }
-
-        internal static bool TryExecuteWellKnownFunctionWithPropertiesParam<T>(string methodName, Type receiverType, LoggingContext loggingContext,
-                                                                            IPropertyProvider<T> properties, out object? returnVal, object objectInstance, object[] args)
-            where T : class, IProperty
-        {
-            returnVal = null;
-
-            if (receiverType == typeof(IntrinsicFunctions))
-            {
-                if (string.Equals(methodName, nameof(IntrinsicFunctions.RegisterBuildCheck), StringComparison.OrdinalIgnoreCase))
-                {
-                    string projectPath = properties.GetProperty("MSBuildProjectFullPath")?.EvaluatedValue ?? string.Empty;
-                    Assumed.NotNull(loggingContext, $"The logging context is missed. {nameof(IntrinsicFunctions.RegisterBuildCheck)} can not be invoked.");
-                    if (ParseArgs.TryGetArg(args, out string? arg0) && arg0 != null)
-                    {
-                        returnVal = IntrinsicFunctions.RegisterBuildCheck(projectPath, arg0, loggingContext);
-                        return true;
-                    }
-                }
             }
 
             return false;
