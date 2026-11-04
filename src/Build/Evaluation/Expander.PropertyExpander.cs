@@ -486,8 +486,7 @@ internal partial class Expander<P, I>
                     _elementLocation,
                     propertyValue,
                     _propertiesUseTracker,
-                    _fileSystem,
-                    _propertiesUseTracker.LoggingContext);
+                    _fileSystem);
 
                 if (function is null)
                 {

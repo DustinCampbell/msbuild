@@ -11,7 +11,6 @@ using System.IO;
 #endif
 using System.Linq;
 using System.Reflection;
-using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -117,8 +116,6 @@ internal partial class Expander<P, I>
 
         private readonly IFileSystem _fileSystem;
 
-        private readonly LoggingContext _loggingContext;
-
         /// <summary>
         /// Construct a function that will be executed during property evaluation.
         /// </summary>
@@ -135,8 +132,7 @@ internal partial class Expander<P, I>
             BindingFlags bindingFlags,
             string remainder,
             PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext)
+            IFileSystem fileSystem)
         {
             _methodMethodName = methodName;
             if (arguments == null)
@@ -165,7 +161,6 @@ internal partial class Expander<P, I>
             _remainder = remainder;
             _propertiesUseTracker = propertiesUseTracker;
             _fileSystem = fileSystem;
-            _loggingContext = loggingContext;
         }
 
         /// <summary>
@@ -202,19 +197,17 @@ internal partial class Expander<P, I>
         /// <c>DynamicallyAccessedMembers</c> constraint on an <see cref="object"/> parameter, so the unavoidable
         /// trim suppression lives, minimized, in <c>FunctionBuilder.SetReceiverType</c>.
         /// </param>
-        /// <param name="propertiesUseTracker">Tracks property reads performed while evaluating the function.</param>
+        /// <param name="propertiesUseTracker">Tracks property reads and supplies the logging context.</param>
         /// <param name="fileSystem">File system abstraction used by file and directory property functions.</param>
-        /// <param name="loggingContext">Logging context for the operation; may be <see langword="null"/>.</param>
         internal static Function ExtractPropertyFunction(
             string expressionFunction,
             IElementLocation elementLocation,
             object propertyValue,
             PropertiesUseTracker propertiesUseTracker,
-            IFileSystem fileSystem,
-            LoggingContext loggingContext)
+            IFileSystem fileSystem)
         {
             // Used to aggregate all the components needed for a Function
-            FunctionBuilder functionBuilder = new FunctionBuilder { FileSystem = fileSystem, LoggingContext = loggingContext };
+            FunctionBuilder functionBuilder = new FunctionBuilder { FileSystem = fileSystem };
 
             // By default the expression root is the whole function expression
             ReadOnlySpan<char> expressionRoot = expressionFunction == null ? ReadOnlySpan<char>.Empty : expressionFunction.AsSpan();
@@ -515,7 +508,9 @@ internal partial class Expander<P, I>
                         if (!wellKnownFunctionSuccess)
                         {
                             // Some well-known functions need evaluated value from properties.
-                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(_methodMethodName, _receiverType, _loggingContext, properties, out functionResult, objectInstance, args);
+                            wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunctionWithPropertiesParam(
+                                _methodMethodName, _receiverType, _propertiesUseTracker.LoggingContext, properties,
+                                out functionResult, objectInstance, args);
                         }
                     }
                     // we need to preserve the same behavior on exceptions as the actual binder

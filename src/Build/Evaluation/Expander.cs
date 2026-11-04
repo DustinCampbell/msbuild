@@ -40,6 +40,7 @@ internal partial class Expander<P, I>
     /// Enabled by ExpanderOptions.Truncate.
     /// </summary>
     private const int CharacterLimitPerExpansion = 1024;
+
     /// <summary>
     /// A limit for truncating string expansions for item groups within an evaluated Condition. N items will be evaluated such as 'A;B;C;...'.
     /// Enabled by ExpanderOptions.Truncate.
@@ -55,12 +56,12 @@ internal partial class Expander<P, I>
     /// <summary>
     /// Properties to draw on for expansion.
     /// </summary>
-    private IPropertyProvider<P> _properties;
+    private readonly IPropertyProvider<P> _properties;
 
     /// <summary>
     /// Items to draw on for expansion.
     /// </summary>
-    private IItemProvider<I> _items;
+    private readonly IItemProvider<I> _items;
 
     /// <summary>
     /// Metadata to draw on for expansion.
@@ -68,125 +69,121 @@ internal partial class Expander<P, I>
     private IMetadataTable _metadata;
 
     /// <summary>
-    /// Set of properties which are null during expansion.
+    ///  Gets the filesystem used during expansion.
     /// </summary>
-    private PropertiesUseTracker _propertiesUseTracker;
-
-    private readonly IFileSystem _fileSystem;
-
-    private readonly LoggingContext _loggingContext;
+    public IFileSystem FileSystem { get; }
 
     /// <summary>
-    /// Non-null if the expander was constructed for evaluation.
+    ///  Gets the file matcher used to expand file patterns.
     /// </summary>
-    internal EvaluationContext EvaluationContext { get; }
-
-    private Expander(IPropertyProvider<P> properties, LoggingContext loggingContext)
-    {
-        _properties = properties;
-        _propertiesUseTracker = new PropertiesUseTracker(loggingContext);
-        _loggingContext = loggingContext;
-    }
+    /// <value>
+    ///  The supplied file matcher, or <see cref="FileMatcher.Default"/> when none was supplied.
+    /// </value>
+    public FileMatcher FileMatcher { get; }
 
     /// <summary>
-    /// Creates an expander passing it some properties to use.
-    /// Properties may be null.
+    ///  Gets the logging context associated with this expander.
     /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IFileSystem fileSystem, LoggingContext loggingContext)
-        : this(properties, loggingContext)
-    {
-        _fileSystem = fileSystem;
-    }
+    /// <value>
+    ///  The logging context supplied at construction, or <see langword="null"/> when none was supplied.
+    /// </value>
+    public LoggingContext LoggingContext => PropertiesUseTracker.LoggingContext;
 
     /// <summary>
-    /// Creates an expander passing it some properties to use.
-    /// Properties may be null.
-    ///
-    /// Used for tests and for ToolsetReader - that operates agnostic on the project
-    ///   - so no logging context is passed, and no BuildCheck check will be executed.
+    ///  Gets the tracker for property reads and uses of uninitialized properties.
     /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IFileSystem fileSystem)
-    : this(properties, fileSystem, null)
-    { }
+    public PropertiesUseTracker PropertiesUseTracker { get; }
 
     /// <summary>
-    /// Creates an expander passing it some properties to use and the evaluation context.
-    /// Properties may be null.
+    ///  Initializes all providers and services for an expander.
     /// </summary>
-    internal Expander(IPropertyProvider<P> properties, EvaluationContext evaluationContext,
-        LoggingContext loggingContext)
-        : this(properties, loggingContext)
-    {
-        _fileSystem = evaluationContext.FileSystem;
-        EvaluationContext = evaluationContext;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties and items to use.
-    /// Either or both may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IFileSystem fileSystem, LoggingContext loggingContext)
-        : this(properties, fileSystem, loggingContext)
-    {
-        _items = items;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Expander{P, I}"/> class.
-    /// Creates an expander passing it some properties and items to use, and the evaluation context.
-    /// Either or both may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, EvaluationContext evaluationContext, LoggingContext loggingContext)
-        : this(properties, evaluationContext, loggingContext)
-    {
-        _items = items;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties, items, and/or metadata to use.
-    /// Any or all may be null.
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IMetadataTable metadata, IFileSystem fileSystem, LoggingContext loggingContext)
-        : this(properties, items, fileSystem, loggingContext)
-    {
-        _metadata = metadata;
-    }
-
-    /// <summary>
-    /// Creates an expander passing it some properties, items, and/or metadata to use.
-    /// Any or all may be null.
-    ///
-    /// This is for the purpose of evaluations through API calls, that might not be able to pass the logging context
-    ///  - BuildCheck checking won't be executed for those.
-    /// (for one of the calls we can actually pass IDataConsumingContext - as we have logging service and project)
-    ///
-    /// </summary>
-    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IMetadataTable metadata, IFileSystem fileSystem)
-        : this(properties, items, fileSystem, null)
-    {
-        _metadata = metadata;
-    }
-
+    /// <param name="properties">The property provider, or <see langword="null"/>.</param>
+    /// <param name="items">The item provider, or <see langword="null"/>.</param>
+    /// <param name="metadata">The metadata provider, or <see langword="null"/>.</param>
+    /// <param name="fileSystem">The filesystem used during expansion.</param>
+    /// <param name="fileMatcher">
+    ///  The file matcher, or <see langword="null"/> to use <see cref="FileMatcher.Default"/>.
+    /// </param>
+    /// <param name="loggingContext">The logging context, or <see langword="null"/> when logging is unavailable.</param>
     private Expander(
         IPropertyProvider<P> properties,
         IItemProvider<I> items,
         IMetadataTable metadata,
         IFileSystem fileSystem,
-        EvaluationContext evaluationContext,
+        FileMatcher fileMatcher,
         LoggingContext loggingContext)
-        : this(properties, items, metadata, fileSystem, loggingContext)
     {
-        EvaluationContext = evaluationContext;
+        _properties = properties;
+        _items = items;
+        _metadata = metadata;
+        PropertiesUseTracker = new PropertiesUseTracker(loggingContext);
+        FileSystem = fileSystem;
+        FileMatcher = fileMatcher ?? FileMatcher.Default;
     }
 
     /// <summary>
-    /// Recreates the expander with passed in logging context
+    ///  Creates an expander using a property provider and filesystem.
     /// </summary>
-    /// <param name="loggingContext"></param>
-    /// <returns></returns>
-    internal Expander<P, I> WithLoggingContext(LoggingContext loggingContext)
+    /// <param name="properties">The property provider, or <see langword="null"/>.</param>
+    /// <param name="fileSystem">The filesystem used during expansion.</param>
+    /// <param name="loggingContext">The logging context, or <see langword="null"/> when logging is unavailable.</param>
+    /// <remarks>
+    ///  Tests and ToolsetReader can omit <paramref name="loggingContext"/>. Without a logging context,
+    ///  property reads are not forwarded to logging or BuildCheck.
+    /// </remarks>
+    internal Expander(IPropertyProvider<P> properties, IFileSystem fileSystem, LoggingContext loggingContext = null)
+        : this(properties, items: null, metadata: null, fileSystem, fileMatcher: null, loggingContext)
     {
-        return new Expander<P, I>(_properties, _items, _metadata, _fileSystem, EvaluationContext, loggingContext);
+    }
+
+    /// <summary>
+    ///  Creates an expander using property and item providers and a filesystem.
+    /// </summary>
+    /// <param name="properties">The property provider, or <see langword="null"/>.</param>
+    /// <param name="items">The item provider, or <see langword="null"/>.</param>
+    /// <param name="fileSystem">The filesystem used during expansion.</param>
+    /// <param name="loggingContext">The logging context, or <see langword="null"/> when logging is unavailable.</param>
+    internal Expander(IPropertyProvider<P> properties, IItemProvider<I> items, IFileSystem fileSystem, LoggingContext loggingContext = null)
+        : this(properties, items, metadata: null, fileSystem, fileMatcher: null, loggingContext)
+    {
+    }
+
+    /// <summary>
+    ///  Creates an expander using property and item providers and an evaluation context.
+    /// </summary>
+    /// <param name="properties">The property provider, or <see langword="null"/>.</param>
+    /// <param name="items">The item provider, or <see langword="null"/>.</param>
+    /// <param name="evaluationContext">The context supplying the filesystem and file matcher.</param>
+    /// <param name="loggingContext">The logging context, or <see langword="null"/> when logging is unavailable.</param>
+    internal Expander(
+        IPropertyProvider<P> properties,
+        IItemProvider<I> items,
+        EvaluationContext evaluationContext,
+        LoggingContext loggingContext = null)
+        : this(properties, items, metadata: null, evaluationContext.FileSystem, evaluationContext.FileMatcher, loggingContext)
+    {
+    }
+
+    /// <summary>
+    ///  Creates an expander using property, item, and metadata providers and a filesystem.
+    /// </summary>
+    /// <param name="properties">The property provider, or <see langword="null"/>.</param>
+    /// <param name="items">The item provider, or <see langword="null"/>.</param>
+    /// <param name="metadata">The metadata provider, or <see langword="null"/>.</param>
+    /// <param name="fileSystem">The filesystem used during expansion.</param>
+    /// <param name="loggingContext">The logging context, or <see langword="null"/> when logging is unavailable.</param>
+    /// <remarks>
+    ///  API callers can omit <paramref name="loggingContext"/> when it is unavailable. Without a logging
+    ///  context, property reads are not forwarded to logging or BuildCheck.
+    /// </remarks>
+    internal Expander(
+        IPropertyProvider<P> properties,
+        IItemProvider<I> items,
+        IMetadataTable metadata,
+        IFileSystem fileSystem,
+        LoggingContext loggingContext = null)
+        : this(properties, items, metadata, fileSystem, fileMatcher: null, loggingContext)
+    {
     }
 
     /// <summary>
@@ -197,16 +194,6 @@ internal partial class Expander<P, I>
     {
         get { return _metadata; }
         set { _metadata = value; }
-    }
-
-    /// <summary>
-    /// If a property is expanded but evaluates to null then it is considered to be un-initialized.
-    /// We want to keep track of these properties so that we can warn if the property gets set later on.
-    /// </summary>
-    internal PropertiesUseTracker PropertiesUseTracker
-    {
-        get { return _propertiesUseTracker; }
-        set { _propertiesUseTracker = value; }
     }
 
     /// <summary>
@@ -254,8 +241,9 @@ internal partial class Expander<P, I>
 
         Assumed.NotNull(elementLocation);
 
-        string result = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation, _loggingContext);
-        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        string result = MetadataExpander.ExpandMetadataLeaveEscaped(
+            expression, _metadata, options, elementLocation, LoggingContext);
+        result = PropertyExpander.ExpandPropertiesLeaveEscaped(result, _properties, options, elementLocation, PropertiesUseTracker, FileSystem);
         result = ItemExpander.ExpandItemVectorsIntoString(this, result, _items, options, elementLocation);
         result = FileUtilities.MaybeAdjustFilePath(result);
 
@@ -307,7 +295,7 @@ internal partial class Expander<P, I>
         Assumed.NotNull(elementLocation);
 
         expression = MetadataExpander.ExpandMetadataLeaveEscaped(expression, _metadata, options, elementLocation);
-        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, _propertiesUseTracker, _fileSystem);
+        expression = PropertyExpander.ExpandPropertiesLeaveEscaped(expression, _properties, options, elementLocation, PropertiesUseTracker, FileSystem);
         expression = FileUtilities.MaybeAdjustFilePath(expression);
 
         List<T> result = new List<T>();
