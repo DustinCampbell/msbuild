@@ -825,8 +825,7 @@ internal partial class Expander<P, I>
                         BindingFlags.Public | BindingFlags.InvokeMethod,
                         string.Empty,
                         expander.PropertiesUseTracker,
-                        expander._fileSystem,
-                        expander._loggingContext);
+                        expander.FileSystem);
 
                     object result = function.Execute(item.Value, expander._properties, ExpanderOptions.ExpandAll, elementLocation);
 

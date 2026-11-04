@@ -490,7 +490,7 @@ namespace Microsoft.Build.Evaluation
                             includeSplitEscaped,
                             excludeSpecsEscaped: null,
                             forceEvaluate: false,
-                            fileMatcher: expander.EvaluationContext?.FileMatcher,
+                            fileMatcher: expander.FileMatcher,
                             loggingMechanism: loggingService,
                             includeLocation: itemElement.IncludeLocation,
                             projectFilePath: projectFilePath,
