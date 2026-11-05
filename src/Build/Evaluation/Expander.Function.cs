@@ -341,8 +341,9 @@ internal partial class Expander<P, I>
         internal object Execute(object objectInstance, ref readonly ExpansionContext context)
         {
             ExpanderOptions options = context.Options;
-
             Debug.Assert((options & ExpanderOptions.ExpandProperties) != 0, $"{ExpanderOptions.ExpandProperties} must be set.");
+
+            ErrorReporter errorReporter = new(context.Location);
 
             object functionResult = String.Empty;
             object[] args = null;
@@ -355,8 +356,7 @@ internal partial class Expander<P, I>
                     // Check that the function that we're going to call is valid to call
                     if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(
-                            context.Location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                        errorReporter.ThrowFunctionMethodUnavailable(_methodMethodName, _receiverType.FullName);
                     }
 
                     _bindingFlags |= BindingFlags.Static;
@@ -366,8 +366,7 @@ internal partial class Expander<P, I>
                     // Check that the function that we're going to call is valid to call
                     if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
                     {
-                        ProjectErrorUtilities.ThrowInvalidProject(
-                            context.Location, "InvalidFunctionMethodUnavailable", _methodMethodName, _receiverType.FullName);
+                        errorReporter.ThrowFunctionMethodUnavailable(_methodMethodName, _receiverType.FullName);
                     }
 
                     _bindingFlags |= BindingFlags.Instance;
@@ -489,8 +488,7 @@ internal partial class Expander<P, I>
                             return partiallyEvaluated;
                         }
 
-                        ProjectErrorUtilities.ThrowInvalidProject(
-                            context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message.Replace("\r\n", " "));
+                        errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.Message.Replace("\r\n", " "));
                     }
 
                     if (!wellKnownFunctionSuccess)
@@ -554,8 +552,8 @@ internal partial class Expander<P, I>
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
                     return partiallyEvaluated;
                 }
-                ProjectErrorUtilities.ThrowInvalidProject(
-                    context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
+
+                errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
                 return null;
             }
 
@@ -566,16 +564,15 @@ internal partial class Expander<P, I>
                 // invocation. Give them some more relevant info in that case
                 if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
                 {
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        context.Location, "InvalidFunctionStaticMethodSyntax", _expression,
+                    errorReporter.ThrowInvalidStaticMethodSyntax(
+                        _expression,
                         ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
                 else
                 {
                     // We ended up with something other than a function expression
                     string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
-                    ProjectErrorUtilities.ThrowInvalidProject(
-                        context.Location, "InvalidFunctionPropertyExpression", partiallyEvaluated, ex.Message);
+                    errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.Message);
                 }
 
                 return null;
