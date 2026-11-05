@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using Microsoft.Build.Evaluation.Expander;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
@@ -447,18 +448,6 @@ internal partial class Expander<P, I>
                     args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
                 }
 
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    // Special case a few methods that take extra parameters that can't be passed in by the user
-                    if (_methodMethodName.Equals("GetPathOfFileAbove") && args.Length == 1)
-                    {
-                        // Append the source directory as a parameter to GetPathOfFileAbove if the user only
-                        // specified the file name.  This is syntactic sugar so they don't have to always
-                        // include $(MSBuildThisFileDirectory) as a parameter.
-                        args = [args[0], context.StartingDirectory];
-                    }
-                }
-
                 // If we've been asked to construct an instance, then we
                 // need to locate an appropriate constructor and invoke it
                 if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
@@ -482,7 +471,8 @@ internal partial class Expander<P, I>
                     // we need to preserve the same behavior on exceptions as the actual binder
                     catch (Exception ex)
                     {
-                        string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                        string partiallyEvaluated = FormatFunctionCall(
+                            objectInstance, _methodMethodName, args, in context);
                         if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                         {
                             return partiallyEvaluated;
@@ -546,7 +536,8 @@ internal partial class Expander<P, I>
             catch (TargetInvocationException ex)
             {
                 // We ended up with something other than a function expression
-                string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                string partiallyEvaluated = FormatFunctionCall(
+                    objectInstance, _methodMethodName, args, in context);
                 if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
                 {
                     // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
@@ -571,7 +562,8 @@ internal partial class Expander<P, I>
                 else
                 {
                     // We ended up with something other than a function expression
-                    string partiallyEvaluated = GenerateStringOfMethodExecuted(_expression, objectInstance, _methodMethodName, args);
+                    string partiallyEvaluated = FormatFunctionCall(
+                        objectInstance, _methodMethodName, args, in context);
                     errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.Message);
                 }
 
@@ -1019,70 +1011,72 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Make an attempt to create a string showing what we were trying to execute when we failed.
-        /// This will show any intermediate evaluation which may help the user figure out what happened.
+        ///  Builds diagnostic text showing the function call and its evaluated arguments.
         /// </summary>
-        private string GenerateStringOfMethodExecuted(string expression, object objectInstance, string name, object[] args)
+        /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static call.</param>
+        /// <param name="name">The member name.</param>
+        /// <param name="args">The arguments expanded so far, or <see langword="null"/> before expansion starts.</param>
+        /// <param name="context">The expansion context supplying the implicit starting directory.</param>
+        /// <returns>
+        ///  The evaluated call, including the implicit starting directory when applicable.
+        /// </returns>
+        private string FormatFunctionCall(object objectInstance, string name, object[] args, ref readonly ExpansionContext context)
         {
-            string parameters = String.Empty;
-            if (args != null)
+            StringBuilder builder = StringBuilderCache.Acquire();
+
+            if (objectInstance is null)
             {
-                foreach (object arg in args)
-                {
-                    if (arg == null)
-                    {
-                        parameters += "null";
-                    }
-                    else if (arg is string argString)
-                    {
-                        parameters += argString.Length == 0 ? "''" : argString;
-                    }
-                    else
-                    {
-                        parameters += Convert.ToString(arg, CultureInfo.InvariantCulture);
-                    }
-
-                    parameters += ", ";
-                }
-
-                if (parameters.Length > 2)
-                {
-                    parameters = parameters.Substring(0, parameters.Length - 2);
-                }
-            }
-
-            if (objectInstance == null)
-            {
-                string typeName = _receiverType.FullName;
-
-                // We don't want to expose the real type name of our intrinsics
-                // so we'll replace it with "MSBuild"
-                if (_receiverType == typeof(IntrinsicFunctions))
-                {
-                    typeName = "MSBuild";
-                }
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"[{typeName}]::{name}({parameters})";
-                }
-                else
-                {
-                    return $"[{typeName}]::{name}";
-                }
+                // We don't want to expose the real type name of our intrinsics, so we'll replace it with "MSBuild"
+                builder.Append('[');
+                builder.Append(_receiverType == typeof(IntrinsicFunctions) ? "MSBuild" : _receiverType.FullName);
+                builder.Append("]::");
             }
             else
             {
-                string propertyValue = $"\"{objectInstance as string}\"";
-
-                if ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                {
-                    return $"{propertyValue}.{name}({parameters})";
-                }
-                else
-                {
-                    return $"{propertyValue}.{name}";
-                }
+                builder.Append('"');
+                builder.Append(objectInstance as string);
+                builder.Append("\".");
             }
+
+            builder.Append(name);
+
+            if ((_bindingFlags & BindingFlags.InvokeMethod) != 0)
+            {
+                builder.Append('(');
+                if (args is not null)
+                {
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        if (i > 0)
+                        {
+                            builder.Append(", ");
+                        }
+
+                        builder.Append(FormatArgument(args[i]));
+                    }
+
+                    // Include the implicit starting directory without allocating an argument array.
+                    if (args.Length == 1 &&
+                        _receiverType == typeof(IntrinsicFunctions) &&
+                        name.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.Ordinal))
+                    {
+                        builder.Append(", ");
+                        builder.Append(FormatArgument(context.StartingDirectory));
+                    }
+                }
+
+                builder.Append(')');
+            }
+
+            return StringBuilderCache.GetStringAndRelease(builder);
+
+            static string FormatArgument(object arg)
+                => arg switch
+                {
+                    null => "null",
+                    string text => text.Length == 0 ? "''" : text,
+                    _ => Convert.ToString(arg, CultureInfo.InvariantCulture),
+                };
         }
 
         /// <summary>
