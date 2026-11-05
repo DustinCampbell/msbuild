@@ -427,6 +427,18 @@ namespace Microsoft.Build.Evaluation.Expander
             }
             else if (string.Equals(methodName, nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.OrdinalIgnoreCase))
             {
+                // Preserve the case-sensitive implicit-directory form.
+                if (methodName.Equals(nameof(IntrinsicFunctions.GetPathOfFileAbove), StringComparison.Ordinal) &&
+                    ParseArgs.TryGetArg(args, out string? file))
+                {
+                    string? startingDirectory = context.StartingDirectory;
+                    if (startingDirectory is not null)
+                    {
+                        returnVal = IntrinsicFunctions.GetPathOfFileAbove(file, startingDirectory, context.FileSystem);
+                        return true;
+                    }
+                }
+
                 if (ParseArgs.TryGetArgs(args, out string? arg0, out string? arg1))
                 {
                     returnVal = IntrinsicFunctions.GetPathOfFileAbove(arg0, arg1, context.FileSystem);
