@@ -163,6 +163,7 @@
     <Compile Include="Evaluation\IItemTypeDefinition.cs" />
     <Compile Include="Evaluation\IntrinsicFunctionOverload.cs" />
     <Compile Include="Evaluation\ExpansionContext.cs" />
+    <Compile Include="Evaluation\Expander.ErrorReporter.cs" />
     <Compile Include="Evaluation\PropertiesUseTracker.cs" />
     <Compile Include="Evaluation\PropertyFunctionReceiver.cs" />
     <Compile Include="Evaluation\ToolsetElement.cs" />
