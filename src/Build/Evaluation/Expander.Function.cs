@@ -296,38 +296,6 @@ internal partial class Expander<P, I>
         }
 
         /// <summary>
-        /// Determines whether the argument at <paramref name="argIndex"/> for a System.IO.File
-        /// or System.IO.Directory method is a file/directory path that should be resolved
-        /// against the thread-local working directory.
-        /// </summary>
-        private static bool IsFileOrDirectoryPathArgument(string methodName, int argIndex)
-        {
-            // First argument is always a path for all File/Directory static methods.
-            if (argIndex == 0)
-            {
-                return true;
-            }
-
-            // Second argument is a destination path for Copy, Move, Replace.
-            // CreateSymbolicLink is intentionally excluded — its arg1 (pathToTarget) is the
-            // symlink target and relative values are semantically meaningful (stored as-is).
-            if (argIndex == 1)
-            {
-                return string.Equals(methodName, "Copy", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(methodName, "Move", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
-            }
-
-            // Third argument is the backup path for Replace.
-            if (argIndex == 2)
-            {
-                return string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
-            }
-
-            return false;
-        }
-
-        /// <summary>
         ///  Executes the function on the given instance.
         /// </summary>
         /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static call.</param>
@@ -335,10 +303,6 @@ internal partial class Expander<P, I>
         /// <returns>
         ///  The function result, including any remaining chained calls.
         /// </returns>
-        [UnconditionalSuppressMessage("Trimming", "IL2074:UnrecognizedReflectionPattern",
-            Justification = "_receiverType is reassigned from a runtime property value whose type is restricted to the property-function allowlist, whose members are preserved for trimming.")]
-        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
-            Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
         internal object Execute(object objectInstance, ref readonly ExpansionContext context)
         {
             ExpanderOptions options = context.Options;
@@ -346,168 +310,68 @@ internal partial class Expander<P, I>
 
             ErrorReporter errorReporter = new(context.Location);
 
-            object functionResult = String.Empty;
+            // If there is no object instance, then the method invocation will be a static
+            if (objectInstance is null)
+            {
+                // Check that the function that we're going to call is valid to call
+                if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
+                {
+                    errorReporter.ThrowFunctionMethodUnavailable(_methodMethodName, _receiverType.FullName);
+                }
+
+                _bindingFlags |= BindingFlags.Static;
+            }
+            else
+            {
+                // Check that the function that we're going to call is valid to call
+                if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
+                {
+                    errorReporter.ThrowFunctionMethodUnavailable(_methodMethodName, _receiverType.FullName);
+                }
+
+                _bindingFlags |= BindingFlags.Instance;
+
+                // The object that we're about to call methods on may have escaped characters
+                // in it, we want to operate on the unescaped string in the function, just as we
+                // want to pass arguments that are unescaped (see below)
+                if (objectInstance is string s)
+                {
+                    objectInstance = EscapingUtilities.UnescapeAll(s);
+                }
+            }
+
+            object functionResult = string.Empty;
             object[] args = null;
 
             try
             {
-                // If there is no object instance, then the method invocation will be a static
-                if (objectInstance == null)
+                if (!TryExpandComparisonArguments(ref objectInstance, in context, out args))
                 {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsStaticMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        errorReporter.ThrowFunctionMethodUnavailable(_methodMethodName, _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Static;
-                }
-                else
-                {
-                    // Check that the function that we're going to call is valid to call
-                    if (!IsInstanceMethodAvailable(_receiverType, _methodMethodName))
-                    {
-                        errorReporter.ThrowFunctionMethodUnavailable(_methodMethodName, _receiverType.FullName);
-                    }
-
-                    _bindingFlags |= BindingFlags.Instance;
-
-                    // The object that we're about to call methods on may have escaped characters
-                    // in it, we want to operate on the unescaped string in the function, just as we
-                    // want to pass arguments that are unescaped (see below)
-                    if (objectInstance is string objectInstanceString)
-                    {
-                        objectInstance = EscapingUtilities.UnescapeAll(objectInstanceString);
-                    }
+                    args = ExpandArguments(in context);
                 }
 
-                // We have a methodinfo match, need to plug in the arguments
-                args = new object[_arguments.Length];
+                bool isConstructor = string.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase);
+                bool wellKnownFunctionSuccess = false;
 
-                // Assemble our arguments ready for passing to our method
-                for (int n = 0; n < _arguments.Length; n++)
+                try
                 {
-                    object argument = PropertyExpander.ExpandFunctionArgumentProperties(_arguments[n], in context);
-
-                    if (argument is string argumentValue)
-                    {
-                        // Unescape the value since we're about to send it out of the engine and into
-                        // the function being called. If a file or a directory function, fix the path
-                        // Use fully qualified type names to match the System.IO.* types
-                        // registered in AvailableStaticMethods.
-                        if (_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory)
-                            || _receiverType == typeof(System.IO.Path))
-                        {
-                            argumentValue = FileUtilities.FixFilePath(argumentValue);
-                        }
-
-                        args[n] = EscapingUtilities.UnescapeAll(argumentValue);
-
-                        // In -mt mode, resolve relative path arguments for File/Directory methods
-                        // against the thread-local working directory instead of the process-global
-                        // Environment.CurrentDirectory which may point to a different project's directory.
-                        // In multiprocess mode, CurrentThreadWorkingDirectory is null and
-                        // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
-                        // This must happen AFTER UnescapeAll so that the working directory path
-                        // (a real filesystem path) is not corrupted by MSBuild unescape processing.
-                        if ((_receiverType == typeof(System.IO.File) || _receiverType == typeof(System.IO.Directory))
-                            && IsFileOrDirectoryPathArgument(_methodMethodName, n))
-                        {
-                            AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory((string)args[n]);
-                            if (resolved.HasValue)
-                            {
-                                args[n] = (string)resolved.GetValueOrDefault();
-                            }
-                        }
-                    }
-                    else
-                    {
-                        args[n] = argument;
-                    }
+                    wellKnownFunctionSuccess = TryInvokeWellKnownFunction(objectInstance, args, isConstructor, in context, out functionResult);
+                }
+                catch (Exception ex)
+                {
+                    return HandleFunctionError(ex, options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError), in context);
                 }
 
-                // Handle special cases where the object type needs to affect the choice of method
-                // The default binder and method invoke, often chooses the incorrect Equals and CompareTo and
-                // fails the comparison, because what we have on the right is generally a string.
-                // This special casing is to realize that its a comparison that is taking place and handle the
-                // argument type coercion accordingly; effectively pre-preparing the argument type so
-                // that it matches the left hand side ready for the default binder’s method invoke.
-                if (objectInstance != null && args.Length == 1 && (String.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) || String.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
+                if (!wellKnownFunctionSuccess)
                 {
-                    // Support comparison when the lhs is an integer
-                    if (ParseArgs.IsFloatingPointRepresentation(args[0]))
-                    {
-                        if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double result))
-                        {
-                            objectInstance = result;
-                            _receiverType = objectInstance.GetType();
-                        }
-                    }
-
-                    // change the type of the final unescaped string into the destination
-                    args[0] = Convert.ChangeType(args[0], objectInstance.GetType(), CultureInfo.InvariantCulture);
-                }
-
-                // If we've been asked to construct an instance, then we
-                // need to locate an appropriate constructor and invoke it
-                if (String.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out functionResult, args))
-                    {
-                        functionResult = LateBindExecute(null /* no previous exception */, BindingFlags.Public | BindingFlags.Instance, null /* no instance for a constructor */, args, true /* is constructor */);
-                    }
-                }
-                else
-                {
-                    bool wellKnownFunctionSuccess = false;
-
                     try
                     {
-                        // First attempt to recognize some well-known functions to avoid binding
-                        // and potential first-chance MissingMethodExceptions.
-                        wellKnownFunctionSuccess = WellKnownFunctions.TryExecuteWellKnownFunction(
-                            _methodMethodName, _receiverType, in context, out functionResult, objectInstance, args);
+                        functionResult = InvokeUsingReflection(objectInstance, args, isConstructor);
                     }
-                    // we need to preserve the same behavior on exceptions as the actual binder
-                    catch (Exception ex)
+                    catch (TargetInvocationException ex)
                     {
-                        string partiallyEvaluated = FormatFunctionCall(
-                            objectInstance, _methodMethodName, args, in context);
-                        if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                        {
-                            return partiallyEvaluated;
-                        }
-
-                        errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.Message.Replace("\r\n", " "));
-                    }
-
-                    if (!wellKnownFunctionSuccess)
-                    {
-                        // Execute the function given converted arguments
-                        // The only exception that we should catch to try a late bind here is missing method
-                        // otherwise there is the potential of running a function twice!
-                        try
-                        {
-                            // If there are any out parameters, try to figure out their type and create defaults for them as appropriate before calling the method.
-                            if (args.Any(a => "out _".Equals(a)))
-                            {
-                                IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags).Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
-                                functionResult = GetMethodResult(objectInstance, methods, args, 0);
-                            }
-                            else
-                            {
-                                // If there are no out parameters, use InvokeMember using the standard binder - this will match and coerce as needed
-                                functionResult = _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args);
-                            }
-                        }
-                        // If we're invoking a method, then there are deeper attempts that can be made to invoke the method.
-                        // If not, we were asked to get a property or field but found that we cannot locate it. No further argument coercion is possible, so throw.
-                        catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
-                        {
-                            // The standard binder failed, so do our best to coerce types into the arguments for the function
-                            // This may happen if the types need coercion, but it may also happen if the object represents a type that contains open type parameters, that is, ContainsGenericParameters returns true.
-                            functionResult = LateBindExecute(ex, _bindingFlags, objectInstance, args, false /* is not constructor */);
-                        }
+                        return HandleFunctionError(
+                            ex.InnerException, options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError), in context);
                     }
                 }
 
@@ -515,15 +379,15 @@ internal partial class Expander<P, I>
                 // so that we maintain the "engine contains escaped data" state.
                 // The exception is that the user is explicitly calling MSBuild::Unescape, MSBuild::Escape, or ConvertFromBase64
                 if (functionResult is string functionResultString &&
-                    !String.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
-                    !String.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals("Unescape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals("Escape", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals("ConvertFromBase64", _methodMethodName, StringComparison.OrdinalIgnoreCase))
                 {
                     functionResult = EscapingUtilities.Escape(functionResultString);
                 }
 
                 // We have nothing left to parse, so we'll return what we have
-                if (String.IsNullOrEmpty(_remainder))
+                if (_remainder.IsNullOrEmpty())
                 {
                     return functionResult;
                 }
@@ -532,42 +396,223 @@ internal partial class Expander<P, I>
                 return PropertyExpander.ExpandPropertyBody(_remainder, functionResult, in context);
             }
 
-            // Exceptions coming from the actual function called are wrapped in a TargetInvocationException
-            catch (TargetInvocationException ex)
-            {
-                // We ended up with something other than a function expression
-                string partiallyEvaluated = FormatFunctionCall(
-                    objectInstance, _methodMethodName, args, in context);
-                if (options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError))
-                {
-                    // If the caller wants to ignore errors (in a log statement for example), just return the partially evaluated value
-                    return partiallyEvaluated;
-                }
-
-                errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.InnerException.Message.Replace("\r\n", " "));
-                return null;
-            }
-
             // Any other exception was thrown by trying to call it
             catch (Exception ex) when (!ExceptionHandling.NotExpectedFunctionException(ex))
             {
                 // If there's a :: in the expression, they were probably trying for a static function
                 // invocation. Give them some more relevant info in that case
-                if (s_invariantCompareInfo.IndexOf(_expression, "::", CompareOptions.OrdinalIgnoreCase) > -1)
+                if (_expression.Contains("::"))
                 {
                     errorReporter.ThrowInvalidStaticMethodSyntax(
                         _expression,
                         ex.Message.Replace("Microsoft.Build.Evaluation.IntrinsicFunctions.", "[MSBuild]::"));
                 }
-                else
+
+                return HandleFunctionError(ex, leaveUnexpandedOnError: false, in context);
+            }
+
+            string HandleFunctionError(Exception exception, bool leaveUnexpandedOnError, ref readonly ExpansionContext context)
+            {
+                string partiallyEvaluated = FormatFunctionCall(objectInstance, _methodMethodName, args, in context);
+
+                if (!leaveUnexpandedOnError)
                 {
-                    // We ended up with something other than a function expression
-                    string partiallyEvaluated = FormatFunctionCall(
-                        objectInstance, _methodMethodName, args, in context);
-                    errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, ex.Message);
+                    errorReporter.ThrowInvalidFunctionExpression(partiallyEvaluated, exception.Message.Replace("\r\n", " "));
                 }
 
-                return null;
+                return partiallyEvaluated;
+            }
+        }
+
+        /// <summary>
+        ///  Attempts to expand a comparison argument and convert it to match the receiver.
+        /// </summary>
+        /// <param name="objectInstance">The receiver, which may be replaced during comparison preparation.</param>
+        /// <param name="context">The properties, options, and services used during expansion.</param>
+        /// <param name="args">The single converted argument when handled; otherwise, <see langword="null"/>.</param>
+        /// <returns>
+        ///  <see langword="true"/> for a single-argument instance comparison; otherwise, <see langword="false"/>.
+        /// </returns>
+        private bool TryExpandComparisonArguments(ref object objectInstance, ref readonly ExpansionContext context, out object[] args)
+        {
+            if (objectInstance is null || _arguments.Length != 1 ||
+                (!string.Equals("Equals", _methodMethodName, StringComparison.OrdinalIgnoreCase) &&
+                 !string.Equals("CompareTo", _methodMethodName, StringComparison.OrdinalIgnoreCase)))
+            {
+                args = null;
+                return false;
+            }
+
+            object argument = PropertyExpander.ExpandFunctionArgumentProperties(_arguments[0], in context);
+            if (argument is string stringValue)
+            {
+                argument = EscapingUtilities.UnescapeAll(stringValue);
+            }
+
+            // Preserve numeric comparison behavior even when the receiver is a numeric-looking string.
+            if (ParseArgs.IsFloatingPointRepresentation(argument))
+            {
+                // UNDONE: ToString uses the current culture, but this parse uses invariant culture.
+                // This can change the receiver's value: 1.25 formats as "1,25" in fr-FR and parses as 125 here.
+                if (double.TryParse(objectInstance.ToString(), NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out double result))
+                {
+                    objectInstance = result;
+                    _receiverType = typeof(double);
+                }
+            }
+
+            // Even when both values parse as doubles, fall through rather than return the parsed argument.
+            // IsFloatingPointRepresentation uses NumberStyles.Number | NumberStyles.Float, accepting trailing
+            // signs such as "42-". Convert.ChangeType's string-to-double conversion instead uses
+            // NumberStyles.Float | NumberStyles.AllowThousands, which rejects trailing signs.
+            // Reusing the parsed double would bypass existing conversion errors.
+            args = [Convert.ChangeType(argument, objectInstance.GetType(), CultureInfo.InvariantCulture)];
+            return true;
+        }
+
+        /// <summary>
+        ///  Expands function arguments and prepares string values for invocation.
+        /// </summary>
+        /// <param name="context">The properties, options, and services used during expansion.</param>
+        /// <returns>
+        ///  The expanded and prepared arguments.
+        /// </returns>
+        private object[] ExpandArguments(ref readonly ExpansionContext context)
+        {
+            if (_arguments.Length == 0)
+            {
+                return [];
+            }
+
+            object[] results = new object[_arguments.Length];
+
+            for (int i = 0; i < _arguments.Length; i++)
+            {
+                object argument = PropertyExpander.ExpandFunctionArgumentProperties(_arguments[i], in context);
+
+                if (argument is string stringValue)
+                {
+                    bool isFileOrDirectory = _receiverType == typeof(System.IO.File)
+                                          || _receiverType == typeof(System.IO.Directory);
+
+                    // Unescape the value since we're about to send it out of the engine and into
+                    // the function being called. If a file or a directory function, fix the path
+                    // Use fully qualified type names to match the System.IO.* types
+                    // registered in AvailableStaticMethods.
+                    if (isFileOrDirectory || _receiverType == typeof(System.IO.Path))
+                    {
+                        stringValue = FileUtilities.FixFilePath(stringValue);
+                    }
+
+                    stringValue = EscapingUtilities.UnescapeAll(stringValue);
+
+                    // In -mt mode, resolve relative path arguments for File/Directory methods
+                    // against the thread-local working directory instead of the process-global
+                    // Environment.CurrentDirectory which may point to a different project's directory.
+                    // In multiprocess mode, CurrentThreadWorkingDirectory is null and
+                    // MakeFullPathFromThreadWorkingDirectory returns null — this is a no-op.
+                    // This must happen AFTER UnescapeAll so that the working directory path
+                    // (a real filesystem path) is not corrupted by MSBuild unescape processing.
+                    if (isFileOrDirectory && IsFileOrDirectoryPathArgument(_methodMethodName, i))
+                    {
+                        AbsolutePath? resolved = FileUtilities.MakeFullPathFromThreadWorkingDirectory(stringValue);
+                        if (resolved.HasValue)
+                        {
+                            stringValue = (string)resolved.GetValueOrDefault();
+                        }
+                    }
+
+                    argument = stringValue;
+                }
+
+                results[i] = argument;
+            }
+
+            return results;
+
+            // Identifies File/Directory path arguments to resolve against the thread-local working directory.
+            static bool IsFileOrDirectoryPathArgument(string methodName, int argIndex)
+            {
+                // First argument is always a path for all File/Directory static methods.
+                if (argIndex == 0)
+                {
+                    return true;
+                }
+
+                // Second argument is a destination path for Copy, Move, Replace.
+                // CreateSymbolicLink is intentionally excluded: its arg1 (pathToTarget) is the
+                // symlink target and relative values are semantically meaningful (stored as-is).
+                if (argIndex == 1)
+                {
+                    return string.Equals(methodName, "Copy", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(methodName, "Move", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
+                }
+
+                // Third argument is the backup path for Replace.
+                return argIndex == 2 && string.Equals(methodName, "Replace", StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        /// <summary>
+        ///  Attempts a well-known constructor or member call without reflection.
+        /// </summary>
+        /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static call.</param>
+        /// <param name="args">The prepared arguments.</param>
+        /// <param name="isConstructor">Whether to invoke a constructor rather than a member.</param>
+        /// <param name="context">The expansion context controlling and supporting well-known invocation.</param>
+        /// <param name="result">The value returned when the call is handled.</param>
+        /// <returns>
+        ///  <see langword="true"/> when handled, including a <see langword="null"/> result;
+        ///  otherwise, <see langword="false"/>.
+        /// </returns>
+        private bool TryInvokeWellKnownFunction(
+            object objectInstance,
+            object[] args,
+            bool isConstructor,
+            ref readonly ExpansionContext context,
+            out object result)
+        {
+            return isConstructor
+                ? WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out result, args)
+                : WellKnownFunctions.TryExecuteWellKnownFunction(
+                    _methodMethodName, _receiverType, in context, out result, objectInstance, args);
+        }
+
+        /// <summary>
+        ///  Invokes a constructor or member using the existing reflection and late-binding rules.
+        /// </summary>
+        /// <param name="objectInstance">The receiver instance, or <see langword="null"/> for a static call.</param>
+        /// <param name="args">The prepared arguments.</param>
+        /// <param name="isConstructor">Whether to invoke a constructor rather than a member.</param>
+        /// <returns>
+        ///  The invocation result before escaping or evaluating any remaining function chain.
+        /// </returns>
+        [UnconditionalSuppressMessage("Trimming", "IL2080:UnrecognizedReflectionPattern",
+            Justification = "_bindingFlags is masked to AllowedBindingFlags at construction, so it never carries BindingFlags.NonPublic; GetMethods(_bindingFlags) therefore binds only public methods of the property-function allowlist receiver, whose public members are preserved for trimming.")]
+        private object InvokeUsingReflection(object objectInstance, object[] args, bool isConstructor)
+        {
+            if (isConstructor)
+            {
+                return LateBindExecute(ex: null, BindingFlags.Public | BindingFlags.Instance, objectInstance: null, args, isConstructor: true);
+            }
+
+            try
+            {
+                // Preserve the existing probing behavior for out parameters.
+                if (args.Any(a => "out _".Equals(a)))
+                {
+                    IEnumerable<MethodInfo> methods = _receiverType.GetMethods(_bindingFlags)
+                        .Where(m => m.Name.Equals(_methodMethodName) && m.GetParameters().Length == args.Length);
+                    return GetMethodResult(objectInstance, methods, args, 0);
+                }
+
+                return _receiverType.InvokePublicMember(_methodMethodName, _bindingFlags, objectInstance, args);
+            }
+            // Only a missing method permits another binding attempt; a target exception must not cause a retry.
+            catch (MissingMethodException ex) when ((_bindingFlags & BindingFlags.InvokeMethod) == BindingFlags.InvokeMethod)
+            {
+                return LateBindExecute(ex, _bindingFlags, objectInstance, args, isConstructor: false);
             }
         }
 

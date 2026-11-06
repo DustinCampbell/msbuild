@@ -391,9 +391,8 @@ namespace Microsoft.Build.Evaluation.Expander
         }
 
         internal static bool IsFloatingPointRepresentation(object value)
-        {
-            return value is double || (value is string str && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture.NumberFormat, out double _));
-        }
+            => value is double
+            || (value is string str && double.TryParse(str, NumberStyles.Number | NumberStyles.Float, CultureInfo.InvariantCulture, out double _));
 
         internal static bool TryExecuteArithmeticOverload(object[] args, Func<long, long, long> integerOperation, Func<double, double, double> realOperation, out object? resultValue)
         {
