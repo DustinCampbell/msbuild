@@ -63,7 +63,7 @@ down predate the split and are approximate; the table here is current.
 | Late-bound overload resolution | `LateBindExecute` | [Expander.Function.cs#L1244](../../src/Build/Evaluation/Expander.Function.cs#L1244) |
 | Public-only binding invariant | `AllowedBindingFlags` + ctor assert | [Expander.Function.cs#L87](../../src/Build/Evaluation/Expander.Function.cs#L87) |
 | The static allowlist data | `AvailableStaticMethods.InitializeAvailableMethods` | [Constants.cs#L305](../../src/Build/Resources/Constants.cs#L305) |
-| Well-known function fast paths (no reflection) | `WellKnownFunctions.TryExecuteWellKnownFunction` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |
+| Well-known function fast paths (no reflection) | `WellKnownFunctions.TryInvokeStaticMember`, `TryInvokeInstanceMember`, and `TryInvokeConstructor` | [WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs) |
 | Feature switch / legacy env-var escape hatch (read by **type resolution** and the **gates**) | `FeatureSwitches.EnableAllPropertyFunctions` | [FeatureSwitches.cs](../../src/Framework/FeatureSwitches.cs) |
 
 ## 3. Execution model
@@ -186,9 +186,10 @@ excludes large swaths of the BCL from being *callable* even though the types are
 
 Binding happens in `Execute` in three tiers:
 
-1. **Well-known fast path** - `WellKnownFunctions.TryExecuteWellKnownFunction`
-   handles common functions without reflection
-   ([Expander.cs#L4209](../../src/Build/Evaluation/Expander.cs#L4209)).
+1. **Well-known fast path** - `WellKnownFunctions.TryInvokeStaticMember`,
+   `TryInvokeInstanceMember`, and `TryInvokeConstructor` handle common functions
+   without reflection
+   ([WellKnownFunctions.cs](../../src/Build/Evaluation/Expander/WellKnownFunctions.cs)).
 2. **Standard binder** - `_receiverType.InvokePublicMember(name, flags, instance, args)`
    ([Expander.cs#L4245](../../src/Build/Evaluation/Expander.cs#L4245)) lets the
    default reflection binder match and coerce.
@@ -222,7 +223,7 @@ the overload silently fail to bind.
   `FileUtilities.FixFilePath`, and `File`/`Directory` path args are made absolute
   against the thread working directory in `-mt` mode
   ([Expander.cs#L4128](../../src/Build/Evaluation/Expander.cs#L4128)).
-- **`new`**: routed to a constructor (`TryExecuteWellKnownConstructorNoThrow` or
+- **`new`**: routed to a constructor (`TryInvokeConstructor` or
   `LateBindExecute` as a constructor). Only public constructors on the resolved
   receiver type are eligible, so object construction is limited to allowlisted
   types (e.g. `[System.Globalization.CultureInfo]::new('en-US')`).

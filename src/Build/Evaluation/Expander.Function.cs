@@ -573,10 +573,14 @@ internal partial class Expander<P, I>
             ref readonly ExpansionContext context,
             out object result)
         {
-            return isConstructor
-                ? WellKnownFunctions.TryExecuteWellKnownConstructorNoThrow(_receiverType, out result, args)
-                : WellKnownFunctions.TryExecuteWellKnownFunction(
-                    _methodMethodName, _receiverType, in context, out result, objectInstance, args);
+            if (isConstructor)
+            {
+                return WellKnownFunctions.TryInvokeConstructor(_receiverType, args, out result);
+            }
+
+            return objectInstance is null
+                ? WellKnownFunctions.TryInvokeStaticMember(_receiverType, _methodMethodName, args, in context, out result)
+                : WellKnownFunctions.TryInvokeInstanceMember(objectInstance, _methodMethodName, args, out result);
         }
 
         /// <summary>

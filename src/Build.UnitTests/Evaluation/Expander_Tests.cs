@@ -2533,17 +2533,19 @@ namespace Microsoft.Build.UnitTests.Evaluation
         /// <summary>
         /// Expand property function that returns an array
         /// </summary>
-        [Fact]
-        public void PropertyFunctionArrayReturn()
+        [Theory]
+        [InlineData("$(List.Split(-))")]
+        [InlineData("$(List.Split($([System.Convert]::ToChar('-'))))")]
+        public void PropertyFunctionArrayReturn(string expression)
         {
             PropertyDictionary<ProjectPropertyInstance> pg = new PropertyDictionary<ProjectPropertyInstance>();
             pg.Set(ProjectPropertyInstance.Create("List", "A-B-C-D"));
 
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
 
-            string result = expander.ExpandIntoStringLeaveEscaped("$(List.Split(-))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+            string result = expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
-            Assert.Equal("A;B;C;D", result);
+            result.ShouldBe("A;B;C;D");
         }
 
         /// <summary>
@@ -2813,6 +2815,22 @@ namespace Microsoft.Build.UnitTests.Evaluation
             string result = expander.ExpandIntoStringLeaveEscaped(@"$([System.IO.Path]::Combine($(Drive), `$(File)`))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
 
             Assert.Equal(Path.Combine(s_rootPathPrefix, "foo", "file.txt"), result);
+        }
+
+        [Theory]
+        [InlineData("$(Text.new('replacement'))", "replacement")]
+        [InlineData("$(Text.new('x', '3'))", "xxx")]
+        public void PropertyFunctionConstructorIgnoresInstanceReceiver(string expression, string expected)
+        {
+            // Current behavior allows instance-style constructor calls and ignores the receiver.
+            // Although unexpected, preserve this behavior to avoid breaking existing projects.
+            PropertyDictionary<ProjectPropertyInstance> properties = new();
+            properties.Set(ProjectPropertyInstance.Create("Text", "original"));
+            Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
+
+            string result = expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
+
+            result.ShouldBe(expected);
         }
 
         /// <summary>
@@ -5062,6 +5080,9 @@ $(
         [InlineData("$([System.Char]::IsDigit(' '))", "False")]
         [InlineData("$([System.Char]::IsDigit('/'))", "False")]
         [InlineData("$([System.Char]::IsDigit(':'))", "False")]
+        // Test with boxed character arguments
+        [InlineData("$([System.Char]::IsDigit($([System.Convert]::ToChar('7'))))", "True")]
+        [InlineData("$([System.Char]::IsDigit($([System.Convert]::ToChar('a'))))", "False")]
         // Test with string and index version
         [InlineData("$([System.Char]::IsDigit('abc123def', 3))", "True")]
         [InlineData("$([System.Char]::IsDigit('abc123def', 4))", "True")]
