@@ -198,6 +198,12 @@ Binding happens in `Execute` in three tiers:
    all-`string` signature, then matches by name + argument count and runs
    `CoerceArguments`.
 
+The well-known entry points return a readonly `InvokerResult` containing a status
+and value. `InvokerResult.Unhandled` permits reflection fallback.
+`InvokerResult.Handled(value)` marks a completed call, even when its value is
+`null`; a null or void result must not trigger fallback. Invocation exceptions
+continue through the existing error handling without retrying the call.
+
 `CoerceArguments`
 ([Expander.cs#L4700](../../src/Build/Evaluation/Expander.cs#L4700)) is the
 explicit conversion table:

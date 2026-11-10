@@ -351,18 +351,22 @@ internal partial class Expander<P, I>
                 }
 
                 bool isConstructor = string.Equals("new", _methodMethodName, StringComparison.OrdinalIgnoreCase);
-                bool wellKnownFunctionSuccess = false;
+                InvokerResult invocationResult;
 
                 try
                 {
-                    wellKnownFunctionSuccess = TryInvokeWellKnownFunction(objectInstance, args, isConstructor, in context, out functionResult);
+                    invocationResult = TryInvokeWellKnownFunction(objectInstance, args, isConstructor, in context);
                 }
                 catch (Exception ex)
                 {
                     return HandleFunctionError(ex, options.HasFlag(ExpanderOptions.LeavePropertiesUnexpandedOnError), in context);
                 }
 
-                if (!wellKnownFunctionSuccess)
+                if (invocationResult.Status == InvokerResultStatus.Handled)
+                {
+                    functionResult = invocationResult.Value;
+                }
+                else
                 {
                     try
                     {
@@ -561,26 +565,23 @@ internal partial class Expander<P, I>
         /// <param name="args">The prepared arguments.</param>
         /// <param name="isConstructor">Whether to invoke a constructor rather than a member.</param>
         /// <param name="context">The expansion context controlling and supporting well-known invocation.</param>
-        /// <param name="result">The value returned when the call is handled.</param>
         /// <returns>
-        ///  <see langword="true"/> when handled, including a <see langword="null"/> result;
-        ///  otherwise, <see langword="false"/>.
+        ///  The result indicating whether the call was handled and the value it returned.
         /// </returns>
-        private bool TryInvokeWellKnownFunction(
+        private InvokerResult TryInvokeWellKnownFunction(
             object objectInstance,
             object[] args,
             bool isConstructor,
-            ref readonly ExpansionContext context,
-            out object result)
+            ref readonly ExpansionContext context)
         {
             if (isConstructor)
             {
-                return WellKnownFunctions.TryInvokeConstructor(_receiverType, args, out result);
+                return WellKnownFunctions.TryInvokeConstructor(_receiverType, args);
             }
 
             return objectInstance is null
-                ? WellKnownFunctions.TryInvokeStaticMember(_receiverType, _methodMethodName, args, in context, out result)
-                : WellKnownFunctions.TryInvokeInstanceMember(objectInstance, _methodMethodName, args, out result);
+                ? WellKnownFunctions.TryInvokeStaticMember(_receiverType, _methodMethodName, args, in context)
+                : WellKnownFunctions.TryInvokeInstanceMember(objectInstance, _methodMethodName, args);
         }
 
         /// <summary>
