@@ -1459,11 +1459,14 @@ public class Expander_Tests(ITestOutputHelper output)
     }
 
     /// <summary>
-    ///  Creates a set of complicated item metadata and properties, and items to exercise
-    ///  the Expander class.  The data here contains escaped characters, metadata that
-    ///  references properties, properties that reference items, and other complex scenarios.
+    ///  Creates an expander with complicated item metadata, properties, and items.
+    ///  The data contains escaped characters, metadata that references properties,
+    ///  properties that reference items, and other complex scenarios.
     /// </summary>
-    private void CreateComplexPropertiesItemsMetadata(out Lookup readOnlyLookup, out StringMetadataTable itemMetadata)
+    /// <returns>
+    ///  The populated expander.
+    /// </returns>
+    private static Expander<ProjectPropertyInstance, ProjectItemInstance> CreateComplexExpander()
     {
         PropertyDictionary<ProjectPropertyInstance> properties = [
             ProjectPropertyInstance.Create("Gee_Aych_Ayee", "ghi"),
@@ -1484,29 +1487,25 @@ public class Expander_Tests(ITestOutputHelper output)
         // Add primary items
         lookup.EnterScope("x");
 
+        string include1 = NativeMethodsShared.IsWindows ? @"subdir1\engine.dll" : "subdir1/engine.dll";
+        string include2 = NativeMethodsShared.IsWindows ? @"subdir2\tasks.dll" : "subdir2/tasks.dll";
+
         lookup.PopulateWithItems("IntermediateAssembly", [
-            new ProjectItemInstance(
-                project,
-                "IntermediateAssembly",
-                NativeMethodsShared.IsWindows ? @"subdir1\engine.dll" : "subdir1/engine.dll",
-                project.FullPath).WithMetadata("aaa", "111"),
-            new ProjectItemInstance(
-                project,
-                "IntermediateAssembly",
-                NativeMethodsShared.IsWindows ? @"subdir2\tasks.dll" : "subdir2/tasks.dll",
-                project.FullPath).WithMetadata("bbb", "222")]);
+            new ProjectItemInstance(project, "IntermediateAssembly", include1, project.FullPath).WithMetadata("aaa", "111"),
+            new ProjectItemInstance(project, "IntermediateAssembly", include2, project.FullPath).WithMetadata("bbb", "222")
+        ]);
 
         lookup.PopulateWithItems("Content", [
             new ProjectItemInstance(project, "Content", "splash.bmp", project.FullPath).WithMetadata("ccc", "333")
         ]);
 
-        readOnlyLookup = lookup;
-
-        itemMetadata = new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
+        StringMetadataTable itemMetadata = new(new(StringComparer.OrdinalIgnoreCase)
         {
             ["Culture"] = "abc%253bdef;$(Gee_Aych_Ayee)",
             ["Language"] = "english",
         });
+
+        return new(lookup, lookup, itemMetadata, FileSystems.Default);
     }
 
     /// <summary>
@@ -1515,9 +1514,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoTaskItemsComplex()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         IList<TaskItem> taskItems = expander.ExpandIntoTaskItemsLeaveEscaped(
             "@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ; $(NonExistent) ; %(NonExistent) ; $(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)",
@@ -1547,9 +1544,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringComplexPiecemeal()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         string stringToExpand = "@(Resource->'%(Filename)') ;";
         Assert.Equal(
@@ -1598,9 +1593,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringEmpty()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         XmlAttribute xmlattribute = new XmlDocument().CreateAttribute("dummy");
         xmlattribute.Value = "@(IntermediateAssembly->'')";
@@ -1707,9 +1700,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringComplex()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         XmlAttribute xmlattribute = new XmlDocument().CreateAttribute("dummy");
         xmlattribute.Value = "@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ; $(NonExistent) ; %(NonExistent) ; $(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)";
@@ -1727,9 +1718,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringLeaveEscapedComplex()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         XmlAttribute xmlattribute = new XmlDocument().CreateAttribute("dummy");
         xmlattribute.Value = "@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ; $(NonExistent) ; %(NonExistent) ; $(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)";
@@ -1817,9 +1806,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringExpectIdenticalReference()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         XmlAttribute xmlattribute = new XmlDocument().CreateAttribute("dummy");
 
@@ -1844,13 +1831,11 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringExpanderOptions()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         const string Value = """
             @(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ; $(NonExistent) ; %(NonExistent) ; $(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)
             """;
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
 
         Assert.Equal(
             """@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ;  ; %(NonExistent) ; \jk ; l\mno%3bpqr\stu ; @(IntermediateAssembly->'%(RelativeDir)') ; %(Language)_%(Culture)""",
@@ -2027,9 +2012,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoStringListLeaveEscapedComplex()
     {
-        CreateComplexPropertiesItemsMetadata(out Lookup lookup, out StringMetadataTable itemMetadata);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = CreateComplexExpander();
 
         const string Value = """
             @(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ; $(NonExistent) ; %(NonExistent) ; $(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)
