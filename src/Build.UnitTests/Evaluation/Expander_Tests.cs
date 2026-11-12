@@ -53,7 +53,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoTaskItems0()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         IList<TaskItem> itemsOut = expander.ExpandIntoTaskItemsLeaveEscaped(string.Empty, ExpanderOptions.ExpandProperties, elementLocation: null);
@@ -64,7 +64,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoTaskItems1()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         IList<TaskItem> itemsOut = expander.ExpandIntoTaskItemsLeaveEscaped("foo", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
@@ -75,7 +75,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoTaskItems2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         IList<TaskItem> itemsOut = expander.ExpandIntoTaskItemsLeaveEscaped("foo;bar", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
@@ -92,7 +92,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void ExpandAllIntoTaskItems3()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
 
         List<ProjectItemInstance> items1 = [
             new(project, "Compile", "foo.cs", project.FullPath),
@@ -132,10 +132,11 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandAllIntoTaskItems4()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("a", "aaa"));
-        properties.Set(ProjectPropertyInstance.Create("b", "bbb"));
-        properties.Set(ProjectPropertyInstance.Create("c", "cc;dd"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("a", "aaa"),
+            ProjectPropertyInstance.Create("b", "bbb"),
+            ProjectPropertyInstance.Create("c", "cc;dd")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -162,10 +163,11 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("a", "aaa"));
-        properties.Set(ProjectPropertyInstance.Create("b", "bbb"));
-        properties.Set(ProjectPropertyInstance.Create("c", "cc;dd"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("a", "aaa"),
+            ProjectPropertyInstance.Create("b", "bbb"),
+            ProjectPropertyInstance.Create("c", "cc;dd")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -185,7 +187,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void ExpandEmptyPropertyExpressionToEmpty()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped("$()", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
@@ -900,11 +902,12 @@ public class Expander_Tests(ITestOutputHelper output)
     private Expander<ProjectPropertyInstance, ProjectItemInstance> CreateItemFunctionExpander()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("p", "v0"));
-        properties.Set(ProjectPropertyInstance.Create("p", "v1"));
-        properties.Set(ProjectPropertyInstance.Create("Val", "2"));
-        properties.Set(ProjectPropertyInstance.Create("a", "filename"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("p", "v0"),
+            ProjectPropertyInstance.Create("p", "v1"),
+            ProjectPropertyInstance.Create("Val", "2"),
+            ProjectPropertyInstance.Create("a", "filename")
+        ];
 
         ItemDictionary<ProjectItemInstance> items = [];
 
@@ -949,9 +952,10 @@ public class Expander_Tests(ITestOutputHelper output)
     private Expander<ProjectPropertyInstance, ProjectItemInstance> CreateExpander()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("p", "v0"));
-        properties.Set(ProjectPropertyInstance.Create("p", "v1"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("p", "v0"),
+            ProjectPropertyInstance.Create("p", "v1")
+        ];
 
         ItemDictionary<ProjectItemInstance> items = [];
         ProjectItemInstance item0 = new(project, "i", "i0", project.FullPath);
@@ -1475,10 +1479,11 @@ public class Expander_Tests(ITestOutputHelper output)
             ["Language"] = "english",
         });
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Gee_Aych_Ayee", "ghi"));
-        properties.Set(ProjectPropertyInstance.Create("OutputPath", @"\jk ; l\mno%253bpqr\stu"));
-        properties.Set(ProjectPropertyInstance.Create("TargetPath", "@(IntermediateAssembly->'%(RelativeDir)')"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Gee_Aych_Ayee", "ghi"),
+            ProjectPropertyInstance.Create("OutputPath", @"\jk ; l\mno%253bpqr\stu"),
+            ProjectPropertyInstance.Create("TargetPath", "@(IntermediateAssembly->'%(RelativeDir)')")
+        ];
 
         ProjectItemInstance item1 = new(
             project,
@@ -1666,7 +1671,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string definingProject = Path.Combine(project.Directory, "Imported.targets");
         var item = new ContextTrackingItem("Compile", itemSpec, project.Directory, definingProject);
         var items = new ItemDictionary<ContextTrackingItem> { item };
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ContextTrackingItem>(
             properties,
             items,
@@ -1768,8 +1773,9 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         string manySpaces = new(' ', 2000);
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
-        properties.Set(ProjectPropertyInstance.Create("ManySpacesProperty", manySpaces));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("ManySpacesProperty", manySpaces)
+        ];
 
         var itemMetadata = new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
         {
@@ -1889,8 +1895,11 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  that <c>MaybeAdjustFilePath</c> does not perturb the asserted results.
     /// </summary>
     private static Expander<ProjectPropertyInstance, ProjectItemInstance> CreateMetadataExpander()
-        => new(
-            new PropertyDictionary<ProjectPropertyInstance>(),
+    {
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
+
+        return new(
+            properties,
             new ItemDictionary<ProjectItemInstance>(),
             new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
             {
@@ -1900,6 +1909,7 @@ public class Expander_Tests(ITestOutputHelper output)
                 ["Filename"] = "App",
             }),
             FileSystems.Default);
+    }
 
     /// <summary>
     ///  Parity tests for the hand-written metadata scanner. These pin the exact expanded result for
@@ -2080,7 +2090,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void RegistryPropertyInvalidPrefixSpecialCase()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -2098,7 +2108,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void Regress692569()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -2116,7 +2126,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void RegistryPropertyInvalidPrefixError()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         _ = Assert.Throws<InvalidProjectFileException>(() =>
@@ -2134,7 +2144,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void RegistryPropertyInvalidPrefixError2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         _ = Assert.Throws<InvalidProjectFileException>(() =>
@@ -2148,7 +2158,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyString()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -2174,7 +2184,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyBinary()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -2201,7 +2211,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyDWord()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -2227,7 +2237,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyExpandString()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -2254,7 +2264,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyQWord()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -2280,7 +2290,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyMultiString()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -2378,7 +2388,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionNullArgument()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -2395,7 +2405,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionNullReturn()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         // The null-returning function is the only thing in the expression.
@@ -2419,8 +2429,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionNoArguments()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2438,8 +2449,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionNoArgumentsTrim()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("FileName", "    foo.ext   "));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("FileName", "    foo.ext   ")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2457,8 +2469,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyGet()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2476,8 +2489,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyManualGet()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2495,8 +2509,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyNoArgumentsConcat()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2514,8 +2529,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgument()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2533,8 +2549,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgumentWithSpaces()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2552,9 +2569,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyPathRootSubtraction()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("RootPath", Path.Combine(s_rootPathPrefix, "this", "is", "the", "root")));
-        properties.Set(ProjectPropertyInstance.Create("MyPath", Path.Combine(s_rootPathPrefix, "this", "is", "the", "root", "my", "project", "is", "here.proj")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("RootPath", Path.Combine(s_rootPathPrefix, "this", "is", "the", "root")),
+            ProjectPropertyInstance.Create("MyPath", Path.Combine(s_rootPathPrefix, "this", "is", "the", "root", "my", "project", "is", "here.proj"))
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2572,9 +2590,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgumentExpandedProperty()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "3"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2592,9 +2611,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgumentBooleanReturn()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("PathRoot", Path.Combine(s_rootPathPrefix, "goo")));
-        properties.Set(ProjectPropertyInstance.Create("PathRoot2", $"{Path.Combine(s_rootPathPrefix, "goop")}{Path.DirectorySeparatorChar}"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("PathRoot", Path.Combine(s_rootPathPrefix, "goo")),
+            ProjectPropertyInstance.Create("PathRoot2", $"{Path.Combine(s_rootPathPrefix, "goop")}{Path.DirectorySeparatorChar}")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2617,11 +2637,12 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgumentNestedAndChainedFunction()
     {
-        PropertyDictionary<ProjectPropertyInstance> pg = new();
-        pg.Set(ProjectPropertyInstance.Create("Value", "3"));
-        pg.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(pg, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
             "$(SomeStuff.SubString(1$(Value)).ToLowerInvariant().SubString($(Value)))",
@@ -2637,9 +2658,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgumentChained()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "3"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2657,9 +2679,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionPropertyWithArgumentNested()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "12345"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "1234567890"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "12345"),
+            ProjectPropertyInstance.Create("SomeStuff", "1234567890")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2677,7 +2700,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionGenericListReturn()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -2712,7 +2735,7 @@ public class Expander_Tests(ITestOutputHelper output)
         using TestEnvironment env = TestEnvironment.Create(_output);
         env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
         string? typeName = typeof(PropertyValueConversionTestData).AssemblyQualifiedName;
 
@@ -2730,8 +2753,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionArrayReturn()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("List", "A-B-C-D"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("List", "A-B-C-D")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2751,7 +2775,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionDictionaryReturn()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -2770,9 +2794,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionArrayReturnManualSplitter()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("List", "A-B-C-D"));
-        properties.Set(ProjectPropertyInstance.Create("Splitter", "-"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("List", "A-B-C-D"),
+            ProjectPropertyInstance.Create("Splitter", "-")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2790,9 +2815,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInCondition()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("PathRoot", Path.Combine(s_rootPathPrefix, "goo")));
-        properties.Set(ProjectPropertyInstance.Create("PathRoot2", $"{Path.Combine(s_rootPathPrefix, "goop")}{Path.DirectorySeparatorChar}"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("PathRoot", Path.Combine(s_rootPathPrefix, "goo")),
+            ProjectPropertyInstance.Create("PathRoot2", $"{Path.Combine(s_rootPathPrefix, "goop")}{Path.DirectorySeparatorChar}")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2825,9 +2851,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid1()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "3"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2841,9 +2868,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "3"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2857,9 +2885,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid3()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "3"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2873,9 +2902,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid4()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Value", "3"));
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Value", "3"),
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2889,8 +2919,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid5()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2904,8 +2935,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid6()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2919,8 +2951,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid7()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2934,7 +2967,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalid8()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         _ = Assert.Throws<InvalidProjectFileException>(() =>
@@ -2950,7 +2983,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionInvalidNoMetadataFunctions()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -2967,8 +3000,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionNoCollisionsOnType()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("System", "The System Namespace"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("System", "The System Namespace")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -2985,9 +3019,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionStaticMethodMakeRelative()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("ParentPath", Path.Combine(s_rootPathPrefix, "abc", "def")));
-        properties.Set(ProjectPropertyInstance.Create("FilePath", Path.Combine(s_rootPathPrefix, "abc", "def", "foo.cpp")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("ParentPath", Path.Combine(s_rootPathPrefix, "abc", "def")),
+            ProjectPropertyInstance.Create("FilePath", Path.Combine(s_rootPathPrefix, "abc", "def", "foo.cpp"))
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3005,9 +3040,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethod1()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("Drive", s_rootPathPrefix));
-        properties.Set(ProjectPropertyInstance.Create("File", Path.Combine("foo", "file.txt")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Drive", s_rootPathPrefix),
+            ProjectPropertyInstance.Create("File", Path.Combine("foo", "file.txt"))
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3025,8 +3061,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionConstructorResultIsPreservedAsTypedArgument()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("ver1", @"1.2.3.4"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("ver1", @"1.2.3.4")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3044,9 +3081,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionConstructor2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("ver1", @"1.2.3.4"));
-        properties.Set(ProjectPropertyInstance.Create("ver2", @"2.2.3.4"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("ver1", @"1.2.3.4"),
+            ProjectPropertyInstance.Create("ver2", @"2.2.3.4")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3067,7 +3105,7 @@ public class Expander_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create();
         env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         try
@@ -3091,7 +3129,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyStaticFunctionLocatedFromAssemblyWithNamespaceName()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         AppContext.TryGetSwitch("Microsoft.Build.EnableAllPropertyFunctions", out bool originalSwitch);
@@ -3118,7 +3156,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyStaticFunctionUsingNamespaceNotFound()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string? env = Environment.GetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS");
@@ -3150,8 +3188,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionStaticMethodQuoted1()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", Path.Combine("foo", "file.txt")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", Path.Combine("foo", "file.txt"))
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3169,8 +3208,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodQuoted1Spaces()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", $"foo goo{Path.DirectorySeparatorChar}file.txt"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", $"foo goo{Path.DirectorySeparatorChar}file.txt")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3188,8 +3228,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodQuoted1Spaces2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", Path.Combine("foo bar", "baz.txt")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", Path.Combine("foo bar", "baz.txt"))
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3207,8 +3248,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodQuoted1Spaces3()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", Path.Combine("foo bar", "baz.txt")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", Path.Combine("foo bar", "baz.txt"))
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3226,7 +3268,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodQuoted2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -3243,7 +3285,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodQuoted3()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -3260,7 +3302,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodQuoted4()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -3277,8 +3319,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodNested()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", "foo" + Path.DirectorySeparatorChar + "file.txt"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", $"foo{Path.DirectorySeparatorChar}file.txt")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3296,8 +3339,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodRegex1()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", "foo" + Path.DirectorySeparatorChar + "file.txt"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", $"foo{Path.DirectorySeparatorChar}file.txt")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3331,7 +3375,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodChained()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -3348,7 +3392,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionGetFolderPath()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -3382,7 +3426,7 @@ public class Expander_Tests(ITestOutputHelper output)
             .Replace("$$platform$$", platform)
             .Replace("$$architecture$$", architecture);
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         string currentPlatformString = Helpers.GetOSPlatformAsString();
@@ -3406,7 +3450,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsOSPlatform('{platform}'))";
         string expected = TestOperatingSystem.IsOSPlatform(platform) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3425,7 +3469,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsOSPlatformVersionAtLeast('{platform}', {major}, {minor}, {build}, {revision}))";
         string expected = TestOperatingSystem.IsOSPlatformVersionAtLeast(platform, major, minor, build, revision) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3438,7 +3482,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsLinux())";
         string expected = TestOperatingSystem.IsLinux() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3451,7 +3495,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsFreeBSD())";
         string expected = TestOperatingSystem.IsFreeBSD() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3466,7 +3510,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsFreeBSDVersionAtLeast({major}, {minor}, {build}, {revision}))";
         string expected = TestOperatingSystem.IsFreeBSDVersionAtLeast(major, minor, build, revision) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3479,7 +3523,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsMacOS())";
         string expected = TestOperatingSystem.IsMacOS() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3495,7 +3539,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsMacOSVersionAtLeast({major}, {minor}, {build}))";
         string expected = TestOperatingSystem.IsMacOSVersionAtLeast(major, minor, build) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3508,7 +3552,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsWindows())";
         string expected = TestOperatingSystem.IsWindows() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3524,7 +3568,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsWindowsVersionAtLeast({major}, {minor}, {build}, {revision}))";
         string expected = TestOperatingSystem.IsWindowsVersionAtLeast(major, minor, build, revision) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3539,7 +3583,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsAndroid())";
         string expected = TestOperatingSystem.IsAndroid() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3554,7 +3598,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsAndroidVersionAtLeast({major}, {minor}, {build}, {revision}))";
         string expected = TestOperatingSystem.IsAndroidVersionAtLeast(major, minor, build, revision) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3567,7 +3611,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsIOS())";
         string expected = TestOperatingSystem.IsIOS() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3583,7 +3627,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsIOSVersionAtLeast({major}, {minor}, {build}))";
         string expected = TestOperatingSystem.IsIOSVersionAtLeast(major, minor, build) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3596,7 +3640,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsMacCatalyst())";
         string expected = TestOperatingSystem.IsMacCatalyst() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3611,7 +3655,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsMacCatalystVersionAtLeast({major}, {minor}, {build}))";
         string expected = TestOperatingSystem.IsMacCatalystVersionAtLeast(major, minor, build) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3624,7 +3668,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsTvOS())";
         string expected = TestOperatingSystem.IsTvOS() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3640,7 +3684,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsTvOSVersionAtLeast({major}, {minor}, {build}))";
         string expected = TestOperatingSystem.IsTvOSVersionAtLeast(major, minor, build) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3653,7 +3697,7 @@ public class Expander_Tests(ITestOutputHelper output)
         const string propertyFunction = "$([System.OperatingSystem]::IsWatchOS())";
         string expected = TestOperatingSystem.IsWatchOS() ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3669,7 +3713,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string propertyFunction = $"$([System.OperatingSystem]::IsWatchOSVersionAtLeast({major}, {minor}, {build}))";
         string expected = TestOperatingSystem.IsWatchOSVersionAtLeast(major, minor, build) ? "True" : "False";
 
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(propertyFunction, ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -3692,10 +3736,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('X', 1, 3, 'StringComparison.OrdinalIgnoreCase'))", "3")]
     public void StringIndexOfTests(string propertyName, string properyValue, string propertyFunction, string expectedExpansion)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>
-        {
-            [propertyName] = ProjectPropertyInstance.Create(propertyName, properyValue),
-        };
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create(propertyName, properyValue)
+        ];
 
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
@@ -3715,10 +3758,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("AString", "C:\\Path\\File.txt", "$(AString.EndsWith('.TXT', 'StringComparison.Ordinal'))", "False")]
     public void StringEndsWithTests(string propertyName, string propertyValue, string propertyFunction, string expectedExpansion)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>
-        {
-            [propertyName] = ProjectPropertyInstance.Create(propertyName, propertyValue),
-        };
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create(propertyName, propertyValue)
+        ];
 
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
@@ -3734,10 +3776,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("AString", "hello", "$(AString.Equals('HELLO', 'StringComparison.Ordinal'))", "False")]
     public void StringEqualsWithStringComparisonTests(string propertyName, string propertyValue, string propertyFunction, string expectedExpansion)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>
-        {
-            [propertyName] = ProjectPropertyInstance.Create(propertyName, propertyValue),
-        };
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create(propertyName, propertyValue)
+        ];
 
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
@@ -3748,7 +3789,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void IsOsPlatformShouldBeCaseInsensitiveToParameter()
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         string osPlatformLowerCase = Helpers.GetOSPlatformAsString().ToLower();
@@ -3864,7 +3905,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
     private static void AssertThrows(string expression, string expectedMessage)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         InvalidProjectFileException ex = Should.Throw<InvalidProjectFileException>(
@@ -3878,7 +3919,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
     private static void AssertSuccess(object expected, string expression)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         string actual = expander.ExpandIntoStringLeaveEscaped(
@@ -3895,7 +3936,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodEnumArgument()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -3919,9 +3960,10 @@ public class Expander_Tests(ITestOutputHelper output)
         {
             string directoryStart = Path.Combine(tempPath, @"one\two\three\four\five");
 
-            PropertyDictionary<ProjectPropertyInstance> properties = new();
-            properties.Set(ProjectPropertyInstance.Create("StartingDirectory", directoryStart));
-            properties.Set(ProjectPropertyInstance.Create("FileToFind", tempFile));
+            PropertyDictionary<ProjectPropertyInstance> properties = [
+                ProjectPropertyInstance.Create("StartingDirectory", directoryStart),
+                ProjectPropertyInstance.Create("FileToFind", tempFile)
+            ];
 
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -3960,8 +4002,9 @@ public class Expander_Tests(ITestOutputHelper output)
 
         try
         {
-            PropertyDictionary<ProjectPropertyInstance> properties = new();
-            properties.Set(ProjectPropertyInstance.Create("FileToFind", Path.GetFileName(fileToFind)));
+            PropertyDictionary<ProjectPropertyInstance> properties = [
+                ProjectPropertyInstance.Create("FileToFind", Path.GetFileName(fileToFind))
+            ];
 
             Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4013,8 +4056,9 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         string fileWithPath = Path.Combine("foo", "bar", "file.txt");
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("FileWithPath", fileWithPath));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("FileWithPath", fileWithPath)
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4032,7 +4076,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodGetCultureInfo()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4049,7 +4093,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodArithmeticAddInt32()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4066,7 +4110,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodArithmeticAddDouble()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4083,7 +4127,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionValueOrDefault()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4107,8 +4151,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionValueOrDefaultFromEnvironment()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties["DifferentTargetsPath"] = ProjectPropertyInstance.Create("DifferentTargetsPath", "Different");
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("DifferentTargetsPath", "Different")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4137,7 +4182,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4155,7 +4200,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist_Whitespace()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4172,10 +4217,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionNormalizeDirectory()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new([
+        PropertyDictionary<ProjectPropertyInstance> properties = [
             ProjectPropertyInstance.Create("MyPath", "one"),
             ProjectPropertyInstance.Create("MySecondPath", "two"),
-        ]);
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4200,7 +4245,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist_Error()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         _ = Assert.Throws<InvalidProjectFileException>(() =>
@@ -4218,10 +4263,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist_Evaluated()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-
-        properties["Runtime"] = ProjectPropertyInstance.Create("Runtime", "CurrentRuntime");
-        properties["Architecture"] = ProjectPropertyInstance.Create("Architecture", "CurrentArchitecture");
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("Runtime", "CurrentRuntime"),
+            ProjectPropertyInstance.Create("Architecture", "CurrentArchitecture")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4240,7 +4285,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionDoesTaskHostExist_NonexistentTaskHost()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string taskHostName = Environment.GetEnvironmentVariable("MSBUILDTASKHOST_EXE_NAME");
@@ -4274,7 +4319,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionStaticMethodFileAttributes()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string tempFile = FileUtilities.GetTemporaryFile();
@@ -4303,7 +4348,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [UseInvariantCulture]
     public void PropertyFunctionStaticMethodIntrinsicMaths()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped("$([MSBuild]::Add(39.9, 2.1))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
@@ -4353,7 +4398,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodIntrinsicBitOperations()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(@"$([MSBuild]::BitwiseOr(40, 2))", ExpanderOptions.ExpandProperties, MockElementLocation.Instance)
@@ -4378,8 +4423,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertySimpleSpaced()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeStuff", "This IS SOME STUff")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4392,8 +4438,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void PropertyFunctionGetRegitryValue()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeProperty", "Value"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeProperty", "Value")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4421,8 +4468,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void PropertyFunctionGetRegitryValueDefault()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeProperty", "Value"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeProperty", "Value")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4450,8 +4498,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void PropertyFunctionGetRegistryValueFromView1()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeProperty", "Value"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeProperty", "Value")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4479,8 +4528,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void PropertyFunctionGetRegistryValueFromView2()
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeProperty", "Value"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeProperty", "Value")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4511,8 +4561,9 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionConsumingItemMetadata()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomePath", Path.Combine(s_rootPathPrefix, "some", "path")));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomePath", Path.Combine(s_rootPathPrefix, "some", "path"))
+        ];
 
         StringMetadataTable itemMetadata = new(new(StringComparer.OrdinalIgnoreCase)
         {
@@ -4565,7 +4616,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [MemberData(nameof(GetHashAlgoTypes))]
     public void PropertyFunctionHashCodeSameOnlyIfStringSame(string? hashType)
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string[] stringsToHash = [
@@ -4636,7 +4687,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("\"\n()\tsdfIR$%#*;==")]
     public void TestBase64Conversion(string value)
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -4659,7 +4710,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("\"\n()\tsdfIR$%#*;==", "IgooKQlzZGZJUiQlIyo7PT0=")]
     public void TestExplicitToBase64Conversion(string plaintext, string base64)
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(
@@ -4675,7 +4726,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("\"\n()\tsdfIR$%#*;==", "IgooKQlzZGZJUiQlIyo7PT0=")]
     public void TestExplicitFromBase64Conversion(string plaintext, string base64)
     {
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         expander.ExpandIntoStringLeaveEscaped(
@@ -4694,26 +4745,27 @@ public class Expander_Tests(ITestOutputHelper output)
         // Make absolutely sure that the static method cache hasn't been polluted by the other tests.
         AvailableStaticMethods.Reset_ForUnitTestsOnly();
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("File", @"foo\file.txt"));
-        properties.Set(ProjectPropertyInstance.Create("a", "no"));
-        properties.Set(ProjectPropertyInstance.Create("b", "true"));
-        properties.Set(ProjectPropertyInstance.Create("c", "1"));
-        properties.Set(ProjectPropertyInstance.Create("position", "4"));
-        properties.Set(ProjectPropertyInstance.Create("d", "xxx"));
-        properties.Set(ProjectPropertyInstance.Create("e", "xxx"));
-        properties.Set(ProjectPropertyInstance.Create("and", "and"));
-        properties.Set(ProjectPropertyInstance.Create("a_semi_b", "a;b"));
-        properties.Set(ProjectPropertyInstance.Create("a_apos_b", "a'b"));
-        properties.Set(ProjectPropertyInstance.Create("foo_apos_foo", "foo'foo"));
-        properties.Set(ProjectPropertyInstance.Create("a_escapedsemi_b", "a%3bb"));
-        properties.Set(ProjectPropertyInstance.Create("a_escapedapos_b", "a%27b"));
-        properties.Set(ProjectPropertyInstance.Create("has_trailing_slash", @"foo\"));
-        properties.Set(ProjectPropertyInstance.Create("emptystring", @""));
-        properties.Set(ProjectPropertyInstance.Create("space", @" "));
-        properties.Set(ProjectPropertyInstance.Create("listofthings", @"a;b;c;d;e;f;g;h;i;j;k;l"));
-        properties.Set(ProjectPropertyInstance.Create("input", @"EXPORT a"));
-        properties.Set(ProjectPropertyInstance.Create("propertycontainingnullasastring", @"null"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("File", @"foo\file.txt"),
+            ProjectPropertyInstance.Create("a", "no"),
+            ProjectPropertyInstance.Create("b", "true"),
+            ProjectPropertyInstance.Create("c", "1"),
+            ProjectPropertyInstance.Create("position", "4"),
+            ProjectPropertyInstance.Create("d", "xxx"),
+            ProjectPropertyInstance.Create("e", "xxx"),
+            ProjectPropertyInstance.Create("and", "and"),
+            ProjectPropertyInstance.Create("a_semi_b", "a;b"),
+            ProjectPropertyInstance.Create("a_apos_b", "a'b"),
+            ProjectPropertyInstance.Create("foo_apos_foo", "foo'foo"),
+            ProjectPropertyInstance.Create("a_escapedsemi_b", "a%3bb"),
+            ProjectPropertyInstance.Create("a_escapedapos_b", "a%27b"),
+            ProjectPropertyInstance.Create("has_trailing_slash", @"foo\"),
+            ProjectPropertyInstance.Create("emptystring", @""),
+            ProjectPropertyInstance.Create("space", @" "),
+            ProjectPropertyInstance.Create("listofthings", @"a;b;c;d;e;f;g;h;i;j;k;l"),
+            ProjectPropertyInstance.Create("input", @"EXPORT a"),
+            ProjectPropertyInstance.Create("propertycontainingnullasastring", @"null")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -4974,8 +5026,9 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         string path = Path.Combine("foo", "bar");
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeProperty", path));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeProperty", path)
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -5007,8 +5060,9 @@ public class Expander_Tests(ITestOutputHelper output)
                  .ToString())
             """;
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
-        properties.Set(ProjectPropertyInstance.Create("SomeProperty", "6C8546D5297C424F962201B0E0E9F142"));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create("SomeProperty", "6C8546D5297C424F962201B0E0E9F142")
+        ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
@@ -5050,7 +5104,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionGuidNewGuid()
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -5066,7 +5120,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("EvaluationContext_SharedSDKCachePolicy", "Available")]
     public void PropertyFunctionCheckFeatureAvailability(string featureName, string availability)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -5082,7 +5136,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66\ud83d\udc68\u200d\ud83d\udc68\u200d\ud83d\udc66\u200d\ud83d\udc66\u002e\u0070\u0072\u006f\u006a", 0, 8, "________")]
     public void SubstringByAsciiChars(string featureName, int start, int length, string expected)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -5331,7 +5385,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunction_ReplaceDoesNotCallRegexReplace()
     {
         // Regression test for https://github.com/dotnet/msbuild/issues/12923
-        var properties = new PropertyDictionary<ProjectProperty>();
+        PropertyDictionary<ProjectProperty> properties = [];
         var expander = new Expander<ProjectProperty, ProjectItem>(properties, FileSystems.Default);
 
         _ = Should.Throw<InvalidProjectFileException>(() =>
@@ -5347,8 +5401,9 @@ public class Expander_Tests(ITestOutputHelper output)
 
     private void TestPropertyFunction(string expression, string propertyName, string propertyValue, string expected)
     {
-        var properties = new PropertyDictionary<ProjectPropertyInstance>();
-        properties.Set(ProjectPropertyInstance.Create(propertyName, propertyValue));
+        PropertyDictionary<ProjectPropertyInstance> properties = [
+            ProjectPropertyInstance.Create(propertyName, propertyValue)
+        ];
 
         var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
 
@@ -5711,7 +5766,7 @@ public class Expander_Tests(ITestOutputHelper output)
             loggingService,
             new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default, loggingContext);
 
         _ = expander.ExpandIntoStringLeaveEscaped(methodInvocationMetadata, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
@@ -5734,7 +5789,7 @@ public class Expander_Tests(ITestOutputHelper output)
             new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
         var dummyAssemblyFile = env.CreateFile(env.CreateFolder(), "test.dll");
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default, loggingContext);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
@@ -5852,8 +5907,8 @@ public class Expander_Tests(ITestOutputHelper output)
             env.SetCurrentDirectory(wrongDir);
         }
 
-        var pg = new PropertyDictionary<ProjectPropertyInstance>();
-        var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(pg, FileSystems.Default);
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
+        var expander = new Expander<ProjectPropertyInstance, ProjectItemInstance>(properties, FileSystems.Default);
         return expander.ExpandIntoStringLeaveEscaped(expression, ExpanderOptions.ExpandProperties, MockElementLocation.Instance);
     }
 
@@ -6181,7 +6236,7 @@ public class Expander_Tests(ITestOutputHelper output)
         env.WithTransientTestState(new TransientThreadWorkingDirectory(correctDir.Path));
         env.SetCurrentDirectory(wrongDir.Path);
 
-        PropertyDictionary<ProjectPropertyInstance> properties = new();
+        PropertyDictionary<ProjectPropertyInstance> properties = [];
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default, loggingContext);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
