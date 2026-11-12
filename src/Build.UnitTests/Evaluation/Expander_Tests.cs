@@ -94,22 +94,15 @@ public class Expander_Tests(ITestOutputHelper output)
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         PropertyDictionary<ProjectPropertyInstance> properties = [];
 
-        List<ProjectItemInstance> items1 = [
+        ItemDictionary<ProjectItemInstance> items = [
             new(project, "Compile", "foo.cs", project.FullPath),
             new(project, "Compile", "bar.cs", project.FullPath),
+            new(project, "Resource", "bing.resx", project.FullPath)
         ];
-
-        List<ProjectItemInstance> items2 = [
-            new(project, "Resource", "bing.resx", project.FullPath),
-        ];
-
-        ItemDictionary<ProjectItemInstance> itemsByType = [];
-        itemsByType.ImportItems(items1);
-        itemsByType.ImportItems(items2);
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(
             properties,
-            itemsByType,
+            items,
             FileSystems.Default,
             new TestLoggingContext(loggingService: null, new BuildEventContext(1, 2, 3, 4)));
 
@@ -902,6 +895,7 @@ public class Expander_Tests(ITestOutputHelper output)
     private Expander<ProjectPropertyInstance, ProjectItemInstance> CreateItemFunctionExpander()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
+
         PropertyDictionary<ProjectPropertyInstance> properties = [
             ProjectPropertyInstance.Create("p", "v0"),
             ProjectPropertyInstance.Create("p", "v1"),
@@ -909,33 +903,7 @@ public class Expander_Tests(ITestOutputHelper output)
             ProjectPropertyInstance.Create("a", "filename")
         ];
 
-        ItemDictionary<ProjectItemInstance> items = [];
-
-        for (int i = 0; i < 10; i++)
-        {
-            ProjectItemInstance item = new(project, "i", $"i{i}", project.FullPath);
-            for (int m = 0; m < 5; m++)
-            {
-                item.SetMetadata($"Meta{m}", $"{Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file")}{m}.ext");
-            }
-
-            item.SetMetadata("Meta9", Path.Combine("seconddirectory", "file.ext"));
-            item.SetMetadata("Meta10", $";{Path.Combine("someo%3bherplace", "foo.txt")};{Path.Combine("secondd%3brectory", "file.ext")};");
-            item.SetMetadata("MetaBlank", @"");
-
-            if (i % 2 > 0)
-            {
-                item.SetMetadata("Even", "true");
-                item.SetMetadata("Odd", "false");
-            }
-            else
-            {
-                item.SetMetadata("Even", "false");
-                item.SetMetadata("Odd", "true");
-            }
-
-            items.Add(item);
-        }
+        ItemDictionary<ProjectItemInstance> items = [.. Enumerable.Range(0, 10).Select(i => CreateItem(project, i))];
 
         IMetadataTable itemMetadata = new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
         {
@@ -944,6 +912,33 @@ public class Expander_Tests(ITestOutputHelper output)
         });
 
         return new(properties, items, itemMetadata, FileSystems.Default);
+
+        static ProjectItemInstance CreateItem(ProjectInstance project, int i)
+        {
+            ProjectItemInstance item = new(project, "i", $"i{i}", project.FullPath);
+
+            for (int m = 0; m < 5; m++)
+            {
+                item.SetMetadata($"Meta{m}", $"{Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file")}{m}.ext");
+            }
+
+            item.WithMetadata("Meta9", Path.Combine("seconddirectory", "file.ext"))
+                .WithMetadata("Meta10", $";{Path.Combine("someo%3bherplace", "foo.txt")};{Path.Combine("secondd%3brectory", "file.ext")};")
+                .WithMetadata("MetaBlank", @"");
+
+            if (i % 2 > 0)
+            {
+                item.WithMetadata("Even", "true")
+                    .WithMetadata("Odd", "false");
+            }
+            else
+            {
+                item.WithMetadata("Even", "false")
+                    .WithMetadata("Odd", "true");
+            }
+
+            return item;
+        }
     }
 
     /// <summary>
@@ -952,24 +947,22 @@ public class Expander_Tests(ITestOutputHelper output)
     private Expander<ProjectPropertyInstance, ProjectItemInstance> CreateExpander()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
+
         PropertyDictionary<ProjectPropertyInstance> properties = [
             ProjectPropertyInstance.Create("p", "v0"),
             ProjectPropertyInstance.Create("p", "v1")
         ];
 
-        ItemDictionary<ProjectItemInstance> items = [];
-        ProjectItemInstance item0 = new(project, "i", "i0", project.FullPath);
-        ProjectItemInstance item1 = new(project, "i", "i1", project.FullPath);
-        items.Add(item0);
-        items.Add(item1);
+        ItemDictionary<ProjectItemInstance> items = [
+            new ProjectItemInstance(project, "i", "i0", project.FullPath),
+            new ProjectItemInstance(project, "i", "i1", project.FullPath)
+        ];
 
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(
+        return new Expander<ProjectPropertyInstance, ProjectItemInstance>(
             properties,
             items,
             FileSystems.Default,
             new TestLoggingContext(loggingService: null, new BuildEventContext(1, 2, 3, 4)));
-
-        return expander;
     }
 
     /// <summary>
@@ -1472,65 +1465,48 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     private void CreateComplexPropertiesItemsMetadata(out Lookup readOnlyLookup, out StringMetadataTable itemMetadata)
     {
-        ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-        itemMetadata = new StringMetadataTable(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Culture"] = "abc%253bdef;$(Gee_Aych_Ayee)",
-            ["Language"] = "english",
-        });
-
         PropertyDictionary<ProjectPropertyInstance> properties = [
             ProjectPropertyInstance.Create("Gee_Aych_Ayee", "ghi"),
             ProjectPropertyInstance.Create("OutputPath", @"\jk ; l\mno%253bpqr\stu"),
             ProjectPropertyInstance.Create("TargetPath", "@(IntermediateAssembly->'%(RelativeDir)')")
         ];
 
-        ProjectItemInstance item1 = new(
-            project,
-            "IntermediateAssembly",
-            NativeMethodsShared.IsWindows ? @"subdir1\engine.dll" : "subdir1/engine.dll",
-            project.FullPath);
-        item1.SetMetadata("aaa", "111");
+        ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
 
-        ProjectItemInstance item2 = new(
-            project,
-            "IntermediateAssembly",
-            NativeMethodsShared.IsWindows ? @"subdir2\tasks.dll" : "subdir2/tasks.dll",
-            project.FullPath);
-        item2.SetMetadata("bbb", "222");
+        ItemDictionary<ProjectItemInstance> items = [
+            new ProjectItemInstance(project, "Resource", "string$(p).resx", project.FullPath).WithMetadata("ddd", "444"),
+            new ProjectItemInstance(project, "Resource", "dialogs%253b.resx", project.FullPath).WithMetadata("eee", "555"),
+            new ProjectItemInstance(project, "Content", "about.bmp", project.FullPath).WithMetadata("fff", "666")
+        ];
 
-        List<ProjectItemInstance> intermediateAssemblyItems = [item1, item2];
-
-        ProjectItemInstance item3 = new(project, "Content", "splash.bmp", project.FullPath);
-        item3.SetMetadata("ccc", "333");
-
-        List<ProjectItemInstance> contentItems = [item3];
-
-        ProjectItemInstance item4 = new(project, "Resource", "string$(p).resx", project.FullPath);
-        item4.SetMetadata("ddd", "444");
-
-        ProjectItemInstance item5 = new(project, "Resource", "dialogs%253b.resx", project.FullPath);
-        item5.SetMetadata("eee", "555");
-
-        List<ProjectItemInstance> resourceItems = [item4, item5];
-
-        ProjectItemInstance item6 = new(project, "Content", "about.bmp", project.FullPath);
-        item6.SetMetadata("fff", "666");
-
-        List<ProjectItemInstance> contentItems2 = [item6];
-
-        ItemDictionary<ProjectItemInstance> secondaryItemsByName = [];
-        secondaryItemsByName.ImportItems(resourceItems);
-        secondaryItemsByName.ImportItems(contentItems2);
-
-        Lookup lookup = new Lookup(secondaryItemsByName, properties);
+        Lookup lookup = new(items, properties);
 
         // Add primary items
         lookup.EnterScope("x");
-        lookup.PopulateWithItems("IntermediateAssembly", intermediateAssemblyItems);
-        lookup.PopulateWithItems("Content", contentItems);
+
+        lookup.PopulateWithItems("IntermediateAssembly", [
+            new ProjectItemInstance(
+                project,
+                "IntermediateAssembly",
+                NativeMethodsShared.IsWindows ? @"subdir1\engine.dll" : "subdir1/engine.dll",
+                project.FullPath).WithMetadata("aaa", "111"),
+            new ProjectItemInstance(
+                project,
+                "IntermediateAssembly",
+                NativeMethodsShared.IsWindows ? @"subdir2\tasks.dll" : "subdir2/tasks.dll",
+                project.FullPath).WithMetadata("bbb", "222")]);
+
+        lookup.PopulateWithItems("Content", [
+            new ProjectItemInstance(project, "Content", "splash.bmp", project.FullPath).WithMetadata("ccc", "333")
+        ]);
 
         readOnlyLookup = lookup;
+
+        itemMetadata = new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Culture"] = "abc%253bdef;$(Gee_Aych_Ayee)",
+            ["Language"] = "english",
+        });
     }
 
     /// <summary>
@@ -1670,7 +1646,7 @@ public class Expander_Tests(ITestOutputHelper output)
         string itemSpec = Path.Combine("src", "directory", "File.cs");
         string definingProject = Path.Combine(project.Directory, "Imported.targets");
         var item = new ContextTrackingItem("Compile", itemSpec, project.Directory, definingProject);
-        var items = new ItemDictionary<ContextTrackingItem> { item };
+        ItemDictionary<ContextTrackingItem> items = [item];
         PropertyDictionary<ProjectPropertyInstance> properties = [];
         var expander = new Expander<ProjectPropertyInstance, ContextTrackingItem>(
             properties,
@@ -1773,41 +1749,45 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         string manySpaces = new(' ', 2000);
+
         PropertyDictionary<ProjectPropertyInstance> properties = [
             ProjectPropertyInstance.Create("ManySpacesProperty", manySpaces)
         ];
+
+        ItemDictionary<ProjectItemInstance> projectItemGroups = [];
+
+        var lookup = new Lookup(projectItemGroups, properties);
+        lookup.EnterScope("x");
+
+        lookup.PopulateWithItems(
+            "ManySpacesItem",
+            [
+                new(project, "ManySpacesItem", "Foo", project.FullPath),
+                new(project, "ManySpacesItem", manySpaces, project.FullPath),
+                new(project, "ManySpacesItem", "Bar", project.FullPath),
+            ]);
+
+        lookup.PopulateWithItems(
+            "Exactly1024",
+            [
+                new(project, "Exactly1024", new(' ', 1024), project.FullPath),
+                new(project, "Exactly1024", "Foo", project.FullPath),
+            ]);
+
+        lookup.PopulateWithItems(
+            "ManyItems",
+            [
+                .. Enumerable
+                    .Range(0, 50)
+                    .Select(i =>
+                        new ProjectItemInstance(project, "ManyItems", $"ThisIsAFairlyLongFileName_{i}.bmp", project.FullPath)
+                            .WithMetadata("Foo", $"ThisIsAFairlyLongMetadataValue_{i}"))
+            ]);
 
         var itemMetadata = new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
         {
             ["ManySpacesMetadata"] = manySpaces,
         });
-
-        var projectItemGroups = new ItemDictionary<ProjectItemInstance>();
-        var itemGroup = new List<ProjectItemInstance>();
-        for (int i = 0; i < 50; i++)
-        {
-            var item = new ProjectItemInstance(project, "ManyItems", $"ThisIsAFairlyLongFileName_{i}.bmp", project.FullPath);
-            item.SetMetadata("Foo", $"ThisIsAFairlyLongMetadataValue_{i}");
-            itemGroup.Add(item);
-        }
-
-        var lookup = new Lookup(projectItemGroups, properties);
-        lookup.EnterScope("x");
-
-        lookup.PopulateWithItems("ManySpacesItem",
-        [
-            new(project, "ManySpacesItem", "Foo", project.FullPath),
-            new(project, "ManySpacesItem", manySpaces, project.FullPath),
-            new(project, "ManySpacesItem", "Bar", project.FullPath),
-        ]);
-
-        lookup.PopulateWithItems("Exactly1024",
-        [
-            new(project, "Exactly1024", new(' ', 1024), project.FullPath),
-            new(project, "Exactly1024", "Foo", project.FullPath),
-        ]);
-
-        lookup.PopulateWithItems("ManyItems", itemGroup);
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(lookup, lookup, itemMetadata, FileSystems.Default);
 
@@ -1897,10 +1877,11 @@ public class Expander_Tests(ITestOutputHelper output)
     private static Expander<ProjectPropertyInstance, ProjectItemInstance> CreateMetadataExpander()
     {
         PropertyDictionary<ProjectPropertyInstance> properties = [];
+        ItemDictionary<ProjectItemInstance> items = [];
 
         return new(
             properties,
-            new ItemDictionary<ProjectItemInstance>(),
+            items,
             new StringMetadataTable(new(StringComparer.OrdinalIgnoreCase)
             {
                 ["Culture"] = "en-US",
@@ -4570,12 +4551,11 @@ public class Expander_Tests(ITestOutputHelper output)
             ["Compile.Identity"] = "fOo.Cs",
         });
 
-        List<ProjectItemInstance> items = [new(project, "Compile", "fOo.Cs", project.FullPath)];
+        ItemDictionary<ProjectItemInstance> items = [
+            new(project, "Compile", "fOo.Cs", project.FullPath)
+        ];
 
-        ItemDictionary<ProjectItemInstance> itemsByType = [];
-        itemsByType.ImportItems(items);
-
-        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, itemsByType, itemMetadata, FileSystems.Default);
+        Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, items, itemMetadata, FileSystems.Default);
 
         string result = expander.ExpandIntoStringLeaveEscaped(
             "$([System.IO.Path]::Combine($(SomePath),%(Compile.Identity)))",
