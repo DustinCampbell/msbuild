@@ -407,6 +407,22 @@ namespace Microsoft.Build.Execution
         }
 
         /// <summary>
+        ///  Sets metadata with the specified name and value and returns this item instance.
+        /// </summary>
+        /// <param name="name">The metadata name.</param>
+        /// <param name="evaluatedValue">The evaluated metadata value.</param>
+        /// <returns>
+        ///  This item instance, enabling additional metadata to be added fluently.
+        /// </returns>
+        internal ProjectItemInstance WithMetadata(string name, string evaluatedValue)
+        {
+            _project.VerifyThrowNotImmutable();
+            _ = _taskItem.SetMetadataObject(name, evaluatedValue, allowItemSpecModifiers: false);
+
+            return this;
+        }
+
+        /// <summary>
         /// Add a metadata with the specified name and value.
         /// Overwrites any metadata with the same name already in the collection.
         /// </summary>
@@ -414,7 +430,7 @@ namespace Microsoft.Build.Execution
         {
             _project.VerifyThrowNotImmutable();
 
-            return _taskItem.SetMetadataObject(name, evaluatedValue, false /* built-in metadata not allowed */);
+            return _taskItem.SetMetadataObject(name, evaluatedValue, allowItemSpecModifiers: false);
         }
 
         /// <summary>
