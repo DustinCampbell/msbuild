@@ -210,8 +210,10 @@ public class Expander_Tests(ITestOutputHelper output)
     /// <summary>
     ///  Expand an item vector function AnyHaveMetadataValue.
     /// </summary>
-    [Fact]
-    public void ExpandItemVectorFunctionsAnyHaveMetadataValue()
+    [Theory]
+    [InlineData("true", "true")]
+    [InlineData("goop", "false")]
+    public void ExpandItemVectorFunctionsAnyHaveMetadataValue(string metadataValue, string expected)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         ProjectItemInstanceFactory itemFactory = new(project, "i");
@@ -220,25 +222,14 @@ public class Expander_Tests(ITestOutputHelper output)
             new ProjectItemInstance(project, "i", "i1", project.FullPath).WithMetadata("Even", "true"));
 
         ExpandAsItems(
-            "@(i->AnyHaveMetadataValue('Even', 'true'))",
+            $"@(i->AnyHaveMetadataValue('Even', '{metadataValue}'))",
             itemFactory,
             ExpanderOptions.ExpandItems,
             sourceItems)
             .ShouldHaveSingleItem(item =>
             {
                 item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe("true");
-            });
-
-        ExpandAsItems(
-            "@(i->AnyHaveMetadataValue('Even', 'goop'))",
-            itemFactory,
-            ExpanderOptions.ExpandItems,
-            sourceItems)
-            .ShouldHaveSingleItem(item =>
-            {
-                item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe("false");
+                item.EvaluatedInclude.ShouldBe(expected);
             });
     }
 
@@ -281,48 +272,60 @@ public class Expander_Tests(ITestOutputHelper output)
     /// <summary>
     ///  Expand an item vector function Metadata()->DirectoryName()->Distinct().
     /// </summary>
-    [Fact]
+    [Theory]
+    [InlineData("Meta0")]
+    [InlineData("Meta9")]
     [Trait("Category", "netcore-osx-failing")]
     [Trait("Category", "netcore-linux-failing")]
-    public void ExpandItemVectorFunctionsGetDirectoryNameOfMetadataValueDistinct()
+    public void ExpandItemVectorFunctionsGetDirectoryNameOfMetadataValueDistinct(string metadataName)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         ProjectItemInstanceFactory itemFactory = new(project, "i");
+        string metadataValue;
+        string expected;
+
+        if (metadataName == "Meta0")
+        {
+            metadataValue = Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext");
+            expected = Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory");
+        }
+        else
+        {
+            metadataValue = Path.Combine("seconddirectory", "file.ext");
+            expected = Path.Combine(Directory.GetCurrentDirectory(), "seconddirectory");
+        }
+
         IItemProvider<ProjectItemInstance> sourceItems = Item(
             new ProjectItemInstance(project, "i", "i0", project.FullPath)
-                .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))
-                .WithMetadata("Meta9", Path.Combine("seconddirectory", "file.ext")));
+                .WithMetadata(metadataName, metadataValue));
 
         ExpandAsItems(
-            "@(i->Metadata('Meta0')->DirectoryName()->Distinct())",
+            $"@(i->Metadata('{metadataName}')->DirectoryName()->Distinct())",
             itemFactory,
             ExpanderOptions.ExpandItems,
             sourceItems)
             .ShouldHaveSingleItem(item =>
             {
                 item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe(Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory"));
-            });
-
-        ExpandAsItems(
-            "@(i->Metadata('Meta9')->DirectoryName()->Distinct())",
-            itemFactory,
-            ExpanderOptions.ExpandItems,
-            sourceItems)
-            .ShouldHaveSingleItem(item =>
-            {
-                item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe(Path.Combine(Directory.GetCurrentDirectory(), @"seconddirectory"));
+                item.EvaluatedInclude.ShouldBe(expected);
             });
     }
+
+    public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunctionData { get; } = new()
+    {
+        { "@(i->Metadata('Meta0')->Directory())", $"{Path.Combine("firstdirectory", "seconddirectory")}{Path.DirectorySeparatorChar}" },
+        { "@(i->Metadata('Meta0')->Filename())", "file0" },
+        { "@(i->Metadata('Meta0')->Extension())", ".ext" },
+    };
 
     /// <summary>
     ///  Expand an item vector function that is an itemspec modifier.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberData(nameof(ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunctionData))]
     [Trait("Category", "netcore-osx-failing")]
     [Trait("Category", "netcore-linux-failing")]
-    public void ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunction()
+    public void ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunction(string expression, string expected)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         ProjectItemInstanceFactory itemFactory = new(project, "i");
@@ -331,36 +334,14 @@ public class Expander_Tests(ITestOutputHelper output)
                 .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")));
 
         ExpandAsItems(
-            "@(i->Metadata('Meta0')->Directory())",
+            expression,
             itemFactory,
             ExpanderOptions.ExpandItems,
             sourceItems)
             .ShouldHaveSingleItem(item =>
             {
                 item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe(Path.Combine("firstdirectory", "seconddirectory") + Path.DirectorySeparatorChar);
-            });
-
-        ExpandAsItems(
-            "@(i->Metadata('Meta0')->Filename())",
-            itemFactory,
-            ExpanderOptions.ExpandItems,
-            sourceItems)
-            .ShouldHaveSingleItem(item =>
-            {
-                item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe("file0");
-            });
-
-        ExpandAsItems(
-            "@(i->Metadata('Meta0')->Extension())",
-            itemFactory,
-            ExpanderOptions.ExpandItems,
-            sourceItems)
-            .ShouldHaveSingleItem(item =>
-            {
-                item.ItemType.ShouldBe("i");
-                item.EvaluatedInclude.ShouldBe(".ext");
+                item.EvaluatedInclude.ShouldBe(expected);
             });
     }
 
@@ -375,20 +356,33 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBe(@"[@(type-&gt;'%(filename), '%'')]");
 
     /// <summary>
-    ///  Expand an item expression (that isn't a real expression) but includes a metadata reference that till needs to be expanded.
+    ///  Expand an item expression (that isn't a real expression) but includes a metadata reference that still needs to be expanded.
     /// </summary>
     [Fact]
     public void ExpandItemVectorFunctionsInvalid2()
         => ExpandAll("[@(i->'%(Meta9))']")
             .ShouldBe(@"[@(i->')']");
 
+    public static TheoryData<string, string> ExpandItemVectorFunctionsChainedData { get; } = new()
+    {
+        {
+            "@(i->'%(Meta0)'->'%(Directory)'->Distinct())",
+            $"{Path.Combine("firstdirectory", "seconddirectory")}{Path.DirectorySeparatorChar}"
+        },
+        {
+            "[@(i->'%(Meta0)'->'%(Directory)'->Distinct())]",
+            @"[firstdirectory\seconddirectory\]"
+        },
+    };
+
     /// <summary>
     ///  Expand an item vector function that is chained into a string.
     /// </summary>
-    [Fact]
+    [Theory]
+    [MemberData(nameof(ExpandItemVectorFunctionsChainedData))]
     [Trait("Category", "netcore-osx-failing")]
     [Trait("Category", "netcore-linux-failing")]
-    public void ExpandItemVectorFunctionsChained1()
+    public void ExpandItemVectorFunctionsChained(string expression, string expected)
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
         IItemProvider<ProjectItemInstance> sourceItems = Items(
@@ -397,34 +391,15 @@ public class Expander_Tests(ITestOutputHelper output)
             new ProjectItemInstance(project, "i", "i1", project.FullPath)
                 .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")));
 
-        ExpandItems("@(i->'%(Meta0)'->'%(Directory)'->Distinct())", sourceItems)
-            .ShouldBe($"{Path.Combine("firstdirectory", "seconddirectory")}{Path.DirectorySeparatorChar}");
+        ExpandItems(expression, sourceItems)
+            .ShouldBe(expected);
     }
 
     /// <summary>
     ///  Expand an item vector function that is chained and has constants into a string.
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
-    public void ExpandItemVectorFunctionsChained2()
-    {
-        ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
-        IItemProvider<ProjectItemInstance> sourceItems = Items(
-            new ProjectItemInstance(project, "i", "i0", project.FullPath)
-                .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")),
-            new ProjectItemInstance(project, "i", "i1", project.FullPath)
-                .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")));
-
-        ExpandItems("[@(i->'%(Meta0)'->'%(Directory)'->Distinct())]", sourceItems)
-            .ShouldBe(@"[firstdirectory\seconddirectory\]");
-    }
-
-    /// <summary>
-    ///  Expand an item vector function that is chained and has constants into a string.
-    /// </summary>
-    [Fact]
-    public void ExpandItemVectorFunctionsChained3()
+    public void ExpandItemVectorFunctionsChainedEmptyResult()
     {
         ProjectInstance project = ProjectHelpers.CreateEmptyProjectInstance();
 
