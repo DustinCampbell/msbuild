@@ -3392,7 +3392,15 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties($"$([MSBuild]::ConvertFromBase64('{base64}'))")
             .ShouldBe(plaintext);
 
-    public static TheoryData<string, string> PropertyFunctionValidExpressionData
+    /// <summary>
+    ///  Gets valid property expressions that property expansion evaluates successfully. These cases
+    ///  include simple property references, indexers, registry syntax, and static and instance
+    ///  property functions.
+    /// </summary>
+    /// <value>
+    ///  The recognized expressions and their expected expanded values.
+    /// </value>
+    public static TheoryData<string, string> ValidPropertyExpressionData
     {
         get
         {
@@ -3457,7 +3465,16 @@ public class Expander_Tests(ITestOutputHelper output)
         }
     }
 
-    public static TheoryData<string> PropertyFunctionInvalidExpressionData
+    /// <summary>
+    ///  Gets invalid or disallowed property expressions that property expansion must reject. Invalid
+    ///  expressions contain malformed property-function syntax, invalid arguments, or operations that
+    ///  cannot be evaluated. Disallowed expressions are otherwise valid calls to types or members
+    ///  that MSBuild does not permit property functions to invoke.
+    /// </summary>
+    /// <value>
+    ///  The recognized expressions that must throw <see cref="InvalidProjectFileException"/>.
+    /// </value>
+    public static TheoryData<string> InvalidPropertyExpressionData
     {
         get
         {
@@ -3474,27 +3491,6 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$(listofthings.Split(';')[])",
                 "$(listofthings.Split(';')[-1])",
                 "$([]::())",
-                """
-
-                $(
-
-                $(
-
-                [System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt')
-
-                ).Substring(
-
-                '$([System.IO]::Path.GetPathRoot(
-
-                '$([System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt'))'
-
-                ).Length)'
-
-
-
-                )
-
-                """,
                 "$([Microsoft.VisualBasic.FileIO.FileSystem]::CurrentDirectory)",
                 "$(e.Length..ToString())",
                 "$(SomeStuff.get_Length(null))",
@@ -3507,10 +3503,6 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$([MSBuild]::Add('',40))",
                 "$([MSBuild]::Add(40,,,))",
                 "$([MSBuild]::Add(40, ,,))",
-                "$([MSBuild]::Add(40,)",
-                "$([MSBuild]::Add(40,X)",
-                "$([MSBuild]::Add(40,",
-                "$([MSBuild]::Add(40",
                 "$([MSBuild]::Add(,))",
                 "$([System.TimeSpan]::Equals(,))",
                 "$([System.TimeSpan]::Equals($(space),$(emptystring)))",
@@ -3526,11 +3518,7 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$(e..Length)",
                 "$(e$(d).Length)",
                 "$($(d).Length)",
-                "$(e`.Length)",
                 "$([System.IO.Path]Combine::Combine(`a`,`b`))",
-                "$([System.IO.Path]::Combine((`a`,`b`))",
-                "$([System.IO.Path]Combine(::Combine(`a`,`b`))",
-                "$([System.IO.Path]Combine(`::Combine(`a`,`b`)`, `b`)`)",
                 "$([System.IO.Path]::`Combine(`a`, `b`)`)",
                 "$([System.IO.Path]::(`Combine(`a`, `b`)`))",
                 "$([System.DateTime]foofoo::Now)",
@@ -3543,38 +3531,11 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$([ ])",
                 "$([System.Diagnostics.Process]::Start(`NOTEPAD.EXE`))",
                 "$([[]]::Start(`NOTEPAD.EXE`))",
-                "$([(::Start(`NOTEPAD.EXE`))",
                 "$([Goop]::Start(`NOTEPAD.EXE`))",
                 "$([System.Threading.Thread]::CurrentThread)",
-                "$",
-                "$(",
-                "$((",
-                "@",
-                "@(",
-                "@()",
-                "%",
-                "%(",
-                "%()",
-                "exists",
-                "exists(",
-                "exists()",
-                "exists( )",
-                "exists(,)",
-                "@(x->'",
-                "@(x->''",
-                "@(x-",
-                "@(x->'x','",
-                "@(x->'x',''",
-                "@(x->'x','')",
-                "-1>x",
-                "\n",
-                "\t",
-                "+-1",
                 "$(SomeStuff.)",
                 "$(SomeStuff.!)",
-                "$(SomeStuff.`)",
                 "$(SomeStuff.GetType)",
-                "$(goop.baz`)",
                 "$(SomeStuff.Substring(HELLO!))",
                 "$(SomeStuff.ToLowerInvariant()_goop)",
                 "$(SomeStuff($(System.DateTime.Now)))",
@@ -3582,15 +3543,11 @@ public class Expander_Tests(ITestOutputHelper output)
                 "$(SomeStuff.Lgg)",
                 "$(SomeStuff($(Value)))",
                 "$(e.$(e.Length))",
-                "$(e.Substring($(e.Substring(,)))",
-                "$(e.Substring($(e.Substring(a)))",
                 "$(e.Substring($([System.IO.Path]::Combine(`a`, `b`))))",
-                "$((((",
                 "$($())",
-                "()",
             ];
 
-#if !RUNTIME_TYPE_NETCORE
+#if NETFRAMEWORK
             if (NativeMethodsShared.IsWindows)
             {
                 // '|' is only an invalid character in Windows filesystems.
@@ -3608,33 +3565,107 @@ public class Expander_Tests(ITestOutputHelper output)
     }
 
     /// <summary>
-    ///  Verifies valid property-function expressions.
+    ///  Gets text that property expansion does not recognize as a complete property expression. These
+    ///  cases include incomplete property markers and syntax belonging to item, metadata, or condition
+    ///  expressions.
+    /// </summary>
+    /// <value>
+    ///  The expressions that must be returned unchanged and reference-identical.
+    /// </value>
+    public static TheoryData<string> UnrecognizedPropertyExpressionData { get; } =
+    [
+        "$([MSBuild]::Add(40,)",
+        "$([MSBuild]::Add(40,X)",
+        "$([MSBuild]::Add(40,",
+        "$([MSBuild]::Add(40",
+        "$(e`.Length)",
+        "$([System.IO.Path]::Combine((`a`,`b`))",
+        "$([System.IO.Path]Combine(::Combine(`a`,`b`))",
+        "$([System.IO.Path]Combine(`::Combine(`a`, `b`)`, `b`)`)",
+        "$([(::Start(`NOTEPAD.EXE`))",
+        """
+
+        $(
+
+        $(
+
+        [System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt')
+
+        ).Substring(
+
+        '$([System.IO]::Path.GetPathRoot(
+
+        '$([System.IO]::Path.GetDirectory('c:\foo\bar\baz.txt'))'
+
+        ).Length)'
+
+
+
+        )
+
+        """,
+        "$",
+        "$(",
+        "$((",
+        "@",
+        "@(",
+        "@()",
+        "%",
+        "%(",
+        "%()",
+        "exists",
+        "exists(",
+        "exists()",
+        "exists( )",
+        "exists(,)",
+        "@(x->'",
+        "@(x->''",
+        "@(x-",
+        "@(x->'x','",
+        "@(x->'x',''",
+        "@(x->'x','')",
+        "-1>x",
+        "\n",
+        "\t",
+        "+-1",
+        "$(SomeStuff.`)",
+        "$(goop.baz`)",
+        "$(e.Substring($(e.Substring(,)))",
+        "$(e.Substring($(e.Substring(a)))",
+        "$((((",
+        "()",
+    ];
+
+    /// <summary>
+    ///  Verifies that property expansion expands valid expressions to their expected values.
     /// </summary>
     /// <param name="expression">The expression to expand.</param>
     /// <param name="expected">The expected expanded value.</param>
     [Theory]
-    [MemberData(nameof(PropertyFunctionValidExpressionData))]
-    public void PropertyFunctionValidExpression(string expression, string expected)
+    [MemberData(nameof(ValidPropertyExpressionData))]
+    public void ExpandProperties_ExpandsValidExpressions(string expression, string expected)
         => ExpandProperties(expression, CreatePropertyFunctionExpressionProperties())
             .ShouldBe(expected);
 
     /// <summary>
-    ///  Verifies expressions that must not evaluate successfully.
+    ///  Verifies that property expansion throws for recognized expressions that are invalid or disallowed.
     /// </summary>
     /// <param name="expression">The invalid or disallowed expression.</param>
     [Theory]
-    [MemberData(nameof(PropertyFunctionInvalidExpressionData))]
-    public void PropertyFunctionInvalidExpression(string expression)
-    {
-        try
-        {
-            ExpandProperties(expression, CreatePropertyFunctionExpressionProperties())
-                .ShouldBe(expression, $"Expected '{expression}' to remain unexpanded or throw.");
-        }
-        catch (InvalidProjectFileException)
-        {
-        }
-    }
+    [MemberData(nameof(InvalidPropertyExpressionData))]
+    public void ExpandProperties_ThrowsForInvalidExpressions(string expression)
+        => Should.Throw<InvalidProjectFileException>(() =>
+            ExpandProperties(expression, CreatePropertyFunctionExpressionProperties()));
+
+    /// <summary>
+    ///  Verifies that property expansion returns unrecognized expressions unchanged.
+    /// </summary>
+    /// <param name="expression">The unrecognized expression.</param>
+    [Theory]
+    [MemberData(nameof(UnrecognizedPropertyExpressionData))]
+    public void ExpandProperties_LeavesUnrecognizedExpressionsUnchanged(string expression)
+        => ExpandProperties(expression, CreatePropertyFunctionExpressionProperties())
+            .ShouldBeSameAs(expression);
 
     private IPropertyProvider<ProjectPropertyInstance> CreatePropertyFunctionExpressionProperties()
     {
