@@ -265,8 +265,6 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expands rooted metadata paths through Metadata()->DirectoryName()->Distinct().
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsGetDirectoryNameOfRootedMetadataValuesDistinct()
     {
         IList<ProjectItemInstance> items = ExpandAsItems(
@@ -290,8 +288,6 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expands relative metadata paths through Metadata()->DirectoryName()->Distinct().
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsGetDirectoryNameOfRelativeMetadataValuesDistinct()
     {
         IList<ProjectItemInstance> items = ExpandAsItems(
@@ -321,8 +317,6 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [MemberData(nameof(ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunctionData))]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunction(string expression, string expected)
     {
         IList<ProjectItemInstance> items = ExpandAsItems(
@@ -364,7 +358,7 @@ public class Expander_Tests(ITestOutputHelper output)
         ),
         (
             "[@(i->'%(Meta0)'->'%(Directory)'->Distinct())]",
-            @"[firstdirectory\seconddirectory\]"
+            $"[{MakeDirectoryPath("firstdirectory", "seconddirectory")}]"
         ),
     ];
 
@@ -373,8 +367,6 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [MemberData(nameof(ExpandItemVectorFunctionsChainedData))]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsChained(string expression, string expected)
         => ExpandItems(
             expression,
@@ -397,30 +389,31 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBeEmpty();
 
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsChainedProject1()
     {
-        const string Content = """
+        string value1File1 = MakePath(s_rootPathPrefix, "Value1", "file1.txt");
+        string value2File2 = MakePath(s_rootPathPrefix, "Value2", "file2.txt");
+        string value2File3 = MakePath(s_rootPathPrefix, "Value2", "file3.txt");
+        string content = $"""
             <Project ToolsVersion=`msbuilddefaulttoolsversion`>
                 <ItemGroup>
                     <Compile Include=`a.cpp`>
-                        <SomeMeta>C:\Value1\file1.txt</SomeMeta>
+                        <SomeMeta>{value1File1}</SomeMeta>
                         <A>||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||</A>
                         <B>##</B>
                     </Compile>
                     <Compile Include=`b.cpp`>
-                        <SomeMeta>C:\Value2\file2.txt</SomeMeta>
+                        <SomeMeta>{value2File2}</SomeMeta>
                         <A>||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||</A>
                         <B>##</B>
                     </Compile>
                     <Compile Include=`c.cpp`>
-                        <SomeMeta>C:\Value2\file3.txt</SomeMeta>
+                        <SomeMeta>{value2File3}</SomeMeta>
                         <A>||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||</A>
                         <B>##</B>
                     </Compile>
                     <Compile Include=`c.cpp`>
-                        <SomeMeta>C:\Value2\file3.txt</SomeMeta>
+                        <SomeMeta>{value2File3}</SomeMeta>
                         <A>||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||</A>
                         <B>##</B>
                     </Compile>
@@ -437,14 +430,16 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(Content);
+        MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess(content);
+        string value1Directory = MakeDirectoryPath("Value1");
+        string value2Directory = MakeDirectoryPath("Value2");
 
-        logger.AssertLogContains(@"DirChain0: Value1\;Value2\");
-        logger.AssertLogContains(@"DirChain1: Value1\||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||Value2\");
-        logger.AssertLogContains(@"DirChain2: Value1\||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||##Value2\");
-        logger.AssertLogContains(@"DirChain3: Value1\||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||$##Value2\");
-        logger.AssertLogContains(@"DirChain4: Value1\$||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||$##Value2\");
-        logger.AssertLogContains(@"DirChain5: Value1\$||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||$##$Value2\");
+        logger.AssertLogContains($"DirChain0: {value1Directory};{value2Directory}");
+        logger.AssertLogContains($"DirChain1: {value1Directory}||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||{value2Directory}");
+        logger.AssertLogContains($"DirChain2: {value1Directory}||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||##{value2Directory}");
+        logger.AssertLogContains($"DirChain3: {value1Directory}||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||$##{value2Directory}");
+        logger.AssertLogContains($"DirChain4: {value1Directory}$||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||$##{value2Directory}");
+        logger.AssertLogContains($"DirChain5: {value1Directory}$||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||$##${value2Directory}");
     }
 
     /// <summary>
@@ -708,8 +703,6 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Theory]
     [MemberData(nameof(ExpandItemVectorFunctionsItemSpecModifierAfterQuotedTransformData))]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsItemSpecModifierAfterQuotedTransform(string expression, string expected)
     {
         IList<ProjectItemInstance> items = ExpandAsItems(
@@ -732,8 +725,6 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expand an item vector function Metadata()->DirectoryName().
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsGetDirectoryNameOfMetadataValue()
     {
         IList<ProjectItemInstance> items = ExpandAsItems(
@@ -755,8 +746,6 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expand an item vector function Metadata() that contains semi-colon delimited sub-items.
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void ExpandItemVectorFunctionsMetadataValueMultiItem()
     {
         IList<ProjectItemInstance> items = ExpandAsItems(
@@ -1917,18 +1906,19 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void RegistryPropertyValue(object value, RegistryValueKind valueKind, string expected)
     {
+        string registryKeyPath = $@"Software\Microsoft\MSBuild_test_{Guid.NewGuid():N}";
         try
         {
-            RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\MSBuild_test");
+            RegistryKey key = Registry.CurrentUser.CreateSubKey(registryKeyPath);
 
             key.SetValue("Value", value, valueKind);
 
-            ExpandProperties("""$(Registry:HKEY_CURRENT_USER\Software\Microsoft\MSBuild_test@Value)""")
+            ExpandProperties($"""$(Registry:HKEY_CURRENT_USER\{registryKeyPath}@Value)""")
                 .ShouldBe(expected);
         }
         finally
         {
-            Registry.CurrentUser.DeleteSubKey(@"Software\Microsoft\MSBuild_test");
+            Registry.CurrentUser.DeleteSubKey(registryKeyPath);
         }
     }
 
@@ -2177,6 +2167,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
 
         string? typeName = typeof(PropertyValueConversionTestData).AssemblyQualifiedName;
 
@@ -2196,11 +2187,14 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expand property function that returns a Dictionary.
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionDictionaryReturn()
-        => ExpandProperties("$([System.Environment]::GetEnvironmentVariables())").ToUpperInvariant()
-            .ShouldContain($"OS={Environment.GetEnvironmentVariable("OS")}".ToUpperInvariant());
+    {
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.SetEnvironmentVariable("MSBUILD_EXPANDER_TEST_VARIABLE", "test-value");
+
+        ExpandProperties("$([System.Environment]::GetEnvironmentVariables())").ToUpperInvariant()
+            .ShouldContain("MSBUILD_EXPANDER_TEST_VARIABLE=TEST-VALUE");
+    }
 
     /// <summary>
     ///  Expand property function that returns an array.
@@ -2233,7 +2227,7 @@ public class Expander_Tests(ITestOutputHelper output)
             Directory.GetCurrentDirectory(),
             MockElementLocation.Instance,
             FileSystems.Default,
-            new TestLoggingContext(loggingService: null, new BuildEventContext(1, 2, 3, 4)))
+            loggingContext: null)
             .ShouldBeTrue();
 
         ConditionEvaluator.EvaluateCondition(
@@ -2244,7 +2238,7 @@ public class Expander_Tests(ITestOutputHelper output)
             Directory.GetCurrentDirectory(),
             MockElementLocation.Instance,
             FileSystems.Default,
-            new TestLoggingContext(loggingService: null, new BuildEventContext(1, 2, 3, 4)))
+            loggingContext: null)
             .ShouldBeTrue();
     }
 
@@ -2285,8 +2279,6 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expand property function that calls a static method.
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionStaticMethodMakeRelative()
         => ExpandProperties(
             "$([MSBuild]::MakeRelative($(ParentPath), `$(FilePath)`))",
@@ -2382,8 +2374,6 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expand property function that calls a static method.
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionStaticMethodQuoted1()
         => ExpandProperties(
             $"$([System.IO.Path]::Combine(`{s_rootPathPrefix}`, `$(File)`))",
@@ -3112,17 +3102,15 @@ public class Expander_Tests(ITestOutputHelper output)
     ///  Expand property function that calls a static bitwise method to retrieve file attribute.
     /// </summary>
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void PropertyFunctionStaticMethodFileAttributes()
     {
         string tempFile = FileUtilities.GetTemporaryFile();
         try
         {
-            File.SetAttributes(tempFile, FileAttributes.ReadOnly | FileAttributes.Archive);
+            File.SetAttributes(tempFile, FileAttributes.ReadOnly);
 
-            ExpandProperties($"$([MSBuild]::BitwiseAnd(32,$([System.IO.File]::GetAttributes({tempFile}))))")
-                .ShouldBe("32");
+            ExpandProperties($"$([MSBuild]::BitwiseAnd(1,$([System.IO.File]::GetAttributes({tempFile}))))")
+                .ShouldBe("1");
         }
         finally
         {
@@ -3181,21 +3169,22 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void PropertyFunctionGetRegitryValue()
     {
+        string registryKeyPath = $@"Software\Microsoft\MSBuild_test_{Guid.NewGuid():N}";
         try
         {
             string envVar = NativeMethodsShared.IsWindows ? "TEMP" : "USER";
-            RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\MSBuild_test");
+            RegistryKey key = Registry.CurrentUser.CreateSubKey(registryKeyPath);
 
             key.SetValue("Value", $"%{envVar}%", RegistryValueKind.ExpandString);
 
             ExpandProperties(
-                """$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\Software\Microsoft\MSBuild_test', '$(SomeProperty)'))""",
+                $"""$([MSBuild]::GetRegistryValue('HKEY_CURRENT_USER\{registryKeyPath}', '$(SomeProperty)'))""",
                 Data.Properties("SomeProperty", "Value"))
                 .ShouldBe(Environment.GetEnvironmentVariable(envVar)!);
         }
         finally
         {
-            Registry.CurrentUser.DeleteSubKey(@"Software\Microsoft\MSBuild_test");
+            Registry.CurrentUser.DeleteSubKey(registryKeyPath);
         }
     }
 
@@ -3210,19 +3199,20 @@ public class Expander_Tests(ITestOutputHelper output)
     [SupportedOSPlatform("windows")]
     public void PropertyFunctionGetRegistryDefaultValue(string expression)
     {
+        string registryKeyPath = $@"Software\Microsoft\MSBuild_test_{Guid.NewGuid():N}";
         try
         {
             string envVar = NativeMethodsShared.IsWindows ? "TEMP" : "USER";
-            RegistryKey key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\MSBuild_test");
+            RegistryKey key = Registry.CurrentUser.CreateSubKey(registryKeyPath);
 
             key.SetValue(string.Empty, $"%{envVar}%", RegistryValueKind.ExpandString);
 
-            ExpandProperties(expression)
+            ExpandProperties(expression.Replace(@"Software\Microsoft\MSBuild_test", registryKeyPath))
                 .ShouldBe(Environment.GetEnvironmentVariable(envVar)!);
         }
         finally
         {
-            Registry.CurrentUser.DeleteSubKey(@"Software\Microsoft\MSBuild_test");
+            Registry.CurrentUser.DeleteSubKey(registryKeyPath);
         }
     }
 
@@ -4332,6 +4322,7 @@ public class Expander_Tests(ITestOutputHelper output)
         // then enable the legacy environment-variable opt-in.
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, null);
         env.SetEnvironmentVariable(EnableAllPropertyFunctionsEnvironmentVariableName, "1");
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
 
         var root = env.CreateFolder();
 
@@ -5035,6 +5026,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5073,6 +5065,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5092,6 +5085,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5111,6 +5105,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5174,6 +5169,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5199,6 +5195,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5217,6 +5214,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5339,6 +5337,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5360,6 +5359,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5381,6 +5381,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create(_output);
         env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
