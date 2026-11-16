@@ -50,12 +50,21 @@ public class Expander_Tests(ITestOutputHelper output)
 
     private ExpansionTestContext Data => field ??= new();
 
+    private static string MakeDirectoryPath(string path)
+        => FileUtilities.EnsureTrailingSlash(path);
+
+    private static string MakeDirectoryPath(params string[] paths)
+        => MakeDirectoryPath(MakePath(paths));
+
+    private static string MakePath(params string[] paths)
+        => Path.Combine(paths);
+
     [Fact]
     public void ExpandAllIntoTaskItems0()
     {
         IList<TaskItem> items = ExpandAsTaskItems(string.Empty, ExpanderOptions.ExpandProperties);
 
-        ObjectModelHelpers.AssertItemsMatch(string.Empty, GetTaskArrayFromItemList(items));
+        ObjectModelHelpers.AssertItemsMatch(string.Empty, [.. items]);
     }
 
     [Fact]
@@ -63,7 +72,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         IList<TaskItem> items = ExpandAsTaskItems("foo", ExpanderOptions.ExpandProperties);
 
-        ObjectModelHelpers.AssertItemsMatch("foo", GetTaskArrayFromItemList(items));
+        ObjectModelHelpers.AssertItemsMatch("foo", [.. items]);
     }
 
     [Fact]
@@ -76,7 +85,7 @@ public class Expander_Tests(ITestOutputHelper output)
             foo
             bar
             """,
-            GetTaskArrayFromItemList(items));
+            [.. items]);
     }
 
     [Fact]
@@ -98,7 +107,7 @@ public class Expander_Tests(ITestOutputHelper output)
             bar.cs
             bing.resx
             """,
-            GetTaskArrayFromItemList(items));
+            [.. items]);
     }
 
     [Fact]
@@ -119,7 +128,7 @@ public class Expander_Tests(ITestOutputHelper output)
             cc
             dd
             """,
-            GetTaskArrayFromItemList(items));
+            [.. items]);
     }
 
     /// <summary>
@@ -243,46 +252,56 @@ public class Expander_Tests(ITestOutputHelper output)
     }
 
     /// <summary>
-    ///  Expand an item vector function Metadata()->DirectoryName()->Distinct().
+    ///  Expands rooted metadata paths through Metadata()->DirectoryName()->Distinct().
     /// </summary>
-    [Theory]
-    [InlineData("Meta0")]
-    [InlineData("Meta9")]
+    [Fact]
     [Trait("Category", "netcore-osx-failing")]
     [Trait("Category", "netcore-linux-failing")]
-    public void ExpandItemVectorFunctionsGetDirectoryNameOfMetadataValueDistinct(string metadataName)
+    public void ExpandItemVectorFunctionsGetDirectoryNameOfRootedMetadataValuesDistinct()
     {
-        string metadataValue;
-        string expected;
-
-        if (metadataName == "Meta0")
-        {
-            metadataValue = Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext");
-            expected = Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory");
-        }
-        else
-        {
-            metadataValue = Path.Combine("seconddirectory", "file.ext");
-            expected = Path.Combine(Directory.GetCurrentDirectory(), "seconddirectory");
-        }
-
         IList<ProjectItemInstance> items = ExpandAsItems(
-            $"@(i->Metadata('{metadataName}')->DirectoryName()->Distinct())",
+            "@(i->Metadata('Value')->DirectoryName()->Distinct())",
             ExpanderOptions.ExpandItems,
             Data.ItemFactory("i"),
             Data.Items(
-                Data.Item("i", "i0").WithMetadata(metadataName, metadataValue)));
+                Data.Item("i", "i0")
+                    .WithMetadata("Value", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")),
+                Data.Item("i", "i1")
+                    .WithMetadata("Value", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file1.ext"))));
 
         items.ShouldHaveSingleItem(item =>
         {
             item.ItemType.ShouldBe("i");
-            item.EvaluatedInclude.ShouldBe(expected);
+            item.EvaluatedInclude.ShouldBe(MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory"));
+        });
+    }
+
+    /// <summary>
+    ///  Expands relative metadata paths through Metadata()->DirectoryName()->Distinct().
+    /// </summary>
+    [Fact]
+    [Trait("Category", "netcore-osx-failing")]
+    [Trait("Category", "netcore-linux-failing")]
+    public void ExpandItemVectorFunctionsGetDirectoryNameOfRelativeMetadataValuesDistinct()
+    {
+        IList<ProjectItemInstance> items = ExpandAsItems(
+            "@(i->Metadata('Value')->DirectoryName()->Distinct())",
+            ExpanderOptions.ExpandItems,
+            Data.ItemFactory("i"),
+            Data.Items(
+                Data.Item("i", "i0").WithMetadata("Value", MakePath("seconddirectory", "file0.ext")),
+                Data.Item("i", "i1").WithMetadata("Value", MakePath("seconddirectory", "file1.ext"))));
+
+        items.ShouldHaveSingleItem(item =>
+        {
+            item.ItemType.ShouldBe("i");
+            item.EvaluatedInclude.ShouldBe(MakePath(Directory.GetCurrentDirectory(), "seconddirectory"));
         });
     }
 
     public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunctionData { get; } = new()
     {
-        { "@(i->Metadata('Meta0')->Directory())", $"{Path.Combine("firstdirectory", "seconddirectory")}{Path.DirectorySeparatorChar}" },
+        { "@(i->Metadata('Meta0')->Directory())", MakeDirectoryPath("firstdirectory", "seconddirectory") },
         { "@(i->Metadata('Meta0')->Filename())", "file0" },
         { "@(i->Metadata('Meta0')->Extension())", ".ext" },
     };
@@ -302,7 +321,7 @@ public class Expander_Tests(ITestOutputHelper output)
             Data.ItemFactory("i"),
             Data.Items(
                 Data.Item("i", "i0")
-                    .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))));
+                    .WithMetadata("Meta0", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))));
 
         items.ShouldHaveSingleItem(item =>
         {
@@ -331,7 +350,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         {
             "@(i->'%(Meta0)'->'%(Directory)'->Distinct())",
-            $"{Path.Combine("firstdirectory", "seconddirectory")}{Path.DirectorySeparatorChar}"
+            MakeDirectoryPath("firstdirectory", "seconddirectory")
         },
         {
             "[@(i->'%(Meta0)'->'%(Directory)'->Distinct())]",
@@ -351,9 +370,9 @@ public class Expander_Tests(ITestOutputHelper output)
             expression,
             Data.Items(
                 Data.Item("i", "i0")
-                    .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")),
+                    .WithMetadata("Meta0", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext")),
                 Data.Item("i", "i1")
-                    .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))))
+                    .WithMetadata("Meta0", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))))
             .ShouldBe(expected);
 
     /// <summary>
@@ -559,8 +578,9 @@ public class Expander_Tests(ITestOutputHelper output)
 
         MockLogger log = Helpers.BuildProjectWithNewOMExpectSuccess(Content);
 
-        string current = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar;
-        log.AssertLogContains($"[{current}foo;{current}bar]");
+        string foo = MakePath(Directory.GetCurrentDirectory(), "foo");
+        string bar = MakePath(Directory.GetCurrentDirectory(), "bar");
+        log.AssertLogContains($"[{foo};{bar}]");
     }
 
     [Fact]
@@ -580,8 +600,9 @@ public class Expander_Tests(ITestOutputHelper output)
 
         MockLogger log = Helpers.BuildProjectWithNewOMExpectSuccess(Content);
 
-        string current = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar;
-        log.AssertLogContains($"[{current}foo;{current}bar]");
+        string foo = MakePath(Directory.GetCurrentDirectory(), "foo");
+        string bar = MakePath(Directory.GetCurrentDirectory(), "bar");
+        log.AssertLogContains($"[{foo};{bar}]");
     }
 
     [Fact]
@@ -601,8 +622,9 @@ public class Expander_Tests(ITestOutputHelper output)
 
         MockLogger log = Helpers.BuildProjectWithNewOMExpectSuccess(Content);
 
-        string current = Directory.GetCurrentDirectory() + Path.DirectorySeparatorChar;
-        log.AssertLogContains($"[{current}foo;{current}bar]");
+        string foo = MakePath(Directory.GetCurrentDirectory(), "foo");
+        string bar = MakePath(Directory.GetCurrentDirectory(), "bar");
+        log.AssertLogContains($"[{foo};{bar}]");
     }
 
     [Fact]
@@ -665,7 +687,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
     public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterQuotedTransformData { get; } = new()
     {
-        { "@(i->'%(Meta0)'->'%(Directory)')", Path.Combine("firstdirectory", "seconddirectory") + Path.DirectorySeparatorChar },
+        { "@(i->'%(Meta0)'->'%(Directory)')", MakeDirectoryPath("firstdirectory", "seconddirectory") },
         { "@(i->'%(Meta0)'->'%(Filename)')", "file0" },
         { "@(i->'%(Meta0)'->'%(Extension)'->Distinct())", ".ext" },
         { "@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))", "le0" },
@@ -687,7 +709,7 @@ public class Expander_Tests(ITestOutputHelper output)
             Data.Properties("Val", "2"),
             Data.Items(
                 Data.Item("i", "i0")
-                    .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))));
+                    .WithMetadata("Meta0", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))));
 
         items.ShouldHaveSingleItem(item =>
         {
@@ -710,12 +732,12 @@ public class Expander_Tests(ITestOutputHelper output)
             Data.ItemFactory("i"),
             Data.Items(
                 Data.Item("i", "i0")
-                    .WithMetadata("Meta0", Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))));
+                    .WithMetadata("Meta0", MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory", "file0.ext"))));
 
         items.ShouldHaveSingleItem(item =>
         {
             item.ItemType.ShouldBe("i");
-            item.EvaluatedInclude.ShouldBe(Path.Combine(s_rootPathPrefix, "firstdirectory", "seconddirectory"));
+            item.EvaluatedInclude.ShouldBe(MakePath(s_rootPathPrefix, "firstdirectory", "seconddirectory"));
         });
     }
 
@@ -735,18 +757,18 @@ public class Expander_Tests(ITestOutputHelper output)
                 Data.Item("i", "i0")
                     .WithMetadata(
                         "Meta10",
-                        $";{Path.Combine("someo%3bherplace", "foo.txt")};{Path.Combine("secondd%3brectory", "file.ext")};")));
+                        $";{MakePath("someo%3bherplace", "foo.txt")};{MakePath("secondd%3brectory", "file.ext")};")));
 
         items.ShouldHaveItems(
             firstItem =>
             {
                 firstItem.ItemType.ShouldBe("i");
-                firstItem.EvaluatedInclude.ShouldBe(Path.Combine(Directory.GetCurrentDirectory(), @"someo;herplace"));
+                firstItem.EvaluatedInclude.ShouldBe(MakePath(Directory.GetCurrentDirectory(), @"someo;herplace"));
             },
             secondItem =>
             {
                 secondItem.ItemType.ShouldBe("i");
-                secondItem.EvaluatedInclude.ShouldBe(Path.Combine(Directory.GetCurrentDirectory(), @"secondd;rectory"));
+                secondItem.EvaluatedInclude.ShouldBe(MakePath(Directory.GetCurrentDirectory(), @"secondd;rectory"));
             });
     }
 
@@ -771,12 +793,10 @@ public class Expander_Tests(ITestOutputHelper output)
     }
 
     /// <summary>
-    ///  Regression test for bug when there are literally zero items declared
-    ///  in the project, we should continue to expand item list references to empty-string
-    ///  rather than not expand them at all.
+    ///  Verifies that an item vector with no declared items expands to an empty string in a target condition.
     /// </summary>
     [Fact]
-    public void ZeroItemsInProjectExpandsToEmpty()
+    public void EmptyItemVectorInTargetConditionExpandsToEmpty()
     {
         MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess("""
             <Project ToolsVersion=`msbuilddefaulttoolsversion`>
@@ -787,8 +807,15 @@ public class Expander_Tests(ITestOutputHelper output)
             """);
 
         logger.AssertLogDoesntContain("This target should NOT run.");
+    }
 
-        logger = Helpers.BuildProjectWithNewOMExpectSuccess("""
+    /// <summary>
+    ///  Verifies that an item vector with no declared items expands to an empty string in an item condition.
+    /// </summary>
+    [Fact]
+    public void EmptyItemVectorInItemConditionExpandsToEmpty()
+    {
+        MockLogger logger = Helpers.BuildProjectWithNewOMExpectSuccess("""
             <Project ToolsVersion=`msbuilddefaulttoolsversion`>
                 <ItemGroup>
                     <foo Include=`abc` Condition=` '@(foo)' == '' ` />
@@ -1290,8 +1317,8 @@ public class Expander_Tests(ITestOutputHelper output)
         // Add primary items
         lookup.EnterScope("x");
 
-        string include1 = NativeMethodsShared.IsWindows ? @"subdir1\engine.dll" : "subdir1/engine.dll";
-        string include2 = NativeMethodsShared.IsWindows ? @"subdir2\tasks.dll" : "subdir2/tasks.dll";
+        string include1 = MakePath("subdir1", "engine.dll");
+        string include2 = MakePath("subdir2", "tasks.dll");
 
         lookup.PopulateWithItems("IntermediateAssembly", [
             Data.Item("IntermediateAssembly", include1).WithMetadata("aaa", "111"),
@@ -1331,12 +1358,12 @@ public class Expander_Tests(ITestOutputHelper output)
             splash.bmp: ccc=333
             \jk
             l\mno%253bpqr\stu
-            subdir1{Path.DirectorySeparatorChar}: aaa=111
-            subdir2{Path.DirectorySeparatorChar}: bbb=222
+            {MakeDirectoryPath("subdir1")}: aaa=111
+            {MakeDirectoryPath("subdir2")}: bbb=222
             english_abc%253bdef
             ghi
             """,
-            GetTaskArrayFromItemList(taskItems));
+            [.. taskItems]);
     }
 
     [Fact]
@@ -1374,9 +1401,9 @@ public class Expander_Tests(ITestOutputHelper output)
             "$(TargetPath)",
             Data.Properties("TargetPath", "@(IntermediateAssembly->'%(RelativeDir)')"),
             Data.Items(
-                ("IntermediateAssembly", Path.Combine("subdir1", "engine.dll")),
-                ("IntermediateAssembly", Path.Combine("subdir2", "tasks.dll"))))
-            .ShouldBe($"subdir1{Path.DirectorySeparatorChar};subdir2{Path.DirectorySeparatorChar}");
+                ("IntermediateAssembly", MakePath("subdir1", "engine.dll")),
+                ("IntermediateAssembly", MakePath("subdir2", "tasks.dll"))))
+            .ShouldBe($"{MakeDirectoryPath("subdir1")};{MakeDirectoryPath("subdir2")}");
 
     [Fact]
     public void ExpandAllIntoStringExpandsMetadataContainingProperty()
@@ -1430,8 +1457,8 @@ public class Expander_Tests(ITestOutputHelper output)
         bool usesProjectDirectory,
         bool usesDefiningProject)
     {
-        string itemSpec = Path.Combine("src", "directory", "File.cs");
-        string definingProject = Path.Combine(Data.Project.Directory, "Imported.targets");
+        string itemSpec = MakePath("src", "directory", "File.cs");
+        string definingProject = MakePath(Data.Project.Directory, "Imported.targets");
         var item = new ContextTrackingItem("Compile", itemSpec, Data.Project.Directory, definingProject);
         var expander = CreateExpander<ProjectPropertyInstance, ContextTrackingItem>(ExpanderOptions.ExpandItems, items: Data.Items(item));
 
@@ -1497,9 +1524,9 @@ public class Expander_Tests(ITestOutputHelper output)
         string actual = expander.ExpandIntoStringAndUnescape(Value, ExpanderOptions.ExpandAll, MockElementLocation.Instance);
 
         actual.ShouldBe(
-            $"""
-            string$(p);dialogs%3b ; splash.bmp ;  ;  ;  ; \jk ; l\mno%3bpqr\stu ; subdir1{Path.DirectorySeparatorChar};subdir2{Path.DirectorySeparatorChar} ; english_abc%3bdef;ghi
-            """);
+            "string$(p);dialogs%3b ; splash.bmp ;  ;  ;  ; \\jk ; l\\mno%3bpqr\\stu ; " +
+            $"{MakeDirectoryPath("subdir1")};{MakeDirectoryPath("subdir2")} ; " +
+            "english_abc%3bdef;ghi");
     }
 
     /// <summary>
@@ -1517,9 +1544,9 @@ public class Expander_Tests(ITestOutputHelper output)
         string actual = expander.ExpandIntoStringLeaveEscaped(Value, ExpanderOptions.ExpandAll, MockElementLocation.Instance);
 
         actual.ShouldBe(
-            $"""
-            string$(p);dialogs%253b ; splash.bmp ;  ;  ;  ; \jk ; l\mno%253bpqr\stu ; subdir1{Path.DirectorySeparatorChar};subdir2{Path.DirectorySeparatorChar} ; english_abc%253bdef;ghi
-            """);
+            "string$(p);dialogs%253b ; splash.bmp ;  ;  ;  ; \\jk ; l\\mno%253bpqr\\stu ; " +
+            $"{MakeDirectoryPath("subdir1")};{MakeDirectoryPath("subdir2")} ; " +
+            "english_abc%253bdef;ghi");
     }
 
     [Fact]
@@ -1615,7 +1642,9 @@ public class Expander_Tests(ITestOutputHelper output)
         },
         {
             ExpanderOptions.ExpandAll,
-            $"""string$(p);dialogs%3b ; splash.bmp ;  ;  ;  ; \jk ; l\mno%3bpqr\stu ; subdir1{Path.DirectorySeparatorChar};subdir2{Path.DirectorySeparatorChar} ; english_abc%3bdef;ghi"""
+            "string$(p);dialogs%3b ; splash.bmp ;  ;  ;  ; \\jk ; l\\mno%3bpqr\\stu ; " +
+            $"{MakeDirectoryPath("subdir1")};{MakeDirectoryPath("subdir2")} ; " +
+            "english_abc%3bdef;ghi"
         },
         {
             ExpanderOptions.ExpandItems,
@@ -1659,37 +1688,47 @@ public class Expander_Tests(ITestOutputHelper output)
             ("Filename", "App"));
 
     /// <summary>
+    ///  Gets metadata scanner inputs and their expected expanded values.
+    /// </summary>
+    /// <value>
+    ///  The metadata expressions and expected results.
+    /// </value>
+    public static TheoryData<string, string> ExpandMetadata_ScannerEdgeCasesData { get; } = new()
+    {
+        // Simple expansion, unqualified and qualified.
+        { "%(Culture)", "en-US" },
+        { "%(Foo)", "Bar" },
+        { "%(Compile.Link)", "Link.cs" },
+
+        // Whitespace around the parentheses and the dot separator is allowed.
+        { "%( Culture )", "en-US" },
+        { "%( Compile . Link )", "Link.cs" },
+
+        // Missing metadata expands to empty; a missing qualifier does not fall back to the unqualified key.
+        { "%(DoesNotExist)", "" },
+        { "%(Other.Foo)", "" },
+
+        // Malformed references are emitted verbatim.
+        { "%(", "%(" },
+        { "%()", "%()" },
+        { "%( )", "%( )" },
+        { "%(.x)", "%(.x)" },
+
+        // The outer reference is not closed by ')', so only the inner reference expands.
+        { "%(Culture%(Foo))", "%(CultureBar)" },
+
+        // Mixed with surrounding literal text and adjacent references.
+        { "prefix_%(Culture)_suffix", "prefix_en-US_suffix" },
+        { "%(Culture)%(Foo)", "en-USBar" },
+    };
+
+    /// <summary>
     ///  Parity tests for the hand-written metadata scanner. These pin the exact expanded result for
     ///  whitespace handling, malformed references, nested references, qualified vs. unqualified
     ///  names, and missing metadata so future edits to the scanner cannot silently regress them.
     /// </summary>
     [Theory]
-
-    // Simple expansion, unqualified and qualified.
-    [InlineData("%(Culture)", "en-US")]
-    [InlineData("%(Foo)", "Bar")]
-    [InlineData("%(Compile.Link)", "Link.cs")]
-
-    // Whitespace around the parentheses and the dot separator is allowed.
-    [InlineData("%( Culture )", "en-US")]
-    [InlineData("%( Compile . Link )", "Link.cs")]
-
-    // Missing metadata expands to empty; a missing qualifier does not fall back to the unqualified key.
-    [InlineData("%(DoesNotExist)", "")]
-    [InlineData("%(Other.Foo)", "")]
-
-    // Malformed references are emitted verbatim.
-    [InlineData("%(", "%(")]
-    [InlineData("%()", "%()")]
-    [InlineData("%( )", "%( )")]
-    [InlineData("%(.x)", "%(.x)")]
-
-    // The outer reference is not closed by ')', so only the inner reference expands.
-    [InlineData("%(Culture%(Foo))", "%(CultureBar)")]
-
-    // Mixed with surrounding literal text and adjacent references.
-    [InlineData("prefix_%(Culture)_suffix", "prefix_en-US_suffix")]
-    [InlineData("%(Culture)%(Foo)", "en-USBar")]
+    [MemberData(nameof(ExpandMetadata_ScannerEdgeCasesData))]
     public void ExpandMetadata_ScannerEdgeCases(string input, string expected)
         => ExpandMetadata(input, CreateScannerMetadata())
             .ShouldBe(expected);
@@ -1703,27 +1742,38 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBeSameAs(input);
 
     /// <summary>
+    ///  Gets item-vector expressions containing metadata in their surrounding gaps or separators and
+    ///  their expected metadata-expansion results.
+    /// </summary>
+    /// <value>
+    ///  The item-vector expressions and expected results.
+    /// </value>
+    public static TheoryData<string, string> ExpandMetadata_ItemVectorGapsAndSeparatorsData { get; } = new()
+    {
+        // Metadata after, before, and between item vectors.
+        { "@(Compile)%(Culture)", "@(Compile)en-US" },
+        { "%(Culture)@(Compile)", "en-US@(Compile)" },
+        { "@(A)%(Culture)@(B)", "@(A)en-US@(B)" },
+
+        // A lone item vector has no gaps and is returned unchanged, even with embedded metadata in a transform.
+        { "@(Compile)", "@(Compile)" },
+        { "@(Compile->'%(Filename)')", "@(Compile->'%(Filename)')" },
+
+        // Metadata embedded in an item vector's separator is expanded in place.
+        { "@(Compile, '%(Culture)')", "@(Compile, 'en-US')" },
+
+        // "@(" that does not form a valid item vector still has its surrounding metadata expanded.
+        { "%(Culture)@(", "en-US@(" },
+    };
+
+    /// <summary>
     ///  Parity tests for metadata expansion in the gaps between (and within the separators of) item
     ///  vector expressions. Items are intentionally left unexpanded (ExpandMetadata only) so the
     ///  assertions isolate the gap/separator boundary handling in ScanAndExpandMetadataInGaps,
     ///  including the case where "@(" appears but does not form a well-formed item vector.
     /// </summary>
     [Theory]
-
-    // Metadata after, before, and between item vectors.
-    [InlineData("@(Compile)%(Culture)", "@(Compile)en-US")]
-    [InlineData("%(Culture)@(Compile)", "en-US@(Compile)")]
-    [InlineData("@(A)%(Culture)@(B)", "@(A)en-US@(B)")]
-
-    // A lone item vector has no gaps and is returned unchanged, even with embedded metadata in a transform.
-    [InlineData("@(Compile)", "@(Compile)")]
-    [InlineData("@(Compile->'%(Filename)')", "@(Compile->'%(Filename)')")]
-
-    // Metadata embedded in an item vector's separator is expanded in place.
-    [InlineData("@(Compile, '%(Culture)')", "@(Compile, 'en-US')")]
-
-    // "@(" that does not form a valid item vector still has its surrounding metadata expanded.
-    [InlineData("%(Culture)@(", "en-US@(")]
+    [MemberData(nameof(ExpandMetadata_ItemVectorGapsAndSeparatorsData))]
     public void ExpandMetadata_ItemVectorGapsAndSeparators(string input, string expected)
         => ExpandMetadata(input, CreateScannerMetadata())
             .ShouldBe(expected);
@@ -1788,23 +1838,11 @@ public class Expander_Tests(ITestOutputHelper output)
             "splash.bmp",
             """\jk""",
             """l\mno%253bpqr\stu""",
-            "subdir1" + Path.DirectorySeparatorChar,
-            "subdir2" + Path.DirectorySeparatorChar,
+            MakeDirectoryPath("subdir1"),
+            MakeDirectoryPath("subdir2"),
             "english_abc%253bdef",
             "ghi"
         ]);
-    }
-
-    private static ITaskItem[] GetTaskArrayFromItemList(IList<TaskItem> list)
-    {
-        ITaskItem[] items = new ITaskItem[list.Count];
-
-        for (int i = 0; i < list.Count; ++i)
-        {
-            items[i] = list[i];
-        }
-
-        return items;
     }
 
     /// <summary>
@@ -2052,9 +2090,9 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties(
             "$(MyPath.SubString($(RootPath.Length)))",
             Data.Properties(
-                ("RootPath", Path.Combine(s_rootPathPrefix, "this", "is", "the", "root")),
-                ("MyPath", Path.Combine(s_rootPathPrefix, "this", "is", "the", "root", "my", "project", "is", "here.proj"))))
-            .ShouldBe(Path.Combine(Path.DirectorySeparatorChar.ToString(), "my", "project", "is", "here.proj"));
+                ("RootPath", MakePath(s_rootPathPrefix, "this", "is", "the", "root")),
+                ("MyPath", MakePath(s_rootPathPrefix, "this", "is", "the", "root", "my", "project", "is", "here.proj"))))
+            .ShouldBe(MakePath(Path.DirectorySeparatorChar.ToString(), "my", "project", "is", "here.proj"));
 
     /// <summary>
     ///  Expand property function with an argument that is a property.
@@ -2078,8 +2116,8 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties(
             $"$({propertyName}.Endswith({Path.DirectorySeparatorChar}))",
             Data.Properties(
-                ("PathRoot", Path.Combine(s_rootPathPrefix, "goo")),
-                ("PathRoot2", $"{Path.Combine(s_rootPathPrefix, "goop")}{Path.DirectorySeparatorChar}")))
+                ("PathRoot", MakePath(s_rootPathPrefix, "goo")),
+                ("PathRoot2", MakeDirectoryPath(s_rootPathPrefix, "goop"))))
             .ShouldBe(expected);
 
     /// <summary>
@@ -2185,8 +2223,8 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionInCondition()
     {
         PropertyDictionary<ProjectPropertyInstance> properties = [
-            ProjectPropertyInstance.Create("PathRoot", Path.Combine(s_rootPathPrefix, "goo")),
-            ProjectPropertyInstance.Create("PathRoot2", $"{Path.Combine(s_rootPathPrefix, "goop")}{Path.DirectorySeparatorChar}")
+            ProjectPropertyInstance.Create("PathRoot", MakePath(s_rootPathPrefix, "goo")),
+            ProjectPropertyInstance.Create("PathRoot2", MakeDirectoryPath(s_rootPathPrefix, "goop"))
         ];
 
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
@@ -2259,8 +2297,8 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties(
             "$([MSBuild]::MakeRelative($(ParentPath), `$(FilePath)`))",
             Data.Properties(
-                ("ParentPath", Path.Combine(s_rootPathPrefix, "abc", "def")),
-                ("FilePath", Path.Combine(s_rootPathPrefix, "abc", "def", "foo.cpp"))))
+                ("ParentPath", MakePath(s_rootPathPrefix, "abc", "def")),
+                ("FilePath", MakePath(s_rootPathPrefix, "abc", "def", "foo.cpp"))))
             .ShouldBe(@"foo.cpp");
 
     /// <summary>
@@ -2270,8 +2308,8 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionStaticMethod1()
         => ExpandProperties(
             "$([System.IO.Path]::Combine($(Drive), `$(File)`))",
-            Data.Properties(("Drive", s_rootPathPrefix), ("File", Path.Combine("foo", "file.txt"))))
-            .ShouldBe(Path.Combine(s_rootPathPrefix, "foo", "file.txt"));
+            Data.Properties(("Drive", s_rootPathPrefix), ("File", MakePath("foo", "file.txt"))))
+            .ShouldBe(MakePath(s_rootPathPrefix, "foo", "file.txt"));
 
     /// <summary>
     ///  Expand a typed property-function result as an argument to another property function.
@@ -2340,33 +2378,26 @@ public class Expander_Tests(ITestOutputHelper output)
     /// <summary>
     ///  Expand property function that is only available when MSBUILDENABLEALLPROPERTYFUNCTIONS=1, but cannot be found.
     /// </summary>
-    [Fact]
-    public void PropertyStaticFunctionUsingNamespaceNotFound()
+    /// <param name="expression">The property-function expression whose type cannot be found.</param>
+    [Theory]
+    [InlineData("$([Microsoft.FOO.FileIO.FileSystem]::CurrentDirectory)")]
+    [InlineData("$([Foo.Baz]::new())")]
+    [InlineData("$([Foo]::new())")]
+    [InlineData("$([Foo.]::new())")]
+    [InlineData("$([.Foo]::new())")]
+    [InlineData("$([.]::new())")]
+    [InlineData("$([]::new())")]
+    public void PropertyStaticFunctionUsingNamespaceNotFound(string expression)
     {
-        string? env = Environment.GetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS");
+        using TestEnvironment env = TestEnvironment.Create(_output);
+        env.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", "1");
 
         try
         {
-            Environment.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", "1");
-
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([Microsoft.FOO.FileIO.FileSystem]::CurrentDirectory)"));
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([Foo.Baz]::new())"));
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([Foo]::new())"));
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([Foo.]::new())"));
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([.Foo]::new())"));
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([.]::new())"));
-            _ = Should.Throw<InvalidProjectFileException>(() =>
-                ExpandProperties("$([]::new())"));
+            _ = Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
         }
         finally
         {
-            Environment.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", env);
             AvailableStaticMethods.Reset_ForUnitTestsOnly();
         }
     }
@@ -2380,8 +2411,8 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionStaticMethodQuoted1()
         => ExpandProperties(
             $"$([System.IO.Path]::Combine(`{s_rootPathPrefix}`, `$(File)`))",
-            Data.Properties("File", Path.Combine("foo", "file.txt")))
-            .ShouldBe(Path.Combine(s_rootPathPrefix, "foo", "file.txt"));
+            Data.Properties("File", MakePath("foo", "file.txt")))
+            .ShouldBe(MakePath(s_rootPathPrefix, "foo", "file.txt"));
 
     /// <summary>
     ///  Expands quoted path arguments containing spaces.
@@ -2395,9 +2426,9 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("foo baz ", "foo bar", "baz.txt")]
     public void PropertyFunctionStaticMethodQuotedPathWithSpaces(string rootDirectory, string fileDirectory, string fileName)
         => ExpandProperties(
-            $"$([System.IO.Path]::Combine(`{Path.Combine(s_rootPathPrefix, rootDirectory)}`, `$(File)`))",
-            Data.Properties("File", Path.Combine(fileDirectory, fileName)))
-            .ShouldBe(Path.Combine(s_rootPathPrefix, rootDirectory, fileDirectory, fileName));
+            $"$([System.IO.Path]::Combine(`{MakePath(s_rootPathPrefix, rootDirectory)}`, `$(File)`))",
+            Data.Properties("File", MakePath(fileDirectory, fileName)))
+            .ShouldBe(MakePath(s_rootPathPrefix, rootDirectory, fileDirectory, fileName));
 
     /// <summary>
     ///  Expands a quoted date argument with the specified format.
@@ -2425,8 +2456,8 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionStaticMethodNested()
         => ExpandProperties(
             $"$([System.IO.Path]::Combine(`{s_rootPathPrefix}`, $([System.IO.Path]::Combine(`foo`,`file.txt`))))",
-            Data.Properties("File", $"foo{Path.DirectorySeparatorChar}file.txt"))
-            .ShouldBe(Path.Combine(s_rootPathPrefix, "foo", "file.txt"));
+            Data.Properties("File", MakePath("foo", "file.txt")))
+            .ShouldBe(MakePath(s_rootPathPrefix, "foo", "file.txt"));
 
     /// <summary>
     ///  Expand property function that calls a static method regex.
@@ -2893,7 +2924,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
         try
         {
-            string directoryStart = Path.Combine(tempPath, @"one\two\three\four\five");
+            string directoryStart = MakePath(tempPath, @"one\two\three\four\five");
 
             PropertyDictionary<ProjectPropertyInstance> properties = [
                 ProjectPropertyInstance.Create("StartingDirectory", directoryStart),
@@ -2907,7 +2938,7 @@ public class Expander_Tests(ITestOutputHelper output)
                 ExpanderOptions.ExpandProperties,
                 MockElementLocation.Instance);
 
-            FileUtilities.EnsureTrailingSlash(result).ShouldBe(FileUtilities.EnsureTrailingSlash(tempPath));
+            MakeDirectoryPath(result).ShouldBe(MakeDirectoryPath(tempPath));
 
             result = expander.ExpandIntoStringAndUnescape(
                 "$([MSBuild]::GetDirectoryNameOfFileAbove($(StartingDirectory), Hobbits))",
@@ -2931,7 +2962,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         // Set element location to a file deep in the directory structure.  This is where the function should start looking
         var location = ElementLocation.Create(
-            Path.Combine(ObjectModelHelpers.TempProjectDir, "one", "two", "three", "four", "five", Path.GetRandomFileName()));
+            MakePath(ObjectModelHelpers.TempProjectDir, "one", "two", "three", "four", "five", Path.GetRandomFileName()));
 
         string fileToFind = FileUtilities.GetTemporaryFile(ObjectModelHelpers.TempProjectDir, fileName: null, ".tmp");
 
@@ -2989,7 +3020,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyFunctionStaticMethodGetPathOfFileAboveFileNameOnly()
     {
-        string fileWithPath = Path.Combine("foo", "bar", "file.txt");
+        string fileWithPath = MakePath("foo", "bar", "file.txt");
 
         InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(() =>
             ExpandProperties(
@@ -3091,13 +3122,13 @@ public class Expander_Tests(ITestOutputHelper output)
             ? "$([MSBuild]::NormalizeDirectory($(MyPath), $(MySecondPath)))"
             : "$([MSBuild]::NormalizeDirectory($(MyPath)))";
         string expectedPath = includeSecondPath
-            ? Path.Combine("one", "two")
+            ? MakePath("one", "two")
             : "one";
 
         ExpandProperties(
             expression,
             Data.Properties(("MyPath", "one"), ("MySecondPath", "two")))
-            .ShouldBe($"{Path.GetFullPath(expectedPath)}{Path.DirectorySeparatorChar}");
+            .ShouldBe(MakeDirectoryPath(Path.GetFullPath(expectedPath)));
     }
 
     /// <summary>
@@ -3271,11 +3302,11 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         string result = ExpandAll(
             "$([System.IO.Path]::Combine($(SomePath),%(Compile.Identity)))",
-            Data.Properties("SomePath", Path.Combine(s_rootPathPrefix, "some", "path")),
+            Data.Properties("SomePath", MakePath(s_rootPathPrefix, "some", "path")),
             Data.Items("Compile", "fOo.Cs"),
             Data.Metadata("Compile.Identity", "fOo.Cs"));
 
-        result.ShouldBe(Path.Combine(s_rootPathPrefix, "some", "path", "fOo.Cs"));
+        result.ShouldBe(MakePath(s_rootPathPrefix, "some", "path", "fOo.Cs"));
     }
 
     /// <summary>
@@ -3694,22 +3725,27 @@ public class Expander_Tests(ITestOutputHelper output)
     }
 
     /// <summary>
-    ///  Ensures trailing slashes are added to constant and property arguments.
+    ///  Ensures a trailing slash is added to a literal argument.
     /// </summary>
-    /// <param name="useProperty">Whether the function argument is a property reference.</param>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void PropertyFunctionEnsureTrailingSlash(bool useProperty)
+    [Fact]
+    public void PropertyFunctionEnsureTrailingSlashWithLiteralArgument()
     {
-        string path = Path.Combine("foo", "bar");
+        string path = MakePath("foo", "bar");
 
-        string expression = useProperty
-            ? "$([MSBuild]::EnsureTrailingSlash($(SomeProperty)))"
-            : $"$([MSBuild]::EnsureTrailingSlash('{path}'))";
+        ExpandProperties($"$([MSBuild]::EnsureTrailingSlash('{path}'))")
+            .ShouldBe(MakeDirectoryPath(path));
+    }
 
-        ExpandProperties(expression, Data.Properties("SomeProperty", path))
-            .ShouldBe(path + Path.DirectorySeparatorChar);
+    /// <summary>
+    ///  Ensures a trailing slash is added to a property argument.
+    /// </summary>
+    [Fact]
+    public void PropertyFunctionEnsureTrailingSlashWithPropertyArgument()
+    {
+        string path = MakePath("foo", "bar");
+
+        ExpandProperties("$([MSBuild]::EnsureTrailingSlash($(SomeProperty)))", Data.Properties("SomeProperty", path))
+            .ShouldBe(MakeDirectoryPath(path));
     }
 
     [Fact]
@@ -4020,49 +4056,53 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBe("ab");
 
     /// <summary>
-    ///  Test that Char.IsDigit fast-path works correctly.
+    ///  Gets <see cref="char.IsDigit(char)"/> and <see cref="char.IsDigit(string, int)"/> expressions
+    ///  and their expected results.
+    /// </summary>
+    /// <value>
+    ///  The property-function expressions and expected Boolean strings.
+    /// </value>
+    public static TheoryData<string, string> PropertyFunctionCharIsDigitData { get; } = new()
+    {
+        // Test with digit characters - single char version
+        { "$([System.Char]::IsDigit('0'))", "True" },
+        { "$([System.Char]::IsDigit('5'))", "True" },
+        { "$([System.Char]::IsDigit('9'))", "True" },
+
+        // Test with non-digit characters - single char version
+        { "$([System.Char]::IsDigit('a'))", "False" },
+        { "$([System.Char]::IsDigit(' '))", "False" },
+        { "$([System.Char]::IsDigit('/'))", "False" },
+        { "$([System.Char]::IsDigit(':'))", "False" },
+
+        // Test with string and index version
+        { "$([System.Char]::IsDigit('abc123def', 3))", "True" },
+        { "$([System.Char]::IsDigit('abc123def', 4))", "True" },
+        { "$([System.Char]::IsDigit('abc123def', 5))", "True" },
+        { "$([System.Char]::IsDigit('abc123def', 0))", "False" },
+        { "$([System.Char]::IsDigit('abc123def', 2))", "False" },
+        { "$([System.Char]::IsDigit('hello789', 5))", "True" },
+    };
+
+    /// <summary>
+    ///  Verifies the results and overload binding for <see cref="char.IsDigit(char)"/> and
+    ///  <see cref="char.IsDigit(string, int)"/> property-function calls.
     /// </summary>
     [Theory]
-
-    // Test with digit characters - single char version
-    [InlineData("$([System.Char]::IsDigit('0'))", "True")]
-    [InlineData("$([System.Char]::IsDigit('5'))", "True")]
-    [InlineData("$([System.Char]::IsDigit('9'))", "True")]
-
-    // Test with non-digit characters - single char version
-    [InlineData("$([System.Char]::IsDigit('a'))", "False")]
-    [InlineData("$([System.Char]::IsDigit(' '))", "False")]
-    [InlineData("$([System.Char]::IsDigit('/'))", "False")]
-    [InlineData("$([System.Char]::IsDigit(':'))", "False")]
-
-    // Test with string and index version
-    [InlineData("$([System.Char]::IsDigit('abc123def', 3))", "True")]
-    [InlineData("$([System.Char]::IsDigit('abc123def', 4))", "True")]
-    [InlineData("$([System.Char]::IsDigit('abc123def', 5))", "True")]
-    [InlineData("$([System.Char]::IsDigit('abc123def', 0))", "False")]
-    [InlineData("$([System.Char]::IsDigit('abc123def', 2))", "False")]
-    [InlineData("$([System.Char]::IsDigit('hello789', 5))", "True")]
+    [MemberData(nameof(PropertyFunctionCharIsDigitData))]
     public void PropertyFunctionCharIsDigit(string expression, string expected)
         => ExpandProperties(expression)
             .ShouldBe(expected);
 
+    // Regression test for https://github.com/dotnet/msbuild/issues/12923
     [Fact]
     public void PropertyFunction_ReplaceDoesNotCallRegexReplace()
-    {
-        // Regression test for https://github.com/dotnet/msbuild/issues/12923
-        PropertyDictionary<ProjectProperty> properties = [];
-        var expander = new Expander<ProjectProperty, ProjectItem>(properties, FileSystems.Default);
-
-        _ = Should.Throw<InvalidProjectFileException>(() =>
+        => Should.Throw<InvalidProjectFileException>(() =>
         {
-            string result = expander.ExpandIntoStringLeaveEscaped(
-                "$([System.TimeSpan]::Replace('abc_123_ghi', '\\d+', 'def'))",
-                ExpanderOptions.ExpandProperties,
-                MockElementLocation.Instance);
+            string result = ExpandProperties("$([System.TimeSpan]::Replace('abc_123_ghi', '\\d+', 'def'))");
 
             result.ShouldNotBe("abc_def_ghi");
         });
-    }
 
     [Theory]
     [InlineData("net6.0", "netstandard2.0", "")]
@@ -4188,9 +4228,9 @@ public class Expander_Tests(ITestOutputHelper output)
         ProjectInstance projectInstance = new(projectFile.Path);
         ICollection<ProjectItemInstance> squiggles = projectInstance.GetItems("Squiggle");
 
-        string expectedAlphaSquigglePath = Path.Combine("Alpha", ".squiggle");
-        string expectedBetaSquigglePath = Path.Combine("Beta", ".squiggle");
-        string expectedAlphaGammaSquigglePath = Path.Combine("Alpha", "Gamma", ".squiggle");
+        string expectedAlphaSquigglePath = MakePath("Alpha", ".squiggle");
+        string expectedBetaSquigglePath = MakePath("Beta", ".squiggle");
+        string expectedAlphaGammaSquigglePath = MakePath("Alpha", "Gamma", ".squiggle");
 
         squiggles
             .Select(i => i.EvaluatedInclude)
@@ -4234,8 +4274,8 @@ public class Expander_Tests(ITestOutputHelper output)
         ProjectInstance projectInstance = new(projectFile.Path);
         ICollection<ProjectItemInstance> compileItems = projectInstance.GetItems("Compile");
 
-        var alphaOnePath = Path.Combine("alpha", "One.cs");
-        var alphaThreePath = Path.Combine("alpha", "Three.cs");
+        var alphaOnePath = MakePath("alpha", "One.cs");
+        var alphaThreePath = MakePath("alpha", "Three.cs");
         compileItems
             .Select(i => i.EvaluatedInclude)
             .ShouldBe([alphaOnePath, alphaThreePath], Case.Insensitive);
@@ -4278,8 +4318,8 @@ public class Expander_Tests(ITestOutputHelper output)
         ProjectInstance projectInstance = new ProjectInstance(projectFile.Path);
         ICollection<ProjectItemInstance> directories = projectInstance.GetItems("MyDirectory");
 
-        var alphaBetaPath = Path.Combine("alpha", "beta");
-        var alphaDeltaPath = Path.Combine("alpha", "delta");
+        var alphaBetaPath = MakePath("alpha", "beta");
+        var alphaDeltaPath = MakePath("alpha", "delta");
         directories.Select(i => i.EvaluatedInclude).ShouldBe(new[] { alphaBetaPath, alphaDeltaPath }, Case.Insensitive);
     }
 
@@ -4422,7 +4462,7 @@ public class Expander_Tests(ITestOutputHelper output)
 
         _ = ExpandProperties(methodInvocationMetadata, loggingContext);
 
-        string reflectionInfoPath = Path.Combine(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
+        string reflectionInfoPath = MakePath(Directory.GetCurrentDirectory(), "PropertyFunctionsRequiringReflection");
 
         // the fast path was successfully resolved without reflection.
         File.Exists(reflectionInfoPath).ShouldBeFalse();
@@ -4586,7 +4626,7 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        result.ShouldBe(Path.Combine(correctDir.Path, "obj", "file.txt"));
+        result.ShouldBe(MakePath(correctDir.Path, "obj", "file.txt"));
     }
 
     [Fact]
@@ -4602,7 +4642,7 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        result.ShouldBe(Path.Combine(correctDir.Path, "file.txt"));
+        result.ShouldBe(MakePath(correctDir.Path, "file.txt"));
     }
 
     [UnixOnlyFact]
@@ -4653,8 +4693,8 @@ public class Expander_Tests(ITestOutputHelper output)
         var projectDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        Directory.CreateDirectory(Path.Combine(projectDir.Path, "sub"));
-        File.WriteAllText(Path.Combine(projectDir.Path, "sub", "marker.txt"), "x");
+        Directory.CreateDirectory(MakePath(projectDir.Path, "sub"));
+        File.WriteAllText(MakePath(projectDir.Path, "sub", "marker.txt"), "x");
 
         // FileExistsNoThrow normalizes separators internally, so both non-mt and -mt must agree.
         env.SetCurrentDirectory(projectDir.Path);
@@ -4683,7 +4723,7 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        result.ShouldBe(Path.Combine(correctDir.Path, "obj", "file.txt"));
+        result.ShouldBe(MakePath(correctDir.Path, "obj", "file.txt"));
     }
 
     [Fact]
@@ -4693,7 +4733,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var absoluteDir = env.CreateFolder(createFolder: true);
 
-        string absolutePath = Path.Combine(absoluteDir.Path, "file.txt");
+        string absolutePath = MakePath(absoluteDir.Path, "file.txt");
         string result = ExpandWithThreadWorkingDirectory(
             env,
             $"$([MSBuild]::NormalizePath('{absolutePath}'))",
@@ -4714,7 +4754,7 @@ public class Expander_Tests(ITestOutputHelper output)
             "$([MSBuild]::NormalizePath('obj', 'file.txt'))",
             null);
 
-        result.ShouldBe(Path.Combine(processDirPath, "obj", "file.txt"));
+        result.ShouldBe(MakePath(processDirPath, "obj", "file.txt"));
     }
 
     [Fact]
@@ -4754,7 +4794,7 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        result.ShouldBe(Path.Combine(correctDir.Path, "obj") + Path.DirectorySeparatorChar);
+        result.ShouldBe(MakeDirectoryPath(correctDir.Path, "obj"));
     }
 
     [Fact]
@@ -4764,7 +4804,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "marker.txt"), "x");
+        File.WriteAllText(MakePath(correctDir.Path, "marker.txt"), "x");
 
         ExpandWithThreadWorkingDirectory(
             env,
@@ -4789,8 +4829,8 @@ public class Expander_Tests(ITestOutputHelper output)
 
         // FileExistsNoThrow normalizes separators internally, so on Unix '\tmp\x' is rooted by the
         // time the probe happens. Resolution must not treat it as relative to the project directory.
-        Directory.CreateDirectory(Path.Combine(projectDir.Path, "tmp"));
-        File.WriteAllText(Path.Combine(projectDir.Path, "tmp", "decoy.txt"), "x");
+        Directory.CreateDirectory(MakePath(projectDir.Path, "tmp"));
+        File.WriteAllText(MakePath(projectDir.Path, "tmp", "decoy.txt"), "x");
 
         env.SetCurrentDirectory(projectDir.Path);
         string expected = IntrinsicFunctions.FileExists(@"\tmp\decoy.txt").ToString();
@@ -4811,7 +4851,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        Directory.CreateDirectory(Path.Combine(correctDir.Path, "obj"));
+        Directory.CreateDirectory(MakePath(correctDir.Path, "obj"));
 
         ExpandWithThreadWorkingDirectory(
             env,
@@ -4834,7 +4874,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "marker.txt"), "x");
+        File.WriteAllText(MakePath(correctDir.Path, "marker.txt"), "x");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -4852,7 +4892,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "marker.txt"), "x");
+        File.WriteAllText(MakePath(correctDir.Path, "marker.txt"), "x");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -4860,7 +4900,7 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        result.ShouldBe(Path.Combine(correctDir.Path, "marker.txt"));
+        result.ShouldBe(MakePath(correctDir.Path, "marker.txt"));
     }
 
     [Fact]
@@ -4869,7 +4909,7 @@ public class Expander_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
-        File.WriteAllText(Path.Combine(correctDir.Path, "check.dll"), string.Empty);
+        File.WriteAllText(MakePath(correctDir.Path, "check.dll"), string.Empty);
 
         var logger = new MockLogger();
         ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
@@ -4889,7 +4929,7 @@ public class Expander_Tests(ITestOutputHelper output)
         logger.AllBuildEvents.ShouldHaveSingleItem(buildEvent =>
         {
             BuildCheckAcquisitionEventArgs acquisition = buildEvent.ShouldBeOfType<BuildCheckAcquisitionEventArgs>();
-            acquisition.AcquisitionPath.ShouldBe(Path.Combine(correctDir.Path, "check.dll"));
+            acquisition.AcquisitionPath.ShouldBe(MakePath(correctDir.Path, "check.dll"));
         });
     }
 
@@ -4900,8 +4940,8 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "notes.txt"), "correct content");
-        File.WriteAllText(Path.Combine(wrongDir.Path, "notes.txt"), "wrong content");
+        File.WriteAllText(MakePath(correctDir.Path, "notes.txt"), "correct content");
+        File.WriteAllText(MakePath(wrongDir.Path, "notes.txt"), "wrong content");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -4920,7 +4960,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var wrongDir = env.CreateFolder(createFolder: true);
 
         // Note: Do NOT create the file in wrongDir
-        File.WriteAllText(Path.Combine(correctDir.Path, "exists.txt"), "data");
+        File.WriteAllText(MakePath(correctDir.Path, "exists.txt"), "data");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -4938,7 +4978,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "attrs.txt");
+        string filePath = MakePath(correctDir.Path, "attrs.txt");
         File.WriteAllText(filePath, "data");
 
         string result = ExpandWithThreadWorkingDirectory(
@@ -4958,7 +4998,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "time.txt");
+        string filePath = MakePath(correctDir.Path, "time.txt");
         File.WriteAllText(filePath, "data");
         DateTime expected = File.GetCreationTime(filePath);
 
@@ -4978,7 +5018,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "time.txt");
+        string filePath = MakePath(correctDir.Path, "time.txt");
         File.WriteAllText(filePath, "data");
         DateTime expected = File.GetLastWriteTime(filePath);
 
@@ -4998,7 +5038,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "time.txt");
+        string filePath = MakePath(correctDir.Path, "time.txt");
         File.WriteAllText(filePath, "data");
         DateTime expected = File.GetLastAccessTime(filePath);
 
@@ -5023,7 +5063,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var wrongDir = env.CreateFolder(createFolder: true);
 
         // Note: Do NOT create subdir in wrongDir
-        Directory.CreateDirectory(Path.Combine(correctDir.Path, "subdir"));
+        Directory.CreateDirectory(MakePath(correctDir.Path, "subdir"));
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5041,7 +5081,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        Directory.CreateDirectory(Path.Combine(correctDir.Path, "parent", "child"));
+        Directory.CreateDirectory(MakePath(correctDir.Path, "parent", "child"));
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5060,9 +5100,9 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string subDir = Path.Combine(correctDir.Path, "sub");
+        string subDir = MakePath(correctDir.Path, "sub");
         Directory.CreateDirectory(subDir);
-        File.WriteAllText(Path.Combine(subDir, "a.txt"), "data");
+        File.WriteAllText(MakePath(subDir, "a.txt"), "data");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5081,7 +5121,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        Directory.CreateDirectory(Path.Combine(correctDir.Path, "parent", "child"));
+        Directory.CreateDirectory(MakePath(correctDir.Path, "parent", "child"));
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5099,7 +5139,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string subDir = Path.Combine(correctDir.Path, "sub");
+        string subDir = MakePath(correctDir.Path, "sub");
         Directory.CreateDirectory(subDir);
         DateTime expected = Directory.GetLastWriteTime(subDir);
 
@@ -5119,7 +5159,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string subDir = Path.Combine(correctDir.Path, "sub");
+        string subDir = MakePath(correctDir.Path, "sub");
         Directory.CreateDirectory(subDir);
         DateTime expected = Directory.GetLastAccessTime(subDir);
 
@@ -5144,8 +5184,8 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "lines.txt"), "line1\nline2");
-        File.WriteAllText(Path.Combine(wrongDir.Path, "lines.txt"), "wrong");
+        File.WriteAllText(MakePath(correctDir.Path, "lines.txt"), "line1\nline2");
+        File.WriteAllText(MakePath(wrongDir.Path, "lines.txt"), "wrong");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5163,7 +5203,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllBytes(Path.Combine(correctDir.Path, "data.bin"), [0x42]);
+        File.WriteAllBytes(MakePath(correctDir.Path, "data.bin"), [0x42]);
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5188,9 +5228,9 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        File.Exists(Path.Combine(correctDir.Path, "output.txt")).ShouldBeTrue();
-        File.ReadAllText(Path.Combine(correctDir.Path, "output.txt")).ShouldBe("hello");
-        File.Exists(Path.Combine(wrongDir.Path, "output.txt")).ShouldBeFalse();
+        File.Exists(MakePath(correctDir.Path, "output.txt")).ShouldBeTrue();
+        File.ReadAllText(MakePath(correctDir.Path, "output.txt")).ShouldBe("hello");
+        File.Exists(MakePath(wrongDir.Path, "output.txt")).ShouldBeFalse();
     }
 
     [Fact]
@@ -5201,7 +5241,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "append.txt"), "base");
+        File.WriteAllText(MakePath(correctDir.Path, "append.txt"), "base");
 
         _ = ExpandWithThreadWorkingDirectory(
             env,
@@ -5209,7 +5249,7 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        File.ReadAllText(Path.Combine(correctDir.Path, "append.txt")).ShouldBe("base added");
+        File.ReadAllText(MakePath(correctDir.Path, "append.txt")).ShouldBe("base added");
     }
 
     [Fact]
@@ -5220,8 +5260,8 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string correctFile = Path.Combine(correctDir.Path, "todelete.txt");
-        string wrongFile = Path.Combine(wrongDir.Path, "todelete.txt");
+        string correctFile = MakePath(correctDir.Path, "todelete.txt");
+        string wrongFile = MakePath(wrongDir.Path, "todelete.txt");
         File.WriteAllText(correctFile, "data");
         File.WriteAllText(wrongFile, "data");
 
@@ -5242,7 +5282,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "utc.txt");
+        string filePath = MakePath(correctDir.Path, "utc.txt");
         File.WriteAllText(filePath, "data");
         DateTime expected = File.GetCreationTimeUtc(filePath);
 
@@ -5262,7 +5302,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "utc.txt");
+        string filePath = MakePath(correctDir.Path, "utc.txt");
         File.WriteAllText(filePath, "data");
         DateTime expected = File.GetLastWriteTimeUtc(filePath);
 
@@ -5283,7 +5323,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(correctDir.Path, "utc.txt");
+        string filePath = MakePath(correctDir.Path, "utc.txt");
         File.WriteAllText(filePath, "data");
         DateTime expected = File.GetLastAccessTimeUtc(filePath);
 
@@ -5314,8 +5354,8 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        Directory.Exists(Path.Combine(correctDir.Path, "newdir")).ShouldBeTrue();
-        Directory.Exists(Path.Combine(wrongDir.Path, "newdir")).ShouldBeFalse();
+        Directory.Exists(MakePath(correctDir.Path, "newdir")).ShouldBeTrue();
+        Directory.Exists(MakePath(wrongDir.Path, "newdir")).ShouldBeFalse();
     }
 
     [Fact]
@@ -5326,8 +5366,8 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        Directory.CreateDirectory(Path.Combine(correctDir.Path, "todel"));
-        Directory.CreateDirectory(Path.Combine(wrongDir.Path, "todel"));
+        Directory.CreateDirectory(MakePath(correctDir.Path, "todel"));
+        Directory.CreateDirectory(MakePath(wrongDir.Path, "todel"));
 
         _ = ExpandWithThreadWorkingDirectory(
             env,
@@ -5335,8 +5375,8 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        Directory.Exists(Path.Combine(correctDir.Path, "todel")).ShouldBeFalse();
-        Directory.Exists(Path.Combine(wrongDir.Path, "todel")).ShouldBeTrue();
+        Directory.Exists(MakePath(correctDir.Path, "todel")).ShouldBeFalse();
+        Directory.Exists(MakePath(wrongDir.Path, "todel")).ShouldBeTrue();
     }
 
     // =====================================================================
@@ -5349,7 +5389,7 @@ public class Expander_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         var dir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(dir.Path, "abs.txt");
+        string filePath = MakePath(dir.Path, "abs.txt");
         File.WriteAllText(filePath, "absolute content");
 
         // CurrentThreadWorkingDirectory is null (regular mode)
@@ -5367,7 +5407,7 @@ public class Expander_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         var dir = env.CreateFolder(createFolder: true);
 
-        string filePath = Path.Combine(dir.Path, "abs.txt");
+        string filePath = MakePath(dir.Path, "abs.txt");
         File.WriteAllText(filePath, "data");
 
         string result = ExpandWithThreadWorkingDirectory(
@@ -5384,7 +5424,7 @@ public class Expander_Tests(ITestOutputHelper output)
         using var env = TestEnvironment.Create(_output);
         var dir = env.CreateFolder(createFolder: true);
 
-        string subDir = Path.Combine(dir.Path, "subdir");
+        string subDir = MakePath(dir.Path, "subdir");
         Directory.CreateDirectory(subDir);
 
         string result = ExpandWithThreadWorkingDirectory(
@@ -5406,7 +5446,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var otherDir = env.CreateFolder(createFolder: true);
 
-        string absFile = Path.Combine(otherDir.Path, "abs.txt");
+        string absFile = MakePath(otherDir.Path, "abs.txt");
         File.WriteAllText(absFile, "absolute content");
 
         // Even though CurrentThreadWorkingDirectory is set, absolute paths should pass through unchanged
@@ -5425,7 +5465,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var otherDir = env.CreateFolder(createFolder: true);
 
-        string absFile = Path.Combine(otherDir.Path, "abs.txt");
+        string absFile = MakePath(otherDir.Path, "abs.txt");
         File.WriteAllText(absFile, "data");
 
         string result = ExpandWithThreadWorkingDirectory(
@@ -5448,7 +5488,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "source.txt"), "copy me");
+        File.WriteAllText(MakePath(correctDir.Path, "source.txt"), "copy me");
 
         ExpandWithThreadWorkingDirectory(
             env,
@@ -5456,9 +5496,9 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        File.Exists(Path.Combine(correctDir.Path, "dest.txt")).ShouldBeTrue();
-        File.ReadAllText(Path.Combine(correctDir.Path, "dest.txt")).ShouldBe("copy me");
-        File.Exists(Path.Combine(wrongDir.Path, "dest.txt")).ShouldBeFalse();
+        File.Exists(MakePath(correctDir.Path, "dest.txt")).ShouldBeTrue();
+        File.ReadAllText(MakePath(correctDir.Path, "dest.txt")).ShouldBe("copy me");
+        File.Exists(MakePath(wrongDir.Path, "dest.txt")).ShouldBeFalse();
     }
 
     [Fact]
@@ -5469,7 +5509,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        File.WriteAllText(Path.Combine(correctDir.Path, "movesrc.txt"), "move me");
+        File.WriteAllText(MakePath(correctDir.Path, "movesrc.txt"), "move me");
 
         ExpandWithThreadWorkingDirectory(
             env,
@@ -5477,9 +5517,9 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        File.Exists(Path.Combine(correctDir.Path, "movesrc.txt")).ShouldBeFalse();
-        File.Exists(Path.Combine(correctDir.Path, "movedst.txt")).ShouldBeTrue();
-        File.ReadAllText(Path.Combine(correctDir.Path, "movedst.txt")).ShouldBe("move me");
+        File.Exists(MakePath(correctDir.Path, "movesrc.txt")).ShouldBeFalse();
+        File.Exists(MakePath(correctDir.Path, "movedst.txt")).ShouldBeTrue();
+        File.ReadAllText(MakePath(correctDir.Path, "movedst.txt")).ShouldBe("move me");
     }
 
     [Fact]
@@ -5490,7 +5530,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        Directory.CreateDirectory(Path.Combine(correctDir.Path, "dirsrc"));
+        Directory.CreateDirectory(MakePath(correctDir.Path, "dirsrc"));
 
         ExpandWithThreadWorkingDirectory(
             env,
@@ -5498,8 +5538,8 @@ public class Expander_Tests(ITestOutputHelper output)
             correctDir.Path,
             wrongDir.Path);
 
-        Directory.Exists(Path.Combine(correctDir.Path, "dirsrc")).ShouldBeFalse();
-        Directory.Exists(Path.Combine(correctDir.Path, "dirdst")).ShouldBeTrue();
+        Directory.Exists(MakePath(correctDir.Path, "dirsrc")).ShouldBeFalse();
+        Directory.Exists(MakePath(correctDir.Path, "dirdst")).ShouldBeTrue();
     }
 
     // =====================================================================
@@ -5514,11 +5554,11 @@ public class Expander_Tests(ITestOutputHelper output)
         var wrongDir = env.CreateFolder(createFolder: true);
 
         // Create structure: rootDir/sibling/file.txt, and set working dir to rootDir/subdir
-        string siblingDir = Path.Combine(rootDir.Path, "sibling");
-        string subDir = Path.Combine(rootDir.Path, "subdir");
+        string siblingDir = MakePath(rootDir.Path, "sibling");
+        string subDir = MakePath(rootDir.Path, "subdir");
         Directory.CreateDirectory(siblingDir);
         Directory.CreateDirectory(subDir);
-        File.WriteAllText(Path.Combine(siblingDir, "file.txt"), "traversal works");
+        File.WriteAllText(MakePath(siblingDir, "file.txt"), "traversal works");
 
         string result = ExpandWithThreadWorkingDirectory(
             env,
@@ -5540,11 +5580,11 @@ public class Expander_Tests(ITestOutputHelper output)
         var rootDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
-        string siblingDir = Path.Combine(rootDir.Path, "sibling");
-        string subDir = Path.Combine(rootDir.Path, "subdir");
+        string siblingDir = MakePath(rootDir.Path, "sibling");
+        string subDir = MakePath(rootDir.Path, "subdir");
         Directory.CreateDirectory(siblingDir);
         Directory.CreateDirectory(subDir);
-        File.WriteAllText(Path.Combine(siblingDir, "file.txt"), "backslash traversal works");
+        File.WriteAllText(MakePath(siblingDir, "file.txt"), "backslash traversal works");
 
         // Use backslash separators (Windows-style) — FixFilePath must normalize before resolution
         string result = ExpandWithThreadWorkingDirectory(
