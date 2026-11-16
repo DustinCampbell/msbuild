@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
@@ -142,6 +143,23 @@ namespace Microsoft.Build.UnitTests
         {
             _variants.Add(transientState);
             return transientState;
+        }
+
+        /// <summary>
+        ///  Registers an action to run when this test environment is cleaned up.
+        /// </summary>
+        /// <param name="cleanup">The action to run during cleanup.</param>
+        /// <returns>
+        ///  The transient state that invokes <paramref name="cleanup"/>.
+        /// </returns>
+        /// <remarks>
+        ///  Cleanup actions run in reverse registration order with the other transient test states.
+        /// </remarks>
+        public TransientTestState WithCleanup(Action cleanup)
+        {
+            ArgumentNullException.ThrowIfNull(cleanup);
+
+            return WithTransientTestState(new TransientCleanupAction(cleanup));
         }
 
         /// <summary>
@@ -368,6 +386,20 @@ namespace Microsoft.Build.UnitTests
             return WithTransientTestState(new TransientTestEnvironmentVariable(environmentVariableName, newValue));
         }
 
+        /// <summary>
+        ///  Sets or unsets an AppContext feature for the duration of the test.
+        /// </summary>
+        /// <param name="featureName">The name of the AppContext feature.</param>
+        /// <param name="enabled">
+        ///  <see langword="true"/> to enable the feature, <see langword="false"/> to disable it, or
+        ///  <see langword="null"/> to unset it.
+        /// </param>
+        /// <returns>
+        ///  The transient feature state that will restore the original state when the test environment is disposed.
+        /// </returns>
+        public TransientAppContextFeature SetAppContextFeature(string featureName, bool? enabled)
+            => WithTransientTestState(new TransientAppContextFeature(featureName, enabled));
+
         public TransientTestState SetCurrentDirectory(string newWorkingDirectory)
         {
             return WithTransientTestState(new TransientWorkingDirectory(newWorkingDirectory));
@@ -393,6 +425,12 @@ namespace Microsoft.Build.UnitTests
         }
 
         #endregion
+
+        private sealed class TransientCleanupAction(Action cleanup) : TransientTestState
+        {
+            public override void Revert()
+                => cleanup();
+        }
 
         private sealed class DefaultOutput : ITestOutputHelper
         {
@@ -645,7 +683,7 @@ namespace Microsoft.Build.UnitTests
             Directory.CreateDirectory(tempPath);
 
             _oldtempPaths = SetTempPath(tempPath);
-            
+
             // Clear the cached temp directory so FileUtilities picks up the new TMPDIR/TMP/TEMP
             FileUtilities.ClearTempFileDirectory();
         }
@@ -693,7 +731,7 @@ namespace Microsoft.Build.UnitTests
         public override void Revert()
         {
             SetTempPaths(_oldtempPaths);
-            
+
             // Clear the cached temp directory so FileUtilities picks up the restored TMPDIR/TMP/TEMP
             FileUtilities.ClearTempFileDirectory();
 
@@ -839,6 +877,93 @@ namespace Microsoft.Build.UnitTests
             System.IO.Path.IsPathRooted(Path).ShouldBeTrue($"{Path} is not rooted");
 
             FileUtilities.DeleteDirectoryNoThrow(Path, true);
+        }
+    }
+
+    /// <summary>
+    ///  Represents an AppContext feature whose original state is restored when the test completes.
+    /// </summary>
+    public class TransientAppContextFeature : TransientTestState
+    {
+        private readonly string _featureName;
+        private readonly bool? _originalState;
+
+        /// <summary>
+        ///  Creates a transient AppContext feature and applies the requested state.
+        /// </summary>
+        /// <param name="featureName">The name of the AppContext feature.</param>
+        /// <param name="enabled">
+        ///  <see langword="true"/> to enable the feature, <see langword="false"/> to disable it, or
+        ///  <see langword="null"/> to unset it.
+        /// </param>
+        public TransientAppContextFeature(string featureName, bool? enabled)
+        {
+            _featureName = featureName;
+            _originalState = AppContext.TryGetSwitch(featureName, out bool originalValue) ? originalValue : null;
+
+            SetFeature(featureName, enabled);
+        }
+
+        public override void Revert()
+            => SetFeature(_featureName, _originalState);
+
+        /// <summary>
+        ///  Sets an AppContext feature to the specified state.
+        /// </summary>
+        /// <param name="featureName">The name of the AppContext feature.</param>
+        /// <param name="enabled">
+        ///  <see langword="true"/> to enable the feature, <see langword="false"/> to disable it, or
+        ///  <see langword="null"/> to unset it.
+        /// </param>
+        private static void SetFeature(string featureName, bool? enabled)
+        {
+            if (enabled is bool value)
+            {
+                AppContext.SetSwitch(featureName, value);
+            }
+            else
+            {
+                UnsetFeature(featureName);
+            }
+        }
+
+        /// <summary>
+        ///  Removes an AppContext feature from the runtime's internal switch table.
+        /// </summary>
+        /// <param name="featureName">The name of the AppContext feature to unset.</param>
+        /// <remarks>
+        ///  AppContext has no public API for returning a feature to the unset state. The backing field differs
+        ///  between runtimes, so this searches the non-public static dictionaries for the requested feature.
+        /// </remarks>
+        private static void UnsetFeature(string featureName)
+        {
+            if (!AppContext.TryGetSwitch(featureName, out _))
+            {
+                return;
+            }
+
+            foreach (FieldInfo field in typeof(AppContext).GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+            {
+                if (field.GetValue(null) is IDictionary switches)
+                {
+                    lock (switches)
+                    {
+                        if (!switches.Contains(featureName))
+                        {
+                            continue;
+                        }
+
+                        switches.Remove(featureName);
+                    }
+
+                    if (!AppContext.TryGetSwitch(featureName, out _))
+                    {
+                        return;
+                    }
+                }
+            }
+
+            throw new InvalidOperationException($"Could not unset AppContext feature '{featureName}'.");
         }
     }
 

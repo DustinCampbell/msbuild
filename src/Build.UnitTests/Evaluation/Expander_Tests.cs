@@ -2,12 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
@@ -44,6 +42,9 @@ namespace Microsoft.Build.UnitTests.Evaluation;
 
 public class Expander_Tests(ITestOutputHelper output)
 {
+    private const string EnableAllPropertyFunctionsEnvironmentVariableName = "MSBUILDENABLEALLPROPERTYFUNCTIONS";
+    private const string EnableAllPropertyFunctionsFeatureName = "Microsoft.Build.EnableAllPropertyFunctions";
+
     private readonly ITestOutputHelper _output = output;
     private readonly string _dateToParse = new DateTime(2010, 12, 25).ToString(CultureInfo.CurrentCulture);
     private static readonly string s_rootPathPrefix = NativeMethodsShared.IsWindows ? @"C:\" : Path.VolumeSeparatorChar.ToString();
@@ -58,6 +59,15 @@ public class Expander_Tests(ITestOutputHelper output)
 
     private static string MakePath(params string[] paths)
         => Path.Combine(paths);
+
+    private static (MockLogger Logger, MockLoggingContext LoggingContext) CreateLoggerAndContext()
+    {
+        var logger = new MockLogger();
+        ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
+        loggingService.RegisterLogger(logger).ShouldBeTrue();
+
+        return (logger, new MockLoggingContext(loggingService, BuildEventContext.Invalid));
+    }
 
     [Fact]
     public void ExpandAllIntoTaskItems0()
@@ -299,12 +309,12 @@ public class Expander_Tests(ITestOutputHelper output)
         });
     }
 
-    public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunctionData { get; } = new()
-    {
-        { "@(i->Metadata('Meta0')->Directory())", MakeDirectoryPath("firstdirectory", "seconddirectory") },
-        { "@(i->Metadata('Meta0')->Filename())", "file0" },
-        { "@(i->Metadata('Meta0')->Extension())", ".ext" },
-    };
+    public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterMetadataFunctionData { get; } =
+    [
+        ("@(i->Metadata('Meta0')->Directory())", MakeDirectoryPath("firstdirectory", "seconddirectory")),
+        ("@(i->Metadata('Meta0')->Filename())", "file0"),
+        ("@(i->Metadata('Meta0')->Extension())", ".ext"),
+    ];
 
     /// <summary>
     ///  Expand an item vector function that is an itemspec modifier.
@@ -346,17 +356,17 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandAll("[@(i->'%(Meta9))']")
             .ShouldBe(@"[@(i->')']");
 
-    public static TheoryData<string, string> ExpandItemVectorFunctionsChainedData { get; } = new()
-    {
-        {
+    public static TheoryData<string, string> ExpandItemVectorFunctionsChainedData { get; } =
+    [
+        (
             "@(i->'%(Meta0)'->'%(Directory)'->Distinct())",
             MakeDirectoryPath("firstdirectory", "seconddirectory")
-        },
-        {
+        ),
+        (
             "[@(i->'%(Meta0)'->'%(Directory)'->Distinct())]",
             @"[firstdirectory\seconddirectory\]"
-        },
-    };
+        ),
+    ];
 
     /// <summary>
     ///  Expand an item vector function that is chained into a string.
@@ -685,13 +695,13 @@ public class Expander_Tests(ITestOutputHelper output)
         log.AssertLogContains("MSB4198");
     }
 
-    public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterQuotedTransformData { get; } = new()
-    {
-        { "@(i->'%(Meta0)'->'%(Directory)')", MakeDirectoryPath("firstdirectory", "seconddirectory") },
-        { "@(i->'%(Meta0)'->'%(Filename)')", "file0" },
-        { "@(i->'%(Meta0)'->'%(Extension)'->Distinct())", ".ext" },
-        { "@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))", "le0" },
-    };
+    public static TheoryData<string, string> ExpandItemVectorFunctionsItemSpecModifierAfterQuotedTransformData { get; } =
+    [
+        ("@(i->'%(Meta0)'->'%(Directory)')", MakeDirectoryPath("firstdirectory", "seconddirectory")),
+        ("@(i->'%(Meta0)'->'%(Filename)')", "file0"),
+        ("@(i->'%(Meta0)'->'%(Extension)'->Distinct())", ".ext"),
+        ("@(i->'%(Meta0)'->'%(Filename)'->Substring($(Val)))", "le0"),
+    ];
 
     /// <summary>
     ///  Expand an item vector function that is an itemspec modifier.
@@ -1427,28 +1437,28 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandAll(value, items: Data.Items(("IntermediateAssembly", "a.dll"), ("IntermediateAssembly", "b.dll")))
             .ShouldBe(";");
 
-    public static TheoryData<string, bool, bool> QuotedTransformDerivableItemSpecModifierUsesRequiredContextData { get; } = new()
-    {
+    public static TheoryData<string, bool, bool> QuotedTransformDerivableItemSpecModifierUsesRequiredContextData { get; } =
+    [
         // These modifiers do not require project context.
-        { ItemSpecModifiers.Filename, false, false },
-        { ItemSpecModifiers.Extension, false, false },
-        { ItemSpecModifiers.RelativeDir, false, false },
-        { ItemSpecModifiers.Identity, false, false },
-        { ItemSpecModifiers.ModifiedTime, false, false },
-        { ItemSpecModifiers.CreatedTime, false, false },
-        { ItemSpecModifiers.AccessedTime, false, false },
+        (ItemSpecModifiers.Filename, false, false),
+        (ItemSpecModifiers.Extension, false, false),
+        (ItemSpecModifiers.RelativeDir, false, false),
+        (ItemSpecModifiers.Identity, false, false),
+        (ItemSpecModifiers.ModifiedTime, false, false),
+        (ItemSpecModifiers.CreatedTime, false, false),
+        (ItemSpecModifiers.AccessedTime, false, false),
 
         // These modifiers require the project directory.
-        { ItemSpecModifiers.FullPath, true, false },
-        { ItemSpecModifiers.RootDir, true, false },
-        { ItemSpecModifiers.Directory, true, false },
+        (ItemSpecModifiers.FullPath, true, false),
+        (ItemSpecModifiers.RootDir, true, false),
+        (ItemSpecModifiers.Directory, true, false),
 
         // These modifiers require both the project directory and defining-project metadata.
-        { ItemSpecModifiers.DefiningProjectFullPath, true, true },
-        { ItemSpecModifiers.DefiningProjectDirectory, true, true },
-        { ItemSpecModifiers.DefiningProjectName, true, true },
-        { ItemSpecModifiers.DefiningProjectExtension, true, true },
-    };
+        (ItemSpecModifiers.DefiningProjectFullPath, true, true),
+        (ItemSpecModifiers.DefiningProjectDirectory, true, true),
+        (ItemSpecModifiers.DefiningProjectName, true, true),
+        (ItemSpecModifiers.DefiningProjectExtension, true, true),
+    ];
 
     [Theory]
     [MemberData(nameof(QuotedTransformDerivableItemSpecModifierUsesRequiredContextData))]
@@ -1630,27 +1640,27 @@ public class Expander_Tests(ITestOutputHelper output)
         actual.ShouldBeSameAs(Value);
     }
 
-    public static TheoryData<object, string> ExpandAllIntoStringExpanderOptionsData { get; } = new()
-    {
-        {
+    public static TheoryData<object, string> ExpandAllIntoStringExpanderOptionsData { get; } =
+    [
+        (
             ExpanderOptions.ExpandProperties,
             """@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ;  ; %(NonExistent) ; \jk ; l\mno%3bpqr\stu ; @(IntermediateAssembly->'%(RelativeDir)') ; %(Language)_%(Culture)"""
-        },
-        {
+        ),
+        (
             ExpanderOptions.ExpandPropertiesAndMetadata,
             """@(Resource->'%(Filename)') ; @(Content) ; @(NonExistent) ;  ;  ; \jk ; l\mno%3bpqr\stu ; @(IntermediateAssembly->'%(RelativeDir)') ; english_abc%3bdef;ghi"""
-        },
-        {
+        ),
+        (
             ExpanderOptions.ExpandAll,
             "string$(p);dialogs%3b ; splash.bmp ;  ;  ;  ; \\jk ; l\\mno%3bpqr\\stu ; " +
             $"{MakeDirectoryPath("subdir1")};{MakeDirectoryPath("subdir2")} ; " +
             "english_abc%3bdef;ghi"
-        },
-        {
+        ),
+        (
             ExpanderOptions.ExpandItems,
             """string$(p);dialogs%3b ; splash.bmp ;  ; $(NonExistent) ; %(NonExistent) ; $(OutputPath) ; $(TargetPath) ; %(Language)_%(Culture)"""
-        },
-    };
+        ),
+    ];
 
     /// <summary>
     ///  Exercises ExpandAllIntoString with a complex set of data and various expander options.
@@ -1693,34 +1703,34 @@ public class Expander_Tests(ITestOutputHelper output)
     /// <value>
     ///  The metadata expressions and expected results.
     /// </value>
-    public static TheoryData<string, string> ExpandMetadata_ScannerEdgeCasesData { get; } = new()
-    {
+    public static TheoryData<string, string> ExpandMetadata_ScannerEdgeCasesData { get; } =
+    [
         // Simple expansion, unqualified and qualified.
-        { "%(Culture)", "en-US" },
-        { "%(Foo)", "Bar" },
-        { "%(Compile.Link)", "Link.cs" },
+        ("%(Culture)", "en-US"),
+        ("%(Foo)", "Bar"),
+        ("%(Compile.Link)", "Link.cs"),
 
         // Whitespace around the parentheses and the dot separator is allowed.
-        { "%( Culture )", "en-US" },
-        { "%( Compile . Link )", "Link.cs" },
+        ("%( Culture )", "en-US"),
+        ("%( Compile . Link )", "Link.cs"),
 
         // Missing metadata expands to empty; a missing qualifier does not fall back to the unqualified key.
-        { "%(DoesNotExist)", "" },
-        { "%(Other.Foo)", "" },
+        ("%(DoesNotExist)", ""),
+        ("%(Other.Foo)", ""),
 
         // Malformed references are emitted verbatim.
-        { "%(", "%(" },
-        { "%()", "%()" },
-        { "%( )", "%( )" },
-        { "%(.x)", "%(.x)" },
+        ("%(", "%("),
+        ("%()", "%()"),
+        ("%( )", "%( )"),
+        ("%(.x)", "%(.x)"),
 
         // The outer reference is not closed by ')', so only the inner reference expands.
-        { "%(Culture%(Foo))", "%(CultureBar)" },
+        ("%(Culture%(Foo))", "%(CultureBar)"),
 
         // Mixed with surrounding literal text and adjacent references.
-        { "prefix_%(Culture)_suffix", "prefix_en-US_suffix" },
-        { "%(Culture)%(Foo)", "en-USBar" },
-    };
+        ("prefix_%(Culture)_suffix", "prefix_en-US_suffix"),
+        ("%(Culture)%(Foo)", "en-USBar"),
+    ];
 
     /// <summary>
     ///  Parity tests for the hand-written metadata scanner. These pin the exact expanded result for
@@ -1748,23 +1758,23 @@ public class Expander_Tests(ITestOutputHelper output)
     /// <value>
     ///  The item-vector expressions and expected results.
     /// </value>
-    public static TheoryData<string, string> ExpandMetadata_ItemVectorGapsAndSeparatorsData { get; } = new()
-    {
+    public static TheoryData<string, string> ExpandMetadata_ItemVectorGapsAndSeparatorsData { get; } =
+    [
         // Metadata after, before, and between item vectors.
-        { "@(Compile)%(Culture)", "@(Compile)en-US" },
-        { "%(Culture)@(Compile)", "en-US@(Compile)" },
-        { "@(A)%(Culture)@(B)", "@(A)en-US@(B)" },
+        ("@(Compile)%(Culture)", "@(Compile)en-US"),
+        ("%(Culture)@(Compile)", "en-US@(Compile)"),
+        ("@(A)%(Culture)@(B)", "@(A)en-US@(B)"),
 
         // A lone item vector has no gaps and is returned unchanged, even with embedded metadata in a transform.
-        { "@(Compile)", "@(Compile)" },
-        { "@(Compile->'%(Filename)')", "@(Compile->'%(Filename)')" },
+        ("@(Compile)", "@(Compile)"),
+        ("@(Compile->'%(Filename)')", "@(Compile->'%(Filename)')"),
 
         // Metadata embedded in an item vector's separator is expanded in place.
-        { "@(Compile, '%(Culture)')", "@(Compile, 'en-US')" },
+        ("@(Compile, '%(Culture)')", "@(Compile, 'en-US')"),
 
         // "@(" that does not form a valid item vector still has its surrounding metadata expanded.
-        { "%(Culture)@(", "en-US@(" },
-    };
+        ("%(Culture)@(", "en-US@("),
+    ];
 
     /// <summary>
     ///  Parity tests for metadata expansion in the gaps between (and within the separators of) item
@@ -1883,15 +1893,15 @@ public class Expander_Tests(ITestOutputHelper output)
         get
         {
             string envVar = NativeMethodsShared.IsWindows ? "TEMP" : "USER";
-            return new()
-            {
-                { "String", RegistryValueKind.String, "String" },
-                { Encoding.UTF8.GetBytes("String"), RegistryValueKind.Binary, "83;116;114;105;110;103" },
-                { 123456, RegistryValueKind.DWord, "123456" },
-                { $"%{envVar}%", RegistryValueKind.ExpandString, Environment.GetEnvironmentVariable(envVar)! },
-                { 123456789123456789L, RegistryValueKind.QWord, "123456789123456789" },
-                { new[] { "A", "B", "C", "D" }, RegistryValueKind.MultiString, "A;B;C;D" },
-            };
+            return
+            [
+                ("String", RegistryValueKind.String, "String"),
+                (Encoding.UTF8.GetBytes("String"), RegistryValueKind.Binary, "83;116;114;105;110;103"),
+                (123456, RegistryValueKind.DWord, "123456"),
+                ($"%{envVar}%", RegistryValueKind.ExpandString, Environment.GetEnvironmentVariable(envVar)!),
+                (123456789123456789L, RegistryValueKind.QWord, "123456789123456789"),
+                (new[] { "A", "B", "C", "D" }, RegistryValueKind.MultiString, "A;B;C;D"),
+            ];
         }
     }
 
@@ -2017,9 +2027,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionNoArguments()
-        => ExpandProperties(
-            "$(SomeStuff.ToUpperInvariant())",
-            Data.Properties("SomeStuff", "This IS SOME STUff"))
+        => ExpandProperties("$(SomeStuff.ToUpperInvariant())", Data.Properties("SomeStuff", "This IS SOME STUff"))
             .ShouldBe("THIS IS SOME STUFF");
 
     /// <summary>
@@ -2027,9 +2035,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionNoArgumentsTrim()
-        => ExpandProperties(
-            "$(FileName.Trim())",
-            Data.Properties("FileName", "    foo.ext   "))
+        => ExpandProperties("$(FileName.Trim())", Data.Properties("FileName", "    foo.ext   "))
             .ShouldBe("foo.ext");
 
     /// <summary>
@@ -2037,9 +2043,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionPropertyGet()
-        => ExpandProperties(
-            "$(SomeStuff.Length)",
-            Data.Properties("SomeStuff", "This IS SOME STUff"))
+        => ExpandProperties("$(SomeStuff.Length)", Data.Properties("SomeStuff", "This IS SOME STUff"))
             .ShouldBe("18");
 
     /// <summary>
@@ -2047,9 +2051,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionPropertyManualGet()
-        => ExpandProperties(
-            "$(SomeStuff.get_Length())",
-            Data.Properties("SomeStuff", "This IS SOME STUff"))
+        => ExpandProperties("$(SomeStuff.get_Length())", Data.Properties("SomeStuff", "This IS SOME STUff"))
             .ShouldBe("18");
 
     /// <summary>
@@ -2057,9 +2059,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionPropertyNoArgumentsConcat()
-        => ExpandProperties(
-            "$(SomeStuff.ToLowerInvariant())_goop",
-            Data.Properties("SomeStuff", "This IS SOME STUff"))
+        => ExpandProperties("$(SomeStuff.ToLowerInvariant())_goop", Data.Properties("SomeStuff", "This IS SOME STUff"))
             .ShouldBe("this is some stuff_goop");
 
     /// <summary>
@@ -2067,9 +2067,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionPropertyWithArgument()
-        => ExpandProperties(
-            "$(SomeStuff.SubString(13))",
-            Data.Properties("SomeStuff", "This IS SOME STUff"))
+        => ExpandProperties("$(SomeStuff.SubString(13))", Data.Properties("SomeStuff", "This IS SOME STUff"))
             .ShouldBe("STUff");
 
     /// <summary>
@@ -2077,9 +2075,7 @@ public class Expander_Tests(ITestOutputHelper output)
     /// </summary>
     [Fact]
     public void PropertyFunctionPropertyWithArgumentWithSpaces()
-        => ExpandProperties(
-            "$(SomeStuff.SubString(8))",
-            Data.Properties("SomeStuff", "This IS SOME STUff"))
+        => ExpandProperties("$(SomeStuff.SubString(8))", Data.Properties("SomeStuff", "This IS SOME STUff"))
             .ShouldBe("SOME STUff");
 
     /// <summary>
@@ -2180,7 +2176,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionConvertsComplexValues(string scenario, string expected)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
 
         string? typeName = typeof(PropertyValueConversionTestData).AssemblyQualifiedName;
 
@@ -2230,7 +2226,7 @@ public class Expander_Tests(ITestOutputHelper output)
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
 
         ConditionEvaluator.EvaluateCondition(
-            @"'$(PathRoot2.Endswith(`" + Path.DirectorySeparatorChar + "`))' == 'true'",
+            $"'$(PathRoot2.Endswith(`{Path.DirectorySeparatorChar}`))' == 'true'",
             ParserOptions.AllowAll,
             expander,
             ExpanderOptions.ExpandProperties,
@@ -2241,7 +2237,7 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBeTrue();
 
         ConditionEvaluator.EvaluateCondition(
-            @"'$(PathRoot.EndsWith(" + Path.DirectorySeparatorChar + "))' == 'false'",
+            $"'$(PathRoot.EndsWith({Path.DirectorySeparatorChar}))' == 'false'",
             ParserOptions.AllowAll,
             expander,
             ExpanderOptions.ExpandProperties,
@@ -2267,9 +2263,7 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("""$(([System.DateTime]::Now).ToString("MM.dd.yyyy"))""")]
     public void PropertyFunctionInvalid(string expression)
         => Should.Throw<InvalidProjectFileException>(() =>
-            ExpandProperties(
-                expression,
-                Data.Properties(("Value", "3"), ("SomeStuff", "This IS SOME STUff"))));
+            ExpandProperties(expression, Data.Properties(("Value", "3"), ("SomeStuff", "This IS SOME STUff"))));
 
     /// <summary>
     ///  Expand property function - we don't handle metadata functions.
@@ -2308,7 +2302,9 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionStaticMethod1()
         => ExpandProperties(
             "$([System.IO.Path]::Combine($(Drive), `$(File)`))",
-            Data.Properties(("Drive", s_rootPathPrefix), ("File", MakePath("foo", "file.txt"))))
+            Data.Properties(
+                ("Drive", s_rootPathPrefix),
+                ("File", MakePath("foo", "file.txt"))))
             .ShouldBe(MakePath(s_rootPathPrefix, "foo", "file.txt"));
 
     /// <summary>
@@ -2338,17 +2334,11 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyStaticFunctionAllEnabled()
     {
         using var env = TestEnvironment.Create();
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
 
-        try
-        {
-            ExpandProperties("$([System.Type]::GetType(`System.Type`))")
-                .ShouldBe("System.Type");
-        }
-        finally
-        {
-            AvailableStaticMethods.Reset_ForUnitTestsOnly();
-        }
+        ExpandProperties("$([System.Type]::GetType(`System.Type`))")
+            .ShouldBe("System.Type");
     }
 
     /// <summary>
@@ -2357,22 +2347,14 @@ public class Expander_Tests(ITestOutputHelper output)
     [Fact]
     public void PropertyStaticFunctionLocatedFromAssemblyWithNamespaceName()
     {
-        AppContext.TryGetSwitch("Microsoft.Build.EnableAllPropertyFunctions", out bool originalSwitch);
+        using var env = TestEnvironment.Create();
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
 
-        try
-        {
-            AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", true);
+        string result = ExpandProperties("$([System.Diagnostics.Process]::GetCurrentProcess().Id)");
 
-            string result = ExpandProperties("$([System.Diagnostics.Process]::GetCurrentProcess().Id)");
-
-            int.TryParse(result, out int pid).ShouldBeTrue();
-            pid.ShouldBe(EnvironmentUtilities.CurrentProcessId);
-        }
-        finally
-        {
-            AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", originalSwitch);
-            AvailableStaticMethods.Reset_ForUnitTestsOnly();
-        }
+        int.TryParse(result, out int pid).ShouldBeTrue();
+        pid.ShouldBe(EnvironmentUtilities.CurrentProcessId);
     }
 
     /// <summary>
@@ -2390,16 +2372,10 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyStaticFunctionUsingNamespaceNotFound(string expression)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
-        env.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", "1");
+        env.SetEnvironmentVariable(EnableAllPropertyFunctionsEnvironmentVariableName, "1");
+        env.WithCleanup(() => AvailableStaticMethods.Reset_ForUnitTestsOnly());
 
-        try
-        {
-            _ = Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
-        }
-        finally
-        {
-            AvailableStaticMethods.Reset_ForUnitTestsOnly();
-        }
+        _ = Should.Throw<InvalidProjectFileException>(() => ExpandProperties(expression));
     }
 
     /// <summary>
@@ -2486,302 +2462,199 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBe(Environment.GetFolderPath(Environment.SpecialFolder.System));
 
     /// <summary>
-    ///  The test exercises: RuntimeInformation / OSPlatform usage, static method invocation, static property invocation,
-    ///  method invocation expression as argument, call chain expression as argument.
+    ///  Gets runtime-information property functions and their expected values for the current process.
     /// </summary>
+    /// <value>
+    ///  The property-function expressions and expected expanded values.
+    /// </value>
+    public static TheoryData<string, string> PropertyFunctionRuntimeInformationData
+    {
+        get
+        {
+            const string runtimeInformationType = "System.Runtime.InteropServices.RuntimeInformation";
+            const string osPlatformType = "System.Runtime.InteropServices.OSPlatform";
+            string platform = Helpers.GetOSPlatformAsString();
+            string architecture = RuntimeInformation.OSArchitecture.ToString();
+            string nestedIsOSPlatform =
+                $"$([{runtimeInformationType}]::IsOSPlatform(" +
+                $"$([{osPlatformType}]::Create(" +
+                $"$([{osPlatformType}]::{platform}.ToString())))))";
+
+            return
+            [
+                (nestedIsOSPlatform, "True"),
+                (
+                    $"$([{runtimeInformationType}]::IsOSPlatform($([{osPlatformType}]::{platform})))",
+                    "True"
+                ),
+                ($"$([{runtimeInformationType}]::OSArchitecture)", architecture),
+                ($"$([MSBuild]::IsOSPlatform({platform}))", "True"),
+            ];
+        }
+    }
+
+    /// <summary>
+    ///  Exercises runtime information, static property access, nested method calls, and call chains.
+    /// </summary>
+    /// <param name="expression">The property-function expression.</param>
+    /// <param name="expected">The expected expanded value.</param>
     [Theory]
-    [InlineData(
-        "$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Create($([System.Runtime.InteropServices.OSPlatform]::$$platform$$.ToString())))))",
-        "True")]
-    [InlineData(
-        @"$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::$$platform$$)))",
-        "True")]
-    [InlineData(
-        "$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)",
-        "$$architecture$$")]
-    [InlineData(
-        "$([MSBuild]::IsOSPlatform($$platform$$))",
-        "True")]
-    public void PropertyFunctionRuntimeInformation(string propertyFunction, string expectedExpansion)
-    {
-        static string FormatString(string s, string platform, string architecture) => s
-            .Replace("$$platform$$", platform)
-            .Replace("$$architecture$$", architecture);
-
-        string currentPlatformString = Helpers.GetOSPlatformAsString();
-        string currentArchitectureString = RuntimeInformation.OSArchitecture.ToString();
-
-        propertyFunction = FormatString(propertyFunction, currentPlatformString, currentArchitectureString);
-        expectedExpansion = FormatString(expectedExpansion, currentPlatformString, currentArchitectureString);
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expectedExpansion);
-    }
-
-    [Theory]
-    [InlineData("windows")]
-    [InlineData("linux")]
-    [InlineData("macos")]
-    [InlineData("osx")]
-    public void IsOSPlatform(string platform)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsOSPlatform('{platform}'))";
-        string expected = TestOperatingSystem.IsOSPlatform(platform) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
+    // Expected values depend on the execution-process environment, so enumerate the data when the test runs.
+    [MemberData(nameof(PropertyFunctionRuntimeInformationData), DisableDiscoveryEnumeration = true)]
+    public void PropertyFunctionRuntimeInformation(string expression, string expected)
+        => ExpandProperties(expression)
             .ShouldBe(expected);
-    }
 
-    [Theory]
-    [InlineData("windows", 4, 0, 0, 0)]
-    [InlineData("windows", 999, 0, 0, 0)]
-    [InlineData("linux", 0, 0, 0, 0)]
-    [InlineData("macos", 10, 15, 0, 0)]
-    [InlineData("macos", 999, 0, 0, 0)]
-    [InlineData("osx", 0, 0, 0, 0)]
-    public void IsOSPlatformVersionAtLeast(string platform, int major, int minor, int build, int revision)
+    /// <summary>
+    ///  Gets <c>System.OperatingSystem</c> property-function expressions and their expected runtime results.
+    /// </summary>
+    /// <value>
+    ///  The property-function expressions and expected Boolean results.
+    /// </value>
+    public static TheoryData<string, bool> OperatingSystemPropertyFunctionData
     {
-        string propertyFunction = $"$([System.OperatingSystem]::IsOSPlatformVersionAtLeast('{platform}', {major}, {minor}, {build}, {revision}))";
-        string expected = TestOperatingSystem.IsOSPlatformVersionAtLeast(platform, major, minor, build, revision) ? "True" : "False";
+        get
+        {
+            TheoryData<string, bool> data = [];
 
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsLinux()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsLinux())";
-        string expected = TestOperatingSystem.IsLinux() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsFreeBSD()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsFreeBSD())";
-        string expected = TestOperatingSystem.IsFreeBSD() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0)]
-    [InlineData(999, 0, 0, 0)]
-    public void IsFreeBSDVersionAtLeast(int major, int minor, int build, int revision)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsFreeBSDVersionAtLeast({major}, {minor}, {build}, {revision}))";
-        string expected = TestOperatingSystem.IsFreeBSDVersionAtLeast(major, minor, build, revision) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsMacOS()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsMacOS())";
-        string expected = TestOperatingSystem.IsMacOS() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(10, 15, 0)]
-    [InlineData(999, 0, 0)]
-    public void IsMacOSVersionAtLeast(int major, int minor, int build)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsMacOSVersionAtLeast({major}, {minor}, {build}))";
-        string expected = TestOperatingSystem.IsMacOSVersionAtLeast(major, minor, build) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsWindows()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsWindows())";
-        string expected = TestOperatingSystem.IsWindows() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0)]
-    [InlineData(4, 0, 0, 0)]
-    [InlineData(999, 0, 0, 0)]
-    public void IsWindowsVersionAtLeast(int major, int minor, int build, int revision)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsWindowsVersionAtLeast({major}, {minor}, {build}, {revision}))";
-        string expected = TestOperatingSystem.IsWindowsVersionAtLeast(major, minor, build, revision) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
+            Add("IsOSPlatform('windows')", TestOperatingSystem.IsOSPlatform("windows"));
+            Add("IsOSPlatform('linux')", TestOperatingSystem.IsOSPlatform("linux"));
+            Add("IsOSPlatform('macos')", TestOperatingSystem.IsOSPlatform("macos"));
+            Add("IsOSPlatform('osx')", TestOperatingSystem.IsOSPlatform("osx"));
+            Add("IsOSPlatformVersionAtLeast('windows', 4, 0, 0, 0)", TestOperatingSystem.IsOSPlatformVersionAtLeast("windows", 4, 0, 0, 0));
+            Add(
+                "IsOSPlatformVersionAtLeast('windows', 999, 0, 0, 0)",
+                TestOperatingSystem.IsOSPlatformVersionAtLeast("windows", 999, 0, 0, 0));
+            Add("IsOSPlatformVersionAtLeast('linux', 0, 0, 0, 0)", TestOperatingSystem.IsOSPlatformVersionAtLeast("linux", 0, 0, 0, 0));
+            Add("IsOSPlatformVersionAtLeast('macos', 10, 15, 0, 0)", TestOperatingSystem.IsOSPlatformVersionAtLeast("macos", 10, 15, 0, 0));
+            Add("IsOSPlatformVersionAtLeast('macos', 999, 0, 0, 0)", TestOperatingSystem.IsOSPlatformVersionAtLeast("macos", 999, 0, 0, 0));
+            Add("IsOSPlatformVersionAtLeast('osx', 0, 0, 0, 0)", TestOperatingSystem.IsOSPlatformVersionAtLeast("osx", 0, 0, 0, 0));
+            Add("IsLinux()", TestOperatingSystem.IsLinux());
+            Add("IsFreeBSD()", TestOperatingSystem.IsFreeBSD());
+            Add("IsFreeBSDVersionAtLeast(0, 0, 0, 0)", TestOperatingSystem.IsFreeBSDVersionAtLeast(0, 0, 0, 0));
+            Add("IsFreeBSDVersionAtLeast(999, 0, 0, 0)", TestOperatingSystem.IsFreeBSDVersionAtLeast(999, 0, 0, 0));
+            Add("IsMacOS()", TestOperatingSystem.IsMacOS());
+            Add("IsMacOSVersionAtLeast(0, 0, 0)", TestOperatingSystem.IsMacOSVersionAtLeast(0, 0, 0));
+            Add("IsMacOSVersionAtLeast(10, 15, 0)", TestOperatingSystem.IsMacOSVersionAtLeast(10, 15, 0));
+            Add("IsMacOSVersionAtLeast(999, 0, 0)", TestOperatingSystem.IsMacOSVersionAtLeast(999, 0, 0));
+            Add("IsWindows()", TestOperatingSystem.IsWindows());
+            Add("IsWindowsVersionAtLeast(0, 0, 0, 0)", TestOperatingSystem.IsWindowsVersionAtLeast(0, 0, 0, 0));
+            Add("IsWindowsVersionAtLeast(4, 0, 0, 0)", TestOperatingSystem.IsWindowsVersionAtLeast(4, 0, 0, 0));
+            Add("IsWindowsVersionAtLeast(999, 0, 0, 0)", TestOperatingSystem.IsWindowsVersionAtLeast(999, 0, 0, 0));
 
 #if NET5_0_OR_GREATER
-
-    [Fact]
-    public void IsAndroid()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsAndroid())";
-        string expected = TestOperatingSystem.IsAndroid() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0, 0)]
-    [InlineData(999, 0, 0, 0)]
-    public void IsAndroidVersionAtLeast(int major, int minor, int build, int revision)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsAndroidVersionAtLeast({major}, {minor}, {build}, {revision}))";
-        string expected = TestOperatingSystem.IsAndroidVersionAtLeast(major, minor, build, revision) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsIOS()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsIOS())";
-        string expected = TestOperatingSystem.IsIOS() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(16, 5, 1)]
-    [InlineData(999, 0, 0)]
-    public void IsIOSVersionAtLeast(int major, int minor, int build)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsIOSVersionAtLeast({major}, {minor}, {build}))";
-        string expected = TestOperatingSystem.IsIOSVersionAtLeast(major, minor, build) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsMacCatalyst()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsMacCatalyst())";
-        string expected = TestOperatingSystem.IsMacCatalyst() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(999, 0, 0)]
-    public void IsMacCatalystVersionAtLeast(int major, int minor, int build)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsMacCatalystVersionAtLeast({major}, {minor}, {build}))";
-        string expected = TestOperatingSystem.IsMacCatalystVersionAtLeast(major, minor, build) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsTvOS()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsTvOS())";
-        string expected = TestOperatingSystem.IsTvOS() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(16, 5, 0)]
-    [InlineData(999, 0, 0)]
-    public void IsTvOSVersionAtLeast(int major, int minor, int build)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsTvOSVersionAtLeast({major}, {minor}, {build}))";
-        string expected = TestOperatingSystem.IsTvOSVersionAtLeast(major, minor, build) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Fact]
-    public void IsWatchOS()
-    {
-        const string propertyFunction = "$([System.OperatingSystem]::IsWatchOS())";
-        string expected = TestOperatingSystem.IsWatchOS() ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
-    [Theory]
-    [InlineData(0, 0, 0)]
-    [InlineData(9, 5, 2)]
-    [InlineData(999, 0, 0)]
-    public void IsWatchOSVersionAtLeast(int major, int minor, int build)
-    {
-        string propertyFunction = $"$([System.OperatingSystem]::IsWatchOSVersionAtLeast({major}, {minor}, {build}))";
-        string expected = TestOperatingSystem.IsWatchOSVersionAtLeast(major, minor, build) ? "True" : "False";
-
-        ExpandProperties(propertyFunction)
-            .ShouldBe(expected);
-    }
-
+            Add("IsAndroid()", TestOperatingSystem.IsAndroid());
+            Add("IsAndroidVersionAtLeast(0, 0, 0, 0)", TestOperatingSystem.IsAndroidVersionAtLeast(0, 0, 0, 0));
+            Add("IsAndroidVersionAtLeast(999, 0, 0, 0)", TestOperatingSystem.IsAndroidVersionAtLeast(999, 0, 0, 0));
+            Add("IsIOS()", TestOperatingSystem.IsIOS());
+            Add("IsIOSVersionAtLeast(0, 0, 0)", TestOperatingSystem.IsIOSVersionAtLeast(0, 0, 0));
+            Add("IsIOSVersionAtLeast(16, 5, 1)", TestOperatingSystem.IsIOSVersionAtLeast(16, 5, 1));
+            Add("IsIOSVersionAtLeast(999, 0, 0)", TestOperatingSystem.IsIOSVersionAtLeast(999, 0, 0));
+            Add("IsMacCatalyst()", TestOperatingSystem.IsMacCatalyst());
+            Add("IsMacCatalystVersionAtLeast(0, 0, 0)", TestOperatingSystem.IsMacCatalystVersionAtLeast(0, 0, 0));
+            Add("IsMacCatalystVersionAtLeast(999, 0, 0)", TestOperatingSystem.IsMacCatalystVersionAtLeast(999, 0, 0));
+            Add("IsTvOS()", TestOperatingSystem.IsTvOS());
+            Add("IsTvOSVersionAtLeast(0, 0, 0)", TestOperatingSystem.IsTvOSVersionAtLeast(0, 0, 0));
+            Add("IsTvOSVersionAtLeast(16, 5, 0)", TestOperatingSystem.IsTvOSVersionAtLeast(16, 5, 0));
+            Add("IsTvOSVersionAtLeast(999, 0, 0)", TestOperatingSystem.IsTvOSVersionAtLeast(999, 0, 0));
+            Add("IsWatchOS()", TestOperatingSystem.IsWatchOS());
+            Add("IsWatchOSVersionAtLeast(0, 0, 0)", TestOperatingSystem.IsWatchOSVersionAtLeast(0, 0, 0));
+            Add("IsWatchOSVersionAtLeast(9, 5, 2)", TestOperatingSystem.IsWatchOSVersionAtLeast(9, 5, 2));
+            Add("IsWatchOSVersionAtLeast(999, 0, 0)", TestOperatingSystem.IsWatchOSVersionAtLeast(999, 0, 0));
 #endif
 
-    [Theory]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x', 1))", "3")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x45', 1))", "3")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x', 1, 4))", "3")]
+            return data;
 
-    // 9 is not a valid StringComparison enum value
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('x', 9))", "10")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('X', 'StringComparison.Ordinal'))", "-1")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('X', 'StringComparison.OrdinalIgnoreCase'))", "0")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('X4', 'StringComparison.OrdinalIgnoreCase'))", "3")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('X4', 1, 'StringComparison.OrdinalIgnoreCase'))", "3")]
-    [InlineData("AString", "x12x456789x11", "$(AString.IndexOf('X', 1, 3, 'StringComparison.OrdinalIgnoreCase'))", "3")]
-    public void StringIndexOfTests(string propertyName, string properyValue, string propertyFunction, string expectedExpansion)
-        => ExpandProperties(propertyFunction, Data.Properties(propertyName, properyValue))
-            .ShouldBe(expectedExpansion);
+            void Add(string invocation, bool expected)
+                => data.Add(($"$([System.OperatingSystem]::{invocation})", expected));
+        }
+    }
+
+    /// <summary>
+    ///  Verifies that <c>System.OperatingSystem</c> methods are available as property functions.
+    /// </summary>
+    /// <param name="expression">The property-function expression.</param>
+    /// <param name="expected">The expected Boolean result.</param>
+    [Theory]
+    // Expected values depend on the execution-process environment, so enumerate the data when the test runs.
+    [MemberData(nameof(OperatingSystemPropertyFunctionData), DisableDiscoveryEnumeration = true)]
+    public void OperatingSystemPropertyFunctions(string expression, bool expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected.ToString());
+
+    /// <summary>
+    ///  Gets <see cref="string.IndexOf(string)"/> expressions and expected results.
+    /// </summary>
+    /// <value>
+    ///  The property-function expressions and expected expansions.
+    /// </value>
+    public static TheoryData<string, string> StringIndexOfData { get; } =
+    [
+        ("$(AString.IndexOf('x', 1))", "3"),
+        ("$(AString.IndexOf('x45', 1))", "3"),
+        ("$(AString.IndexOf('x', 1, 4))", "3"),
+
+        // 9 is not a valid StringComparison enum value
+        ("$(AString.IndexOf('x', 9))", "10"),
+        ("$(AString.IndexOf('X', 'StringComparison.Ordinal'))", "-1"),
+        ("$(AString.IndexOf('X', 'StringComparison.OrdinalIgnoreCase'))", "0"),
+        ("$(AString.IndexOf('X4', 'StringComparison.OrdinalIgnoreCase'))", "3"),
+        ("$(AString.IndexOf('X4', 1, 'StringComparison.OrdinalIgnoreCase'))", "3"),
+        ("$(AString.IndexOf('X', 1, 3, 'StringComparison.OrdinalIgnoreCase'))", "3"),
+    ];
 
     [Theory]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('World'))", "True")]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('world'))", "False")]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('WORLD', 'StringComparison.Ordinal'))", "False")]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('WORLD', 'StringComparison.OrdinalIgnoreCase'))", "True")]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('world', 'StringComparison.OrdinalIgnoreCase'))", "True")]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('Hello', 'StringComparison.Ordinal'))", "False")]
-    [InlineData("AString", "HelloWorld", "$(AString.EndsWith('', 'StringComparison.Ordinal'))", "True")]
-    [InlineData("AString", "C:\\Path\\File.txt", "$(AString.EndsWith('.TXT', 'StringComparison.OrdinalIgnoreCase'))", "True")]
-    [InlineData("AString", "C:\\Path\\File.txt", "$(AString.EndsWith('.TXT', 'StringComparison.Ordinal'))", "False")]
-    public void StringEndsWithTests(string propertyName, string propertyValue, string propertyFunction, string expectedExpansion)
-        => ExpandProperties(propertyFunction, Data.Properties(propertyName, propertyValue))
-            .ShouldBe(expectedExpansion);
+    [MemberData(nameof(StringIndexOfData))]
+    public void StringIndexOfTests(string expression, string expected)
+        => ExpandProperties(expression, Data.Properties("AString", "x12x456789x11"))
+            .ShouldBe(expected);
+
+    /// <summary>
+    ///  Gets property values, <see cref="string.EndsWith(string)"/> expressions, and expected results.
+    /// </summary>
+    /// <value>
+    ///  The property values, property-function expressions, and expected expansions.
+    /// </value>
+    public static TheoryData<string, string, string> StringEndsWithData { get; } =
+    [
+        ("HelloWorld", "$(AString.EndsWith('World'))", "True"),
+        ("HelloWorld", "$(AString.EndsWith('world'))", "False"),
+        ("HelloWorld", "$(AString.EndsWith('WORLD', 'StringComparison.Ordinal'))", "False"),
+        ("HelloWorld", "$(AString.EndsWith('WORLD', 'StringComparison.OrdinalIgnoreCase'))", "True"),
+        ("HelloWorld", "$(AString.EndsWith('world', 'StringComparison.OrdinalIgnoreCase'))", "True"),
+        ("HelloWorld", "$(AString.EndsWith('Hello', 'StringComparison.Ordinal'))", "False"),
+        ("HelloWorld", "$(AString.EndsWith('', 'StringComparison.Ordinal'))", "True"),
+        (@"C:\Path\File.txt", "$(AString.EndsWith('.TXT', 'StringComparison.OrdinalIgnoreCase'))", "True"),
+        (@"C:\Path\File.txt", "$(AString.EndsWith('.TXT', 'StringComparison.Ordinal'))", "False"),
+    ];
 
     [Theory]
-    [InlineData("AString", "linux", "$(AString.Equals($(AString.ToLower()), 'StringComparison.InvariantCulture'))", "True")]
-    [InlineData("AString", "Linux", "$(AString.Equals($(AString.ToLower()), 'StringComparison.InvariantCulture'))", "False")]
-    [InlineData("AString", "hello", "$(AString.Equals('hello', 'StringComparison.OrdinalIgnoreCase'))", "True")]
-    [InlineData("AString", "hello", "$(AString.Equals('HELLO', 'StringComparison.OrdinalIgnoreCase'))", "True")]
-    [InlineData("AString", "hello", "$(AString.Equals('HELLO', 'StringComparison.Ordinal'))", "False")]
-    public void StringEqualsWithStringComparisonTests(string propertyName, string propertyValue, string propertyFunction, string expectedExpansion)
-        => ExpandProperties(propertyFunction, Data.Properties(propertyName, propertyValue))
-            .ShouldBe(expectedExpansion);
+    [MemberData(nameof(StringEndsWithData))]
+    public void StringEndsWithTests(string value, string expression, string expected)
+        => ExpandProperties(expression, Data.Properties("AString", value))
+            .ShouldBe(expected);
+
+    /// <summary>
+    ///  Gets property values, <see cref="string.Equals(string, StringComparison)"/> expressions, and
+    ///  expected results.
+    /// </summary>
+    /// <value>
+    ///  The property values, property-function expressions, and expected expansions.
+    /// </value>
+    public static TheoryData<string, string, string> StringEqualsWithStringComparisonData { get; } =
+    [
+        ("linux", "$(AString.Equals($(AString.ToLower()), 'StringComparison.InvariantCulture'))", "True"),
+        ("Linux", "$(AString.Equals($(AString.ToLower()), 'StringComparison.InvariantCulture'))", "False"),
+        ("hello", "$(AString.Equals('hello', 'StringComparison.OrdinalIgnoreCase'))", "True"),
+        ("hello", "$(AString.Equals('HELLO', 'StringComparison.OrdinalIgnoreCase'))", "True"),
+        ("hello", "$(AString.Equals('HELLO', 'StringComparison.Ordinal'))", "False"),
+    ];
+
+    [Theory]
+    [MemberData(nameof(StringEqualsWithStringComparisonData))]
+    public void StringEqualsWithStringComparisonTests(string value, string expression, string expected)
+        => ExpandProperties(expression, Data.Properties("AString", value))
+            .ShouldBe(expected);
 
     [Fact]
     public void IsOsPlatformShouldBeCaseInsensitiveToParameter()
@@ -2792,118 +2665,179 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBe("True");
     }
 
-    [Theory]
-    [InlineData("NotAVersion")]
-    [InlineData("1.2.3.4.5")]
-    [InlineData("1,2,3,4")]
-    public void PropertyFunctionVersionComparisonsFailsWithInvalidArguments(string badVersion)
+    /// <summary>
+    ///  Gets version-comparison property-function expressions and their expected results.
+    /// </summary>
+    /// <value>
+    ///  The property-function expressions and expected Boolean results.
+    /// </value>
+    public static TheoryData<string, bool> VersionComparisonPropertyFunctionData
     {
-        string expectedMessage = ResourceUtilities.GetResourceString("InvalidVersionFormat");
+        get
+        {
+            TheoryData<string, bool> data = [];
 
-        AssertThrows($"$([MSBuild]::VersionGreaterThan('{badVersion}', '1.0.0'))", expectedMessage);
-        AssertThrows($"$([MSBuild]::VersionGreaterThan('1.0.0', '{badVersion}'))", expectedMessage);
+            Add("v1.0", "2.1", -1);
+            Add("3.2", "3.14-pre", -1);
+            Add("3+metadata", "3.0", 0);
+            Add("2.1", "2.1.0", 0);
+            Add("v1.2.3-pre+metadata", "1.2.3.0", 0);
+            Add("3.14", "3.2", 1);
+            Add("42.43.44.45", "42.43.44.5", 1);
 
-        AssertThrows($"$([MSBuild]::VersionGreaterThanOrEquals('{badVersion}', '1.0.0'))", expectedMessage);
-        AssertThrows($"$([MSBuild]::VersionGreaterThanOrEquals('1.0.0', '{badVersion}'))", expectedMessage);
+            return data;
 
-        AssertThrows($"$([MSBuild]::VersionLessThan('{badVersion}', '1.0.0'))", expectedMessage);
-        AssertThrows($"$([MSBuild]::VersionLessThan('1.0.0', '{badVersion}'))", expectedMessage);
-
-        AssertThrows($"$([MSBuild]::VersionLessThanOrEquals('{badVersion}', '1.0.0'))", expectedMessage);
-        AssertThrows($"$([MSBuild]::VersionLessThanOrEquals('1.0.0', '{badVersion}'))", expectedMessage);
-
-        AssertThrows($"$([MSBuild]::VersionEquals('{badVersion}', '1.0.0'))", expectedMessage);
-        AssertThrows($"$([MSBuild]::VersionEquals('1.0.0', '{badVersion}'))", expectedMessage);
-
-        AssertThrows($"$([MSBuild]::VersionNotEquals('{badVersion}', '1.0.0'))", expectedMessage);
-        AssertThrows($"$([MSBuild]::VersionNotEquals('1.0.0', '{badVersion}'))", expectedMessage);
+            void Add(string left, string right, int expectedSign)
+            {
+                data.Add(($"$([MSBuild]::VersionGreaterThan('{left}', '{right}'))", expectedSign > 0));
+                data.Add(($"$([MSBuild]::VersionGreaterThanOrEquals('{left}', '{right}'))", expectedSign >= 0));
+                data.Add(($"$([MSBuild]::VersionLessThan('{left}', '{right}'))", expectedSign < 0));
+                data.Add(($"$([MSBuild]::VersionLessThanOrEquals('{left}', '{right}'))", expectedSign <= 0));
+                data.Add(($"$([MSBuild]::VersionEquals('{left}', '{right}'))", expectedSign == 0));
+                data.Add(($"$([MSBuild]::VersionNotEquals('{left}', '{right}'))", expectedSign != 0));
+            }
+        }
     }
 
+    /// <summary>
+    ///  Verifies version-comparison property functions.
+    /// </summary>
+    /// <param name="expression">The property-function expression.</param>
+    /// <param name="expected">The expected Boolean result.</param>
     [Theory]
-    [InlineData("v1.0", "2.1", -1)]
-    [InlineData("3.2", "3.14-pre", -1)]
-    [InlineData("3+metadata", "3.0", 0)]
-    [InlineData("2.1", "2.1.0", 0)]
-    [InlineData("v1.2.3-pre+metadata", "1.2.3.0", 0)]
-    [InlineData("3.14", "3.2", 1)]
-    [InlineData("42.43.44.45", "42.43.44.5", 1)]
-    public void PropertyFunctionVersionComparisons(string a, string b, int expectedSign)
-    {
-        AssertSuccess(expectedSign > 0, $"$([MSBuild]::VersionGreaterThan('{a}', '{b}'))");
-        AssertSuccess(expectedSign >= 0, $"$([MSBuild]::VersionGreaterThanOrEquals('{a}', '{b}'))");
-        AssertSuccess(expectedSign < 0, $"$([MSBuild]::VersionLessThan('{a}', '{b}'))");
-        AssertSuccess(expectedSign <= 0, $"$([MSBuild]::VersionLessThanOrEquals('{a}', '{b}'))");
-        AssertSuccess(expectedSign == 0, $"$([MSBuild]::VersionEquals('{a}', '{b}'))");
-        AssertSuccess(expectedSign != 0, $"$([MSBuild]::VersionNotEquals('{a}', '{b}'))");
-    }
-
-    [Theory]
-    [InlineData("net45", ".NETFramework", "4.5")]
-    [InlineData("netcoreapp3.1", ".NETCoreApp", "3.1")]
-    [InlineData("netstandard2.1", ".NETStandard", "2.1")]
-    [InlineData("net5.0-ios12.0", ".NETCoreApp", "5.0")]
-    [InlineData("foo", "Unsupported", "0.0")]
-    public void PropertyFunctionTargetFrameworkParsing(string tfm, string expectedIdentifier, string expectedVersion)
-    {
-        AssertSuccess(expectedIdentifier, $"$([MSBuild]::GetTargetFrameworkIdentifier('{tfm}'))");
-        AssertSuccess(expectedVersion, $"$([MSBuild]::GetTargetFrameworkVersion('{tfm}'))");
-    }
-
-    [Theory]
-    [InlineData("net45", 2, "4.5")]
-    [InlineData("net45", 3, "4.5.0")]
-    [InlineData("net472", 3, "4.7.2")]
-    [InlineData("net472", 2, "4.7.2")]
-    public void PropertyFunctionTargetFrameworkVersionMultipartParsing(string tfm, int versionPartCount, string expectedVersion)
-        => AssertSuccess(expectedVersion, $"$([MSBuild]::GetTargetFrameworkVersion('{tfm}', {versionPartCount}))");
-
-    [Theory]
-    [InlineData("net5.0-windows10.1.2.3", 4, "10.1.2.3")]
-    [InlineData("net5.0-windows10.1.2.3", 2, "10.1.2.3")]
-    [InlineData("net5.0-windows10.0.0.3", 2, "10.0.0.3")]
-    [InlineData("net5.0-windows0.0.0.3", 2, "0.0.0.3")]
-    public void PropertyFunctionTargetPlatformVersionMultipartParsing(string tfm, int versionPartCount, string expectedVersion)
-        => AssertSuccess(expectedVersion, $"$([MSBuild]::GetTargetPlatformVersion('{tfm}', {versionPartCount}))");
-
-    [Theory]
-    [InlineData("net5.0-ios12.0", "ios", "12.0")]
-    [InlineData("net5.1-android1.1", "android", "1.1")]
-    [InlineData("net6.0-windows99.99", "windows", "99.99")]
-    [InlineData("net5.0-ios", "ios", "0.0")]
-    [InlineData("foo", "", "0.0")]
-    public void PropertyFunctionTargetPlatformParsing(string tfm, string expectedIdentifier, string expectedVersion)
-    {
-        AssertSuccess(expectedIdentifier, $"$([MSBuild]::GetTargetPlatformIdentifier('{tfm}'))");
-        AssertSuccess(expectedVersion, $"$([MSBuild]::GetTargetPlatformVersion('{tfm}'))");
-    }
-
-    [Theory]
-    [InlineData("net5.0", "net5.0", true)]
-    [InlineData("net5.0-windows10.0", "net5.0-windows10.0", true)]
-    [InlineData("net5.0-ios", "net5.0-andriod", false)]
-    [InlineData("net5.0-ios12.0", "net5.0-ios11.0", true)]
-    [InlineData("net5.0-ios11.0", "net5.0-ios12.0", false)]
-    [InlineData("net45", "net46", false)]
-    [InlineData("net46", "net45", true)]
-    [InlineData("netcoreapp3.1", "netcoreapp1.0", true)]
-    [InlineData("netstandard1.6", "netstandard2.1", false)]
-    [InlineData("netcoreapp3.0", "netstandard2.1", true)]
-    [InlineData("net461", "netstandard1.0", true)]
-    [InlineData("foo", "netstandard1.0", false)]
-    public void PropertyFunctionTargetFrameworkComparisons(string tfm1, string tfm2, bool expectedFrameworkCompatible)
-        => AssertSuccess(expectedFrameworkCompatible, $"$([MSBuild]::IsTargetFrameworkCompatible('{tfm1}', '{tfm2}'))");
-
-    private static void AssertThrows(string expression, string expectedMessage)
-    {
-        InvalidProjectFileException ex = Should.Throw<InvalidProjectFileException>(
-            () => ExpandProperties(expression));
-
-        ex.Message.ShouldContain(expectedMessage);
-    }
-
-    private static void AssertSuccess(object expected, string expression)
+    [MemberData(nameof(VersionComparisonPropertyFunctionData))]
+    public void VersionComparisonPropertyFunctions(string expression, bool expected)
         => ExpandProperties(expression)
             .ShouldBe(expected.ToString());
+
+    /// <summary>
+    ///  Gets version-comparison property-function expressions containing invalid versions.
+    /// </summary>
+    /// <value>
+    ///  The property-function expressions that must throw an <see cref="InvalidProjectFileException"/>.
+    /// </value>
+    public static TheoryData<string> InvalidVersionComparisonPropertyFunctionData
+    {
+        get
+        {
+            TheoryData<string> data = [];
+            string[] methods =
+            [
+                nameof(IntrinsicFunctions.VersionGreaterThan),
+                nameof(IntrinsicFunctions.VersionGreaterThanOrEquals),
+                nameof(IntrinsicFunctions.VersionLessThan),
+                nameof(IntrinsicFunctions.VersionLessThanOrEquals),
+                nameof(IntrinsicFunctions.VersionEquals),
+                nameof(IntrinsicFunctions.VersionNotEquals),
+            ];
+            string[] invalidVersions = ["NotAVersion", "1.2.3.4.5", "1,2,3,4"];
+
+            foreach (string invalidVersion in invalidVersions)
+            {
+                foreach (string method in methods)
+                {
+                    data.Add($"$([MSBuild]::{method}('{invalidVersion}', '1.0.0'))");
+                    data.Add($"$([MSBuild]::{method}('1.0.0', '{invalidVersion}'))");
+                }
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    ///  Verifies that version-comparison property functions reject invalid versions.
+    /// </summary>
+    /// <param name="expression">The invalid property-function expression.</param>
+    [Theory]
+    [MemberData(nameof(InvalidVersionComparisonPropertyFunctionData))]
+    public void VersionComparisonPropertyFunctions_ThrowForInvalidVersions(string expression)
+    {
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(
+            () => ExpandProperties(expression));
+
+        exception.Message.ShouldContain(ResourceUtilities.GetResourceString("InvalidVersionFormat"));
+    }
+
+    /// <summary>
+    ///  Gets target-framework and target-platform property-function expressions and their expected results.
+    /// </summary>
+    /// <value>
+    ///  The property-function expressions and expected expansions.
+    /// </value>
+    public static TheoryData<string, string> TargetFrameworkPropertyFunctionData
+    {
+        get
+        {
+            TheoryData<string, string> data = [];
+
+            AddFramework("net45", ".NETFramework", "4.5");
+            AddFramework("netcoreapp3.1", ".NETCoreApp", "3.1");
+            AddFramework("netstandard2.1", ".NETStandard", "2.1");
+            AddFramework("net5.0-ios12.0", ".NETCoreApp", "5.0");
+            AddFramework("foo", "Unsupported", "0.0");
+
+            Add("GetTargetFrameworkVersion('net45', 2)", "4.5");
+            Add("GetTargetFrameworkVersion('net45', 3)", "4.5.0");
+            Add("GetTargetFrameworkVersion('net472', 3)", "4.7.2");
+            Add("GetTargetFrameworkVersion('net472', 2)", "4.7.2");
+
+            Add("GetTargetPlatformVersion('net5.0-windows10.1.2.3', 4)", "10.1.2.3");
+            Add("GetTargetPlatformVersion('net5.0-windows10.1.2.3', 2)", "10.1.2.3");
+            Add("GetTargetPlatformVersion('net5.0-windows10.0.0.3', 2)", "10.0.0.3");
+            Add("GetTargetPlatformVersion('net5.0-windows0.0.0.3', 2)", "0.0.0.3");
+
+            AddPlatform("net5.0-ios12.0", "ios", "12.0");
+            AddPlatform("net5.1-android1.1", "android", "1.1");
+            AddPlatform("net6.0-windows99.99", "windows", "99.99");
+            AddPlatform("net5.0-ios", "ios", "0.0");
+            AddPlatform("foo", "", "0.0");
+
+            AddCompatibility("net5.0", "net5.0", true);
+            AddCompatibility("net5.0-windows10.0", "net5.0-windows10.0", true);
+            AddCompatibility("net5.0-ios", "net5.0-andriod", false);
+            AddCompatibility("net5.0-ios12.0", "net5.0-ios11.0", true);
+            AddCompatibility("net5.0-ios11.0", "net5.0-ios12.0", false);
+            AddCompatibility("net45", "net46", false);
+            AddCompatibility("net46", "net45", true);
+            AddCompatibility("netcoreapp3.1", "netcoreapp1.0", true);
+            AddCompatibility("netstandard1.6", "netstandard2.1", false);
+            AddCompatibility("netcoreapp3.0", "netstandard2.1", true);
+            AddCompatibility("net461", "netstandard1.0", true);
+            AddCompatibility("foo", "netstandard1.0", false);
+
+            return data;
+
+            void Add(string invocation, string expected)
+                => data.Add(($"$([MSBuild]::{invocation})", expected));
+
+            void AddFramework(string tfm, string expectedIdentifier, string expectedVersion)
+            {
+                Add($"GetTargetFrameworkIdentifier('{tfm}')", expectedIdentifier);
+                Add($"GetTargetFrameworkVersion('{tfm}')", expectedVersion);
+            }
+
+            void AddPlatform(string tfm, string expectedIdentifier, string expectedVersion)
+            {
+                Add($"GetTargetPlatformIdentifier('{tfm}')", expectedIdentifier);
+                Add($"GetTargetPlatformVersion('{tfm}')", expectedVersion);
+            }
+
+            void AddCompatibility(string target, string candidate, bool expected)
+                => Add($"IsTargetFrameworkCompatible('{target}', '{candidate}')", expected.ToString());
+        }
+    }
+
+    /// <summary>
+    ///  Verifies target-framework and target-platform property functions.
+    /// </summary>
+    /// <param name="expression">The property-function expression.</param>
+    /// <param name="expected">The expected expansion.</param>
+    [Theory]
+    [MemberData(nameof(TargetFrameworkPropertyFunctionData))]
+    public void TargetFrameworkPropertyFunctions(string expression, string expected)
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
 
     /// <summary>
     ///  Expand property function that calls a method with an enum parameter.
@@ -3110,26 +3044,24 @@ public class Expander_Tests(ITestOutputHelper output)
 #endif
 
     /// <summary>
-    ///  Expands normalized directories from one or more path segments.
+    ///  Expands a normalized directory from one path segment.
     /// </summary>
-    /// <param name="includeSecondPath">Whether to include the second path segment.</param>
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void PropertyFunctionNormalizeDirectory(bool includeSecondPath)
-    {
-        string expression = includeSecondPath
-            ? "$([MSBuild]::NormalizeDirectory($(MyPath), $(MySecondPath)))"
-            : "$([MSBuild]::NormalizeDirectory($(MyPath)))";
-        string expectedPath = includeSecondPath
-            ? MakePath("one", "two")
-            : "one";
+    [Fact]
+    public void PropertyFunctionNormalizeDirectoryWithSinglePath()
+        => ExpandProperties(
+            "$([MSBuild]::NormalizeDirectory($(MyPath)))",
+            Data.Properties("MyPath", "one"))
+            .ShouldBe(MakeDirectoryPath(Path.GetFullPath("one")));
 
-        ExpandProperties(
-            expression,
+    /// <summary>
+    ///  Expands a normalized directory from multiple path segments.
+    /// </summary>
+    [Fact]
+    public void PropertyFunctionNormalizeDirectoryWithMultiplePaths()
+        => ExpandProperties(
+            "$([MSBuild]::NormalizeDirectory($(MyPath), $(MySecondPath)))",
             Data.Properties(("MyPath", "one"), ("MySecondPath", "two")))
-            .ShouldBe(MakeDirectoryPath(Path.GetFullPath(expectedPath)));
-    }
+            .ShouldBe(MakeDirectoryPath(Path.GetFullPath(MakePath("one", "two"))));
 
     /// <summary>
     ///  Expand property function that tests for existence of the task host.
@@ -3435,61 +3367,61 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         get
         {
-            TheoryData<string, string> data = new()
-            {
-                { "$(input.ToString()[1])", "X" },
-                { "$(input[1])", "X" },
-                { "$(listofthings.Split(';')[$(position)])", "e" },
-                { @"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1].Value)", "a" },
-                { "$([MSBuild]::Add(1,2).CompareTo(3))", "0" },
-                { "$([MSBuild]::Add(1,2).CompareTo(3.0))", "0" },
-                { "$([MSBuild]::Add(1,2.0).CompareTo(3.0))", "0" },
-                { "$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.0))", "0" },
-                { "$([MSBuild]::Add(1,2).CompareTo('3'))", "0" },
-                { "$([MSBuild]::Add(1,2).CompareTo(3.1))", "-1" },
-                { "$([MSBuild]::Add(1,2.0).CompareTo(3.1))", "-1" },
-                { "$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.1))", "-1" },
-                { "$([MSBuild]::Add(1,2).CompareTo(2))", "1" },
-                { "$([MSBuild]::Add(1,2).Equals(3))", "True" },
-                { "$([MSBuild]::Add(1,2).Equals(3.0))", "True" },
-                { "$([MSBuild]::Add(1,2.0).Equals(3.0))", "True" },
-                { "$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.0))", "True" },
-                { "$([MSBuild]::Add(1,2).Equals('3'))", "True" },
-                { "$([MSBuild]::Add(1,2).Equals(3.1))", "False" },
-                { "$([MSBuild]::Add(1,2.0).Equals(3.1))", "False" },
-                { "$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.1))", "False" },
-                { "$(a.Insert(0,'%28'))", "%28no" },
-                { "$(a.Insert(0,'\"'))", "\"no" },
-                { "$(a.Insert(0,'(('))", "%28%28no" },
-                { "$(a.Insert(0,'))'))", "%29%29no" },
-                { "A$(Reg:A)A", "AA" },
-                { "A$(Reg:AA)", "A" },
-                { "$(Reg:AA)", "" },
-                { "$(Reg:AAAA)", "" },
-                { "$(Reg:AAA)", "" },
-                { "$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', 16))))", "42" },
-                { "$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', $([System.Convert]::ToInt32(16))))))", "42" },
-                { "$(e.Length.ToString())", "3" },
-                { "$(e.get_Length().ToString())", "3" },
-                { "$(emptystring.Length)", "0" },
-                { "$(space.Length)", "1" },
-                { "$([System.TimeSpan]::Equals(null, null))", "True" },
-                { "$([MSBuild]::Add(40,null))", "40" },
-                { "$([MSBuild]::Add( 40 , null ))", "40" },
-                { "$([MSBuild]::Add(null,40))", "40" },
-                { "$([MSBuild]::Escape(';'))", "%3b" },
-                { "$([MSBuild]::UnEscape('%3b'))", ";" },
-                { "$(e.Substring($(e.Length)))", "" },
-                { "$([System.Int32]::MaxValue)", int.MaxValue.ToString() },
-                { "x$()", "x" },
+            TheoryData<string, string> data =
+            [
+                ("$(input.ToString()[1])", "X"),
+                ("$(input[1])", "X"),
+                ("$(listofthings.Split(';')[$(position)])", "e"),
+                (@"$([System.Text.RegularExpressions.Regex]::Match($(Input), `EXPORT\s+(.+)`).Groups[1].Value)", "a"),
+                ("$([MSBuild]::Add(1,2).CompareTo(3))", "0"),
+                ("$([MSBuild]::Add(1,2).CompareTo(3.0))", "0"),
+                ("$([MSBuild]::Add(1,2.0).CompareTo(3.0))", "0"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.0))", "0"),
+                ("$([MSBuild]::Add(1,2).CompareTo('3'))", "0"),
+                ("$([MSBuild]::Add(1,2).CompareTo(3.1))", "-1"),
+                ("$([MSBuild]::Add(1,2.0).CompareTo(3.1))", "-1"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).CompareTo(3.1))", "-1"),
+                ("$([MSBuild]::Add(1,2).CompareTo(2))", "1"),
+                ("$([MSBuild]::Add(1,2).Equals(3))", "True"),
+                ("$([MSBuild]::Add(1,2).Equals(3.0))", "True"),
+                ("$([MSBuild]::Add(1,2.0).Equals(3.0))", "True"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.0))", "True"),
+                ("$([MSBuild]::Add(1,2).Equals('3'))", "True"),
+                ("$([MSBuild]::Add(1,2).Equals(3.1))", "False"),
+                ("$([MSBuild]::Add(1,2.0).Equals(3.1))", "False"),
+                ("$([System.Convert]::ToDouble($([MSBuild]::Add(1,2))).Equals(3.1))", "False"),
+                ("$(a.Insert(0,'%28'))", "%28no"),
+                ("$(a.Insert(0,'\"'))", "\"no"),
+                ("$(a.Insert(0,'(('))", "%28%28no"),
+                ("$(a.Insert(0,'))'))", "%29%29no"),
+                ("A$(Reg:A)A", "AA"),
+                ("A$(Reg:AA)", "A"),
+                ("$(Reg:AA)", ""),
+                ("$(Reg:AAAA)", ""),
+                ("$(Reg:AAA)", ""),
+                ("$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', 16))))", "42"),
+                ("$([MSBuild]::Add(2,$([System.Convert]::ToInt64('28', $([System.Convert]::ToInt32(16))))))", "42"),
+                ("$(e.Length.ToString())", "3"),
+                ("$(e.get_Length().ToString())", "3"),
+                ("$(emptystring.Length)", "0"),
+                ("$(space.Length)", "1"),
+                ("$([System.TimeSpan]::Equals(null, null))", "True"),
+                ("$([MSBuild]::Add(40,null))", "40"),
+                ("$([MSBuild]::Add( 40 , null ))", "40"),
+                ("$([MSBuild]::Add(null,40))", "40"),
+                ("$([MSBuild]::Escape(';'))", "%3b"),
+                ("$([MSBuild]::UnEscape('%3b'))", ";"),
+                ("$(e.Substring($(e.Length)))", ""),
+                ("$([System.Int32]::MaxValue)", int.MaxValue.ToString()),
+                ("x$()", "x"),
                 // Comparison between non-numeric and numeric properties. More details: #10583.
-                { "$(a.Equals($(c)))", "False" },
-                { "$(a.CompareTo($(c)))", "1" },
-            };
+                ("$(a.Equals($(c)))", "False"),
+                ("$(a.CompareTo($(c)))", "1"),
+            ];
 
             if (!NativeMethodsShared.IsWindows)
             {
-                data.Add("$(Registry:X)", "");
+                data.Add(("$(Registry:X)", ""));
             }
 
             return data;
@@ -3685,8 +3617,10 @@ public class Expander_Tests(ITestOutputHelper output)
     [Theory]
     [MemberData(nameof(InvalidPropertyExpressionData))]
     public void ExpandProperties_ThrowsForInvalidExpressions(string expression)
-        => Should.Throw<InvalidProjectFileException>(() =>
+    {
+        _ = Should.Throw<InvalidProjectFileException>(() =>
             ExpandProperties(expression, CreatePropertyFunctionExpressionProperties()));
+    }
 
     /// <summary>
     ///  Verifies that property expansion returns unrecognized expressions unchanged.
@@ -3699,10 +3633,7 @@ public class Expander_Tests(ITestOutputHelper output)
             .ShouldBeSameAs(expression);
 
     private IPropertyProvider<ProjectPropertyInstance> CreatePropertyFunctionExpressionProperties()
-    {
-        AvailableStaticMethods.Reset_ForUnitTestsOnly();
-
-        return Data.Properties(
+        => Data.Properties(
             ("File", @"foo\file.txt"),
             ("a", "no"),
             ("b", "true"),
@@ -3722,7 +3653,6 @@ public class Expander_Tests(ITestOutputHelper output)
             ("listofthings", "a;b;c;d;e;f;g;h;i;j;k;l"),
             ("input", "EXPORT a"),
             ("propertycontainingnullasastring", "null"));
-    }
 
     /// <summary>
     ///  Ensures a trailing slash is added to a literal argument.
@@ -3815,37 +3745,37 @@ public class Expander_Tests(ITestOutputHelper output)
         => ExpandProperties($"$([MSBuild]::SubstringByAsciiChars({featureName}, {start}, {length}))")
             .ShouldBe(expected);
 
-    public static TheoryData<string, string> PropertyFunctionIntrinsicFunctionDirectoryData { get; } = new()
-    {
-        {
+    public static TheoryData<string, string> PropertyFunctionIntrinsicFunctionDirectoryData { get; } =
+    [
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetCurrentToolsDirectory())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetCurrentToolsDirectory()) ?? string.Empty
-        },
-        {
+        ),
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetToolsDirectory32())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetToolsDirectory32()) ?? string.Empty
-        },
-        {
+        ),
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetToolsDirectory64())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetToolsDirectory64()) ?? string.Empty
-        },
-        {
+        ),
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetMSBuildSDKsPath())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetMSBuildSDKsPath()) ?? string.Empty
-        },
-        {
+        ),
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetVsInstallRoot())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetVsInstallRoot()) ?? string.Empty
-        },
-        {
+        ),
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetMSBuildExtensionsPath())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetMSBuildExtensionsPath()) ?? string.Empty
-        },
-        {
+        ),
+        (
             "$([Microsoft.Build.Evaluation.IntrinsicFunctions]::GetProgramFiles32())",
             EscapingUtilities.Escape(IntrinsicFunctions.GetProgramFiles32()) ?? string.Empty
-        },
-    };
+        ),
+    ];
 
     /// <summary>
     ///  Exercises intrinsic directory functions.
@@ -4062,27 +3992,27 @@ public class Expander_Tests(ITestOutputHelper output)
     /// <value>
     ///  The property-function expressions and expected Boolean strings.
     /// </value>
-    public static TheoryData<string, string> PropertyFunctionCharIsDigitData { get; } = new()
-    {
+    public static TheoryData<string, string> PropertyFunctionCharIsDigitData { get; } =
+    [
         // Test with digit characters - single char version
-        { "$([System.Char]::IsDigit('0'))", "True" },
-        { "$([System.Char]::IsDigit('5'))", "True" },
-        { "$([System.Char]::IsDigit('9'))", "True" },
+        ("$([System.Char]::IsDigit('0'))", "True"),
+        ("$([System.Char]::IsDigit('5'))", "True"),
+        ("$([System.Char]::IsDigit('9'))", "True"),
 
         // Test with non-digit characters - single char version
-        { "$([System.Char]::IsDigit('a'))", "False" },
-        { "$([System.Char]::IsDigit(' '))", "False" },
-        { "$([System.Char]::IsDigit('/'))", "False" },
-        { "$([System.Char]::IsDigit(':'))", "False" },
+        ("$([System.Char]::IsDigit('a'))", "False"),
+        ("$([System.Char]::IsDigit(' '))", "False"),
+        ("$([System.Char]::IsDigit('/'))", "False"),
+        ("$([System.Char]::IsDigit(':'))", "False"),
 
         // Test with string and index version
-        { "$([System.Char]::IsDigit('abc123def', 3))", "True" },
-        { "$([System.Char]::IsDigit('abc123def', 4))", "True" },
-        { "$([System.Char]::IsDigit('abc123def', 5))", "True" },
-        { "$([System.Char]::IsDigit('abc123def', 0))", "False" },
-        { "$([System.Char]::IsDigit('abc123def', 2))", "False" },
-        { "$([System.Char]::IsDigit('hello789', 5))", "True" },
-    };
+        ("$([System.Char]::IsDigit('abc123def', 3))", "True"),
+        ("$([System.Char]::IsDigit('abc123def', 4))", "True"),
+        ("$([System.Char]::IsDigit('abc123def', 5))", "True"),
+        ("$([System.Char]::IsDigit('abc123def', 0))", "False"),
+        ("$([System.Char]::IsDigit('abc123def', 2))", "False"),
+        ("$([System.Char]::IsDigit('hello789', 5))", "True"),
+    ];
 
     /// <summary>
     ///  Verifies the results and overload binding for <see cref="char.IsDigit(char)"/> and
@@ -4122,7 +4052,7 @@ public class Expander_Tests(ITestOutputHelper output)
         // Directory structure:
         // <temp>\
         //    alpha\
-        //        .proj
+        //        test.proj
         //        One.cs
         //        beta\
         //            Two.cs
@@ -4145,7 +4075,7 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        var projectFile = env.CreateFile(alpha, ".proj", Contents);
+        var projectFile = env.CreateFile(alpha, "test.proj", Contents);
 
         var beta = alpha.CreateDirectory("beta");
         var gamma = alpha.CreateDirectory("gamma");
@@ -4167,7 +4097,7 @@ public class Expander_Tests(ITestOutputHelper output)
         // Directory structure:
         // <temp>\
         //    alpha\
-        //        .proj
+        //        test.proj
         //        One.cs
         //        beta\
         //            Two.cs
@@ -4190,7 +4120,7 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        var projectFile = env.CreateFile(alpha, ".proj", Contents);
+        var projectFile = env.CreateFile(alpha, "test.proj", Contents);
 
         var beta = alpha.CreateDirectory("beta");
         var gamma = root.CreateDirectory("gamma");
@@ -4223,7 +4153,7 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        var projectFile = env.CreateFile(root, ".proj", Contents);
+        var projectFile = env.CreateFile(root, "test.proj", Contents);
 
         ProjectInstance projectInstance = new(projectFile.Path);
         ICollection<ProjectItemInstance> squiggles = projectInstance.GetItems("Squiggle");
@@ -4242,7 +4172,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         // Directory structure:
         // <temp>\
-        //    .proj
+        //    test.proj
         //    alpha\
         //        One.cs   // exists
         //        Two.cs   // does not exist
@@ -4265,7 +4195,7 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        var projectFile = env.CreateFile(root, ".proj", Contents);
+        var projectFile = env.CreateFile(root, "test.proj", Contents);
 
         var alpha = root.CreateDirectory("alpha");
         var one = alpha.CreateFile("One.cs");
@@ -4286,7 +4216,7 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         // Directory structure:
         // <temp>\
-        //    .proj
+        //    test.proj
         //    alpha\
         //        beta\    // exists
         //        gamma\   // does not exist
@@ -4309,7 +4239,7 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        var projectFile = env.CreateFile(root, ".proj", Contents);
+        var projectFile = env.CreateFile(root, "test.proj", Contents);
 
         var alpha = root.CreateDirectory("alpha");
         var beta = alpha.CreateDirectory("beta");
@@ -4320,11 +4250,11 @@ public class Expander_Tests(ITestOutputHelper output)
 
         var alphaBetaPath = MakePath("alpha", "beta");
         var alphaDeltaPath = MakePath("alpha", "delta");
-        directories.Select(i => i.EvaluatedInclude).ShouldBe(new[] { alphaBetaPath, alphaDeltaPath }, Case.Insensitive);
+        directories.Select(i => i.EvaluatedInclude).ShouldBe([alphaBetaPath, alphaDeltaPath], Case.Insensitive);
     }
 
     [Fact]
-    public void ExpandItem_ConvertToStringUsingInvariantCultureForNumberData()
+    public void PropertyFunctionResult_UsesInvariantCultureForNumericValues()
     {
         var currentThread = Thread.CurrentThread;
         var originalCulture = currentThread.CurrentCulture;
@@ -4348,7 +4278,7 @@ public class Expander_Tests(ITestOutputHelper output)
                 </Project>
                 """;
 
-            var projectFile = env.CreateFile(root, ".proj", Contents);
+            var projectFile = env.CreateFile(root, "test.proj", Contents);
             ProjectInstance projectInstance = new(projectFile.Path);
             projectInstance.GetPropertyValue("_value").ShouldBe("-1");
             projectInstance.GetPropertyValue("_otherValue").ShouldBe("test-value");
@@ -4366,41 +4296,28 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("gettype")]
     public void GetTypeMethod_ShouldNotBeAllowed(string methodName)
     {
-        var currentThread = Thread.CurrentThread;
-        var originalCulture = currentThread.CurrentCulture;
-        var originalUICulture = currentThread.CurrentUICulture;
-        var enCultureInfo = new CultureInfo("en");
+        using var env = TestEnvironment.Create(_output);
+        var root = env.CreateFolder();
 
-        try
-        {
-            currentThread.CurrentCulture = enCultureInfo;
-            currentThread.CurrentUICulture = enCultureInfo;
+        string contents = $"""
+            <Project>
+                <PropertyGroup>
+                    <foo>aa</foo>
+                    <typeval>$(foo.{methodName}().FullName)</typeval>
+                </PropertyGroup>
+            </Project>
+            """;
 
-            using var env = TestEnvironment.Create();
-            var root = env.CreateFolder();
+        var projectFile = env.CreateFile(root, "test.proj", contents);
 
-            string contents = $"""
-                <Project>
-                    <PropertyGroup>
-                        <foo>aa</foo>
-                        <typeval>$(foo.{methodName}().FullName)</typeval>
-                    </PropertyGroup>
-                </Project>
-                """;
+        var exception = Should.Throw<InvalidProjectFileException>(() =>
+            new ProjectInstance(projectFile.Path));
 
-            var projectFile = env.CreateFile(root, ".proj", contents);
-
-            var exception = Should.Throw<InvalidProjectFileException>(() =>
-                new ProjectInstance(projectFile.Path));
-
-            exception.BaseMessage.ShouldContain(
-                $"""The function "{methodName}" on type "System.String" is not available for execution as an MSBuild property function.""");
-        }
-        finally
-        {
-            currentThread.CurrentCulture = originalCulture;
-            currentThread.CurrentUICulture = originalUICulture;
-        }
+        exception.BaseMessage.ShouldContain(
+            ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+                "InvalidFunctionMethodUnavailable",
+                methodName,
+                "System.String"));
     }
 
     [Theory]
@@ -4411,15 +4328,10 @@ public class Expander_Tests(ITestOutputHelper output)
     {
         using var env = TestEnvironment.Create();
 
-        // This is the one test that vets the environment-variable opt-in actually flows through
-        // to the feature check. Mimic a prior test having set the AppContext switch (which cannot
-        // be returned to "unset" via the public API), then clear it reflectively so FeatureSwitches
-        // falls back to the variable. Doing both makes the test deterministic regardless of test
-        // ordering and self-validates the reflective unset on every runtime (.NET Core and .NET
-        // Framework store the switch in different internal fields).
-        AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", false);
-        UnsetAppContextSwitch("Microsoft.Build.EnableAllPropertyFunctions");
-        env.SetEnvironmentVariable("MSBUILDENABLEALLPROPERTYFUNCTIONS", "1");
+        // Unset the AppContext feature so FeatureSwitches falls back to the environment variable,
+        // then enable the legacy environment-variable opt-in.
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, null);
+        env.SetEnvironmentVariable(EnableAllPropertyFunctionsEnvironmentVariableName, "1");
 
         var root = env.CreateFolder();
 
@@ -4432,7 +4344,7 @@ public class Expander_Tests(ITestOutputHelper output)
             </Project>
             """;
 
-        var projectFile = env.CreateFile(root, ".proj", contents);
+        var projectFile = env.CreateFile(root, "test.proj", contents);
 
         _ = Should.NotThrow(() =>
             new ProjectInstance(projectFile.Path));
@@ -4453,12 +4365,7 @@ public class Expander_Tests(ITestOutputHelper output)
         // Setting this env variable allows to track if expander was using reflection for a function invocation.
         env.SetEnvironmentVariable("MSBuildLogPropertyFunctionsRequiringReflection", "1");
 
-        var logger = new MockLogger();
-        ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
-        loggingService.RegisterLogger(logger);
-        var loggingContext = new MockLoggingContext(
-            loggingService,
-            new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
+        var (_, loggingContext) = CreateLoggerAndContext();
 
         _ = ExpandProperties(methodInvocationMetadata, loggingContext);
 
@@ -4472,13 +4379,9 @@ public class Expander_Tests(ITestOutputHelper output)
     public void PropertyFunctionRegisterBuildCheck()
     {
         using var env = TestEnvironment.Create();
-        var logger = new MockLogger();
-        ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
-        loggingService.RegisterLogger(logger);
-        var loggingContext = new MockLoggingContext(
-            loggingService,
-            new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
         var dummyAssemblyFile = env.CreateFile(env.CreateFolder(), "test.dll");
+
+        var (logger, loggingContext) = CreateLoggerAndContext();
 
         string result = ExpandProperties(
             $"$([MSBuild]::RegisterBuildCheck({dummyAssemblyFile.Path}))",
@@ -4536,50 +4439,6 @@ public class Expander_Tests(ITestOutputHelper output)
 
         public override void Revert()
             => FileUtilities.CurrentThreadWorkingDirectory = _originalValue;
-    }
-
-    /// <summary>
-    /// TransientTestState that flips the EnableAllPropertyFunctions AppContext switch on and restores
-    /// its original value on revert (deterministic; does not stick across tests).
-    /// </summary>
-    private sealed class TransientEnableAllPropertyFunctions : TransientTestState
-    {
-        private readonly bool _original;
-
-        public TransientEnableAllPropertyFunctions()
-        {
-            AppContext.TryGetSwitch("Microsoft.Build.EnableAllPropertyFunctions", out _original);
-            AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", true);
-        }
-
-        public override void Revert()
-            => AppContext.SetSwitch("Microsoft.Build.EnableAllPropertyFunctions", _original);
-    }
-
-    /// <summary>
-    /// Returns an AppContext switch to the "unset" state so that the FeatureSwitches check falls
-    /// back to the environment variable. AppContext can only set a switch true or false (never
-    /// unset), so the entry is removed reflectively from the runtime's private switch table. The
-    /// backing field differs by runtime (.NET Core uses `s_switches`, .NET Framework uses
-    /// `s_switchMap`), so this scans the non-public static dictionaries and clears the key from
-    /// whichever one holds it rather than hard-coding a field name.
-    /// </summary>
-    private static void UnsetAppContextSwitch(string switchName)
-    {
-        foreach (FieldInfo field in typeof(AppContext).GetFields(BindingFlags.NonPublic | BindingFlags.Static))
-        {
-            if (field.GetValue(null) is IDictionary switches)
-            {
-                lock (switches)
-                {
-                    if (switches.Contains(switchName))
-                    {
-                        switches.Remove(switchName);
-                        return;
-                    }
-                }
-            }
-        }
     }
 
     /// <summary>
@@ -4911,12 +4770,7 @@ public class Expander_Tests(ITestOutputHelper output)
         var wrongDir = env.CreateFolder(createFolder: true);
         File.WriteAllText(MakePath(correctDir.Path, "check.dll"), string.Empty);
 
-        var logger = new MockLogger();
-        ILoggingService loggingService = LoggingService.CreateLoggingService(LoggerMode.Synchronous, 1);
-        loggingService.RegisterLogger(logger);
-        var loggingContext = new MockLoggingContext(
-            loggingService,
-            new BuildEventContext(0, 0, BuildEventContext.InvalidProjectContextId, 0, 0));
+        var (logger, loggingContext) = CreateLoggerAndContext();
 
         env.WithTransientTestState(new TransientThreadWorkingDirectory(correctDir.Path));
         env.SetCurrentDirectory(wrongDir.Path);
@@ -5180,7 +5034,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileReadAllLines_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5218,7 +5072,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileWriteAllText_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5237,7 +5091,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileAppendAllText_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5256,7 +5110,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileDelete_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5319,7 +5173,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileGetLastAccessTimeUtc_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5344,7 +5198,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void DirectoryCreateDirectory_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5362,7 +5216,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void DirectoryDelete_RelativePath_ResolvesFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5484,7 +5338,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileCopy_TwoRelativePaths_BothResolveFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5505,7 +5359,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void FileMove_TwoRelativePaths_BothResolveFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
@@ -5526,7 +5380,7 @@ public class Expander_Tests(ITestOutputHelper output)
     public void DirectoryMove_TwoRelativePaths_BothResolveFromThreadWorkingDirectory()
     {
         using var env = TestEnvironment.Create(_output);
-        env.WithTransientTestState(new TransientEnableAllPropertyFunctions());
+        env.SetAppContextFeature(EnableAllPropertyFunctionsFeatureName, true);
         var correctDir = env.CreateFolder(createFolder: true);
         var wrongDir = env.CreateFolder(createFolder: true);
 
