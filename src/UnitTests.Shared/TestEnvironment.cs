@@ -5,9 +5,12 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Build.Framework;
@@ -16,6 +19,7 @@ using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.Debugging;
 using Microsoft.Build.Shared.FileSystem;
 using Microsoft.Build.UnitTests.Shared;
+using Microsoft.Win32;
 using Shouldly;
 using Xunit;
 using CommonWriterType = System.Action<string, string, System.Collections.Generic.IEnumerable<string>>;
@@ -321,6 +325,16 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
+        ///  Creates a uniquely named registry key under <see cref="Registry.CurrentUser"/> that is deleted during cleanup.
+        /// </summary>
+        /// <returns>
+        ///  The transient state that owns the registry key.
+        /// </returns>
+        [SupportedOSPlatform("windows")]
+        public TransientTestRegistryKey CreateRegistryKey()
+            => WithTransientTestState(new TransientTestRegistryKey());
+
+        /// <summary>
         /// Creates a debugger which can be used to write to from anywhere in the msbuild code base
         /// It also enables logging in the out of proc nodes, but the given writer object would not be available in the nodes, set one in OutOfProcNode
         /// </summary>
@@ -360,6 +374,20 @@ namespace Microsoft.Build.UnitTests
         }
 
         /// <summary>
+        ///  Temporarily overrides an <see cref="AppContext"/> switch and restores its original state during cleanup.
+        /// </summary>
+        /// <param name="switchName">The name of the switch.</param>
+        /// <param name="value">The switch value, or <see langword="null"/> to remove its explicit value.</param>
+        /// <returns>
+        ///  The transient state that restores the switch.
+        /// </returns>
+        /// <remarks>
+        ///  Removing an explicit value allows any value supplied by runtime configuration to apply.
+        /// </remarks>
+        public TransientTestAppContextSwitch SetAppContextSwitch(string switchName, bool? value)
+            => WithTransientTestState(new TransientTestAppContextSwitch(switchName, value));
+
+        /// <summary>
         ///     Create an test variant used to change the value of an environment variable during a test. Original value
         ///     will be restored when complete.
         /// </summary>
@@ -372,6 +400,21 @@ namespace Microsoft.Build.UnitTests
         {
             return WithTransientTestState(new TransientWorkingDirectory(newWorkingDirectory));
         }
+
+        /// <summary>
+        ///  Sets the current culture and restores its original value during cleanup.
+        /// </summary>
+        /// <param name="culture">The culture to use for the current execution context.</param>
+        /// <returns>
+        ///  The transient state that restores the original culture.
+        /// </returns>
+        /// <exception cref="ArgumentNullException"><paramref name="culture"/> is <see langword="null"/>.</exception>
+        /// <remarks>
+        ///  Changes only <see cref="CultureInfo.CurrentCulture"/>, not <see cref="CultureInfo.CurrentUICulture"/>
+        ///  or <see cref="CultureInfo.DefaultThreadCurrentCulture"/>.
+        /// </remarks>
+        public TransientTestCulture SetCurrentCulture(CultureInfo culture)
+            => WithTransientTestState(new TransientTestCulture(culture));
 
         /// <summary>
         /// Register process ID to be finished/killed after tests ends.
@@ -645,7 +688,7 @@ namespace Microsoft.Build.UnitTests
             Directory.CreateDirectory(tempPath);
 
             _oldtempPaths = SetTempPath(tempPath);
-            
+
             // Clear the cached temp directory so FileUtilities picks up the new TMPDIR/TMP/TEMP
             FileUtilities.ClearTempFileDirectory();
         }
@@ -693,7 +736,7 @@ namespace Microsoft.Build.UnitTests
         public override void Revert()
         {
             SetTempPaths(_oldtempPaths);
-            
+
             // Clear the cached temp directory so FileUtilities picks up the restored TMPDIR/TMP/TEMP
             FileUtilities.ClearTempFileDirectory();
 
@@ -842,6 +885,123 @@ namespace Microsoft.Build.UnitTests
         }
     }
 
+    /// <summary>
+    ///  Owns a uniquely named registry key under <see cref="Registry.CurrentUser"/> and deletes it during cleanup.
+    /// </summary>
+    [SupportedOSPlatform("windows")]
+    public sealed class TransientTestRegistryKey : TransientTestState
+    {
+        /// <summary>
+        ///  Creates a uniquely named registry key under <see cref="Registry.CurrentUser"/>.
+        /// </summary>
+        public TransientTestRegistryKey()
+        {
+            Key = Registry.CurrentUser.CreateSubKey(SubKeyPath);
+        }
+
+        /// <summary>
+        ///  Gets the registry key owned by this transient state.
+        /// </summary>
+        public RegistryKey Key { get; }
+
+        /// <summary>
+        ///  Gets the key path relative to <see cref="Registry.CurrentUser"/>.
+        /// </summary>
+        public string SubKeyPath { get; } = $@"Software\Microsoft\MSBuild_test_{Guid.NewGuid():N}";
+
+        /// <summary>
+        ///  Closes the registry key and deletes it and all its subkeys.
+        /// </summary>
+        public override void Revert()
+        {
+            Key.Dispose();
+            Registry.CurrentUser.DeleteSubKeyTree(SubKeyPath, throwOnMissingSubKey: false);
+        }
+    }
+
+    /// <summary>
+    ///  Temporarily overrides an <see cref="AppContext"/> switch and restores its original state during cleanup.
+    /// </summary>
+    public sealed class TransientTestAppContextSwitch : TransientTestState
+    {
+        private static readonly FieldInfo s_switchesField = GetSwitchesField();
+
+        private readonly string _switchName;
+        private readonly bool _hadOriginalValue;
+        private readonly object _originalValue;
+
+        /// <summary>
+        ///  Temporarily overrides the specified <see cref="AppContext"/> switch.
+        /// </summary>
+        /// <param name="switchName">The name of the switch.</param>
+        /// <param name="value">The switch value, or <see langword="null"/> to remove its explicit value.</param>
+        public TransientTestAppContextSwitch(string switchName, bool? value)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(switchName);
+            _switchName = switchName;
+
+            // Initialize .NET Framework's default switch values before capturing the original state.
+            AppContext.TryGetSwitch(switchName, out _);
+
+            if (s_switchesField.GetValue(null) is IDictionary switches)
+            {
+                lock (switches)
+                {
+                    _hadOriginalValue = switches.Contains(switchName);
+                    _originalValue = switches[switchName];
+
+                    if (value is bool b)
+                    {
+                        AppContext.SetSwitch(switchName, b);
+                    }
+                    else
+                    {
+                        switches.Remove(switchName);
+                    }
+                }
+            }
+            else if (value is bool b)
+            {
+                AppContext.SetSwitch(switchName, b);
+            }
+        }
+
+        /// <summary>
+        ///  Restores the original switch value or removes the temporary value if no entry previously existed.
+        /// </summary>
+        public override void Revert()
+        {
+            if (s_switchesField.GetValue(null) is IDictionary switches)
+            {
+                lock (switches)
+                {
+                    if (_hadOriginalValue)
+                    {
+                        switches[_switchName] = _originalValue;
+                    }
+                    else
+                    {
+                        switches.Remove(_switchName);
+                    }
+                }
+            }
+        }
+
+        private static FieldInfo GetSwitchesField()
+        {
+            const BindingFlags Flags = BindingFlags.Static | BindingFlags.NonPublic;
+            FieldInfo field = typeof(AppContext).GetField("s_switches", Flags)
+                ?? typeof(AppContext).GetField("s_switchMap", Flags);
+
+            if (field is not null && typeof(IDictionary).IsAssignableFrom(field.FieldType))
+            {
+                return field;
+            }
+
+            throw new NotSupportedException("The AppContext switch table is unavailable on this runtime.");
+        }
+    }
+
     public class TransientTestEnvironmentVariable : TransientTestState
     {
         private readonly string _environmentVariableName;
@@ -860,6 +1020,33 @@ namespace Microsoft.Build.UnitTests
         public string OriginalValue => _originalValue;
 
         public override void Revert() => Environment.SetEnvironmentVariable(_environmentVariableName, _originalValue);
+    }
+
+    /// <summary>
+    ///  Temporarily changes the current culture and restores its original value.
+    /// </summary>
+    public sealed class TransientTestCulture : TransientTestState
+    {
+        private readonly CultureInfo _originalCulture;
+
+        /// <summary>
+        ///  Captures the current culture and applies the specified culture.
+        /// </summary>
+        /// <param name="culture">The culture to use for the current execution context.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="culture"/> is <see langword="null"/>.</exception>
+        public TransientTestCulture(CultureInfo culture)
+        {
+            ArgumentNullException.ThrowIfNull(culture);
+
+            _originalCulture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = culture;
+        }
+
+        /// <summary>
+        ///  Restores the original culture in the current execution context.
+        /// </summary>
+        public override void Revert()
+            => CultureInfo.CurrentCulture = _originalCulture;
     }
 
     public class TransientWorkingDirectory : TransientTestState
