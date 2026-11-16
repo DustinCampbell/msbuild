@@ -26,7 +26,6 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
-using Microsoft.Build.UnitTests.BackEnd;
 using Microsoft.Build.Utilities;
 using Microsoft.Win32;
 using Shouldly;
@@ -3709,7 +3708,8 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("$(prop.LastIndexOf('y', 7))", "x-x-y-y-y-z", "6")]
     [InlineData("$(prop.LastIndexOfAny('xy'))", "x-x-y-y-y-z", "8")]
     public void PropertyFunctionStringIndexMethods(string expression, string propertyValue, string expected)
-        => TestPropertyFunction(expression, "prop", propertyValue, expected);
+        => ExpandProperties(expression, Data.Properties("prop", propertyValue))
+            .ShouldBe(expected);
 
     [Fact]
     public void PropertyFunctionStringCopy()
@@ -3720,12 +3720,14 @@ public class Expander_Tests(ITestOutputHelper output)
                 System.StringComparison.OrdinalIgnoreCase))
             """;
 
-        TestPropertyFunction(propertyFunction, "X", "test.designer.cs", "4");
+        ExpandProperties(propertyFunction, Data.Properties("X", "test.designer.cs"))
+            .ShouldBe("4");
     }
 
     [Fact]
     public void PropertyFunctionVersionParse()
-        => TestPropertyFunction(@"$([System.Version]::Parse('$(X)').ToString(1))", "X", "4.0", "4");
+        => ExpandProperties(@"$([System.Version]::Parse('$(X)').ToString(1))", Data.Properties("X", "4.0"))
+            .ShouldBe("4");
 
     [Fact]
     public void PropertyFunctionGuidNewGuid()
@@ -3787,11 +3789,13 @@ public class Expander_Tests(ITestOutputHelper output)
     // Expected paths depend on the execution-process environment, so enumerate the data when the test runs.
     [MemberData(nameof(PropertyFunctionIntrinsicFunctionDirectoryData), DisableDiscoveryEnumeration = true)]
     public void PropertyFunctionIntrinsicFunctionDirectory(string expression, string expected)
-        => TestPropertyFunction(expression, "X", "_", expected);
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
 
     [Fact]
     public void PropertyFunctionStringArrayIndexerGetter()
-        => TestPropertyFunction("$(prop.Split('-')[0])", "prop", "x-y-z", "x");
+        => ExpandProperties("$(prop.Split('-')[0])", Data.Properties("prop", "x-y-z"))
+            .ShouldBe("x");
 
     /// <summary>
     ///  Exercises string substring overloads.
@@ -3802,16 +3806,18 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("$(prop.Substring(2))", "cdef")]
     [InlineData("$(prop.Substring(2, 3))", "cde")]
     public void PropertyFunctionSubstring(string expression, string expected)
-        => TestPropertyFunction(expression, "prop", "abcdef", expected);
+        => ExpandProperties(expression, Data.Properties("prop", "abcdef"))
+            .ShouldBe(expected);
 
     [Fact]
     public void PropertyFunctionStringGetChars()
-        => TestPropertyFunction("$(prop[0])", "prop", "461", "4");
+        => ExpandProperties("$(prop[0])", Data.Properties("prop", "461"))
+            .ShouldBe("4");
 
     [Fact]
     public void PropertyFunctionStringGetCharsError()
         => Should.Throw<InvalidProjectFileException>(() =>
-            TestPropertyFunction("$(prop[5])", "prop", "461", "4"));
+            ExpandProperties("$(prop[5])", Data.Properties("prop", "461")));
 
     /// <summary>
     ///  Exercises string padding methods.
@@ -3828,11 +3834,13 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("$(prop.PadRight(2))", "prop", "x", "x ")]
     [InlineData("$(prop.PadRight(2, '0'))", "prop", "x", "x0")]
     public void PropertyFunctionStringPadding(string expression, string propertyName, string propertyValue, string expected)
-        => TestPropertyFunction(expression, propertyName, propertyValue, expected);
+        => ExpandProperties(expression, Data.Properties(propertyName, propertyValue))
+            .ShouldBe(expected);
 
     [Fact]
     public void PropertyFunctionStringTrimEndCharArray()
-        => TestPropertyFunction("$(prop.TrimEnd('.0123456789'))", "prop", "net461", "net");
+        => ExpandProperties("$(prop.TrimEnd('.0123456789'))", Data.Properties("prop", "net461"))
+            .ShouldBe("net");
 
     /// <summary>
     ///  Exercises quoted and unquoted <c>TrimStart</c> arguments.
@@ -3842,40 +3850,47 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("$(X.TrimStart('vV'))")]
     [InlineData("$(X.TrimStart(vV))")]
     public void PropertyFunctionStringTrimStart(string expression)
-        => TestPropertyFunction(expression, "X", "v40", "40");
+        => ExpandProperties(expression, Data.Properties("X", "v40"))
+            .ShouldBe("40");
 
     [Fact]
     public void PropertyFunctionStringTrimEnd1()
-        => TestPropertyFunction("$(prop.TrimEnd('a'))", "prop", "netaa", "net");
+        => ExpandProperties("$(prop.TrimEnd('a'))", Data.Properties("prop", "netaa"))
+            .ShouldBe("net");
 
     // https://github.com/dotnet/msbuild/issues/2882
     [Fact]
     public void PropertyFunctionMathMaxOverflow()
-        => TestPropertyFunction("$([System.Math]::Max($(X), 0))", "X", "-2010", "0");
+        => ExpandProperties("$([System.Math]::Max($(X), 0))", Data.Properties("X", "-2010"))
+            .ShouldBe("0");
 
     [Fact]
     public void PropertyFunctionStringTrimEnd2()
         => Should.Throw<InvalidProjectFileException>(() =>
-            TestPropertyFunction("$(prop.TrimEnd('a', 'b'))", "prop", "stringab", "string"));
+            ExpandProperties("$(prop.TrimEnd('a', 'b'))", Data.Properties("prop", "stringab")));
 
     [Fact]
     public void PropertyFunctionMathMin()
-        => TestPropertyFunction("$([System.Math]::Min($(X), 20))", "X", "30", "20");
+        => ExpandProperties("$([System.Math]::Min($(X), 20))", Data.Properties("X", "30"))
+            .ShouldBe("20");
 
     [Fact]
     public void PropertyFunctionMSBuildAddIntegerLiteral()
-        => TestPropertyFunction("$([MSBuild]::Add($(X), 5))", "X", "7", "12");
+        => ExpandProperties("$([MSBuild]::Add($(X), 5))", Data.Properties("X", "7"))
+            .ShouldBe("12");
 
     [Fact]
     public void PropertyFunctionMSBuildAddRealLiteral()
-        => TestPropertyFunction("$([MSBuild]::Add($(X), 0.5))", "X", "7", "7.5");
+        => ExpandProperties("$([MSBuild]::Add($(X), 0.5))", Data.Properties("X", "7"))
+            .ShouldBe("7.5");
 
     [Fact]
     public void PropertyFunctionMSBuildAddIntegerOverflow()
     {
         // Overflow wrapping - result exceeds size of long
         string expected = "-9223372036854775808";
-        TestPropertyFunction("$([MSBuild]::Add($(X), 1))", "X", long.MaxValue.ToString(), expected);
+        ExpandProperties("$([MSBuild]::Add($(X), 1))", Data.Properties("X", long.MaxValue.ToString()))
+            .ShouldBe(expected);
     }
 
     [Fact]
@@ -3885,83 +3900,93 @@ public class Expander_Tests(ITestOutputHelper output)
         // string argument is an integer that exceeds the size of long.
         double value = long.MaxValue + 1.0;
         double expected = value + 1.0;
-        TestPropertyFunction("$([MSBuild]::Add($(X), 1))", "X", value.ToString(), expected.ToString());
+        ExpandProperties("$([MSBuild]::Add($(X), 1))", Data.Properties("X", value.ToString()))
+            .ShouldBe(expected.ToString());
     }
 
     [Fact]
     public void PropertyFunctionMSBuildAddComplex()
-        => TestPropertyFunction("$([MSBuild]::Add($(X), $([MSBuild]::Add(2, 3))))", "X", "7", "12");
+        => ExpandProperties("$([MSBuild]::Add($(X), $([MSBuild]::Add(2, 3))))", Data.Properties("X", "7"))
+            .ShouldBe("12");
 
     [Fact]
     public void PropertyFunctionMSBuildSubtractIntegerLiteral()
-        => TestPropertyFunction("$([MSBuild]::Subtract($(X), 20100000))", "X", "20100042", "42");
+        => ExpandProperties("$([MSBuild]::Subtract($(X), 20100000))", Data.Properties("X", "20100042"))
+            .ShouldBe("42");
 
     [Fact]
     public void PropertyFunctionMSBuildSubtractRealLiteral()
-        => TestPropertyFunction("$([MSBuild]::Subtract($(X), 20100000.0))", "X", "20100042", "42");
+        => ExpandProperties("$([MSBuild]::Subtract($(X), 20100000.0))", Data.Properties("X", "20100042"))
+            .ShouldBe("42");
 
     [Fact]
     public void PropertyFunctionMSBuildSubtractIntegerMaxValue()
-    {
-        // If the double overload is used, there will be a rounding error.
-        string expected = "1";
-        TestPropertyFunction("$([MSBuild]::Subtract($(X), 9223372036854775806))", "X", long.MaxValue.ToString(), expected);
-    }
+         // If the double overload is used, there will be a rounding error.
+         => ExpandProperties("$([MSBuild]::Subtract($(X), 9223372036854775806))", Data.Properties("X", long.MaxValue.ToString()))
+            .ShouldBe("1");
 
     [Fact]
     public void PropertyFunctionMSBuildMultiplyIntegerLiteral()
-        => TestPropertyFunction("$([MSBuild]::Multiply($(X), 8800))", "X", "2", "17600");
+        => ExpandProperties("$([MSBuild]::Multiply($(X), 8800))", Data.Properties("X", "2"))
+            .ShouldBe("17600");
 
     [Fact]
     public void PropertyFunctionMSBuildMultiplyRealLiteral()
-        => TestPropertyFunction("$([MSBuild]::Multiply($(X), 1.5))", "X", "2", "3");
+        => ExpandProperties("$([MSBuild]::Multiply($(X), 1.5))", Data.Properties("X", "2"))
+            .ShouldBe("3");
 
     [Fact]
     public void PropertyFunctionMSBuildMultiplyIntegerOverflow()
-    {
         // Overflow - result exceeds size of long
-        string expected = "-2";
-        TestPropertyFunction("$([MSBuild]::Multiply($(X), 2))", "X", long.MaxValue.ToString(), expected);
-    }
+        => ExpandProperties("$([MSBuild]::Multiply($(X), 2))", Data.Properties("X", long.MaxValue.ToString()))
+            .ShouldBe("-2");
 
     [Fact]
     public void PropertyFunctionMSBuildMultiplyComplex()
-        => TestPropertyFunction("$([MSBuild]::Multiply($(X), $([MSBuild]::Multiply(1, 8800))))", "X", "2", "17600");
+        => ExpandProperties("$([MSBuild]::Multiply($(X), $([MSBuild]::Multiply(1, 8800))))", Data.Properties("X", "2"))
+            .ShouldBe("17600");
 
     [Fact]
     public void PropertyFunctionMSBuildDivideIntegerLiteral()
-    {
-        string expected = "6";
-        TestPropertyFunction("$([MSBuild]::Divide($(X), 10000))", "X", "65536", expected);
-    }
+        => ExpandProperties("$([MSBuild]::Divide($(X), 10000))", Data.Properties("X", "65536"))
+            .ShouldBe("6");
 
     [Fact]
     public void PropertyFunctionMSBuildDivideRealLiteral()
-        => TestPropertyFunction("$([MSBuild]::Divide($(X), 10000.0))", "X", "65536", "6.5536");
+        => ExpandProperties("$([MSBuild]::Divide($(X), 10000.0))", Data.Properties("X", "65536"))
+            .ShouldBe("6.5536");
 
     [Fact]
     public void PropertyFunctionMSBuildModuloIntegerLiteral()
-        => TestPropertyFunction("$([MSBuild]::Modulo($(X), 3))", "X", "10", "1");
+        => ExpandProperties("$([MSBuild]::Modulo($(X), 3))", Data.Properties("X", "10"))
+            .ShouldBe("1");
 
     [Fact]
     public void PropertyFunctionMSBuildModuloRealLiteral()
-        => TestPropertyFunction("$([MSBuild]::Modulo($(X), 3.0))", "X", "10", "1");
+        => ExpandProperties("$([MSBuild]::Modulo($(X), 3.0))", Data.Properties("X", "10"))
+            .ShouldBe("1");
 
     [Fact]
     public void PropertyFunctionConvertToString()
-        => TestPropertyFunction("$([System.Convert]::ToString(`.`))", "_", "_", ".");
+        => ExpandProperties("$([System.Convert]::ToString(`.`))")
+            .ShouldBe(".");
 
     [Fact]
     public void PropertyFunctionConvertToInt32()
-        => TestPropertyFunction("$([System.Convert]::ToInt32(42))", "_", "_", "42");
+        => ExpandProperties("$([System.Convert]::ToInt32(42))")
+            .ShouldBe("42");
 
     [Fact]
     public void PropertyFunctionToCharArray()
-        => TestPropertyFunction("$([System.Convert]::ToString(`.`).ToCharArray())", "_", "_", ".");
+        => ExpandProperties("$([System.Convert]::ToString(`.`).ToCharArray())")
+            .ShouldBe(".");
 
     [Fact]
     public void PropertyFunctionStringArrayGetValue()
-        => TestPropertyFunction("$(X.Split($([System.Convert]::ToString(`.`).ToCharArray())).GetValue($([System.Convert]::ToInt32(0))))", "X", "ab.cd", "ab");
+        => ExpandProperties(
+            "$(X.Split($([System.Convert]::ToString(`.`).ToCharArray())).GetValue($([System.Convert]::ToInt32(0))))",
+            Data.Properties("X", "ab.cd"))
+            .ShouldBe("ab");
 
     /// <summary>
     ///  Test that Char.IsDigit fast-path works correctly.
@@ -3987,7 +4012,8 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("$([System.Char]::IsDigit('abc123def', 2))", "False")]
     [InlineData("$([System.Char]::IsDigit('hello789', 5))", "True")]
     public void PropertyFunctionCharIsDigit(string expression, string expected)
-        => TestPropertyFunction(expression, "dummy", "", expected);
+        => ExpandProperties(expression)
+            .ShouldBe(expected);
 
     [Fact]
     public void PropertyFunction_ReplaceDoesNotCallRegexReplace()
@@ -4007,10 +4033,6 @@ public class Expander_Tests(ITestOutputHelper output)
         });
     }
 
-    private void TestPropertyFunction(string expression, string propertyName, string propertyValue, string expected)
-        => ExpandProperties(expression, Data.Properties(propertyName, propertyValue))
-            .ShouldBe(expected);
-
     [Theory]
     [InlineData("net6.0", "netstandard2.0", "")]
     [InlineData("net6.0-windows", "netstandard2.0", "")]
@@ -4020,7 +4042,8 @@ public class Expander_Tests(ITestOutputHelper output)
     [InlineData("netstandard2.0;net6.0-windows", "net6.0;netstandard2.0;net472", "netstandard2.0%3bnet6.0-windows")]
     [InlineData("netstandard2.0;net472", "net6.0;netstandard2.0;net472", "netstandard2.0%3bnet472")]
     public void PropertyFunctionFilterTargetFrameworks(string incoming, string filter, string expected)
-        => TestPropertyFunction($"$([MSBuild]::FilterTargetFrameworks('{incoming}', '{filter}'))", "_", "_", expected);
+        => ExpandProperties($"$([MSBuild]::FilterTargetFrameworks('{incoming}', '{filter}'))")
+            .ShouldBe(expected);
 
     [Fact]
     public void ExpandItemVectorFunctions_GetPathsOfAllDirectoriesAbove()
