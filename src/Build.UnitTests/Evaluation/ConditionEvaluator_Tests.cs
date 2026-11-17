@@ -2,11 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.IO;
 using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
+using Microsoft.Build.Shared;
 using Microsoft.Build.Shared.FileSystem;
 using Shouldly;
 using Xunit;
@@ -277,6 +280,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("false or (false or (false or (false or (false or (true)))))", true)]
     [InlineData("false or (false or (false or (false or (false or (false)))))", false)]
     [InlineData("44==+44.0 and -44==-44.0", true)]
+    [InlineData("true == on and 1 < 2", true)]
     public void EvaluateCompoundConditions(string expression, bool expected)
         => EvaluateExpression(expression).ShouldBe(expected);
 
@@ -314,6 +318,8 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("0x11", "17")]
     [InlineData("0x01a", "26")]
     [InlineData("0xa", "0x0A")]
+    [InlineData("4", "0x0004")]
+    [InlineData(".45", "0.45")]
     public void EvaluateEquivalentNumericLiterals(string left, string right)
         => AssertComparisons(left, right, expectedComparison: 0);
 
@@ -328,6 +334,8 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("123=='0123.0'", true)]
     [InlineData("'2'>1", true)]
     [InlineData("2<'1'", false)]
+    [InlineData(".45 == '.45'", true)]
+    [InlineData("'0' == '4'", false)]
     public void EvaluateQuotedNumericComparisons(string expression, bool expected)
         => EvaluateExpression(expression).ShouldBe(expected);
 
@@ -589,6 +597,8 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
         "(text)",
         "!'text'",
         "false or 'text'",
+        "true == on and ''",
+        "'' or 'true'",
         "exists",
         "existsX",
 
@@ -633,11 +643,21 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("$(Value)!=1", "true")]
     [InlineData("$(Value)==1", "1")]
     [InlineData("$(Value)=='xxx'", "xxx")]
+    [InlineData("'text' == $(Value)", "text")]
+    [InlineData("'other' != $(Value)", "text")]
+    [InlineData("'text' == '$(Value)'", "text")]
+    [InlineData("$(Value) == text", "text")]
+    [InlineData("$(Value) == x86", "x86")]
+    [InlineData("x86==$(Value)", "x86")]
+    [InlineData("'TEXT%27VALUE%27' == '$(Value)'", "Text'Value'")]
+    [InlineData("'Text%27s value!' == '$(Value)'", "Text's value!")]
+    [InlineData("'text %40 value' == $(Value)", "text @ value")]
     [InlineData("$(Value)==$(Value)", "no")]
     [InlineData("$(Value)>0", "1")]
     [InlineData("!$(Value)", "no")]
     [InlineData("$(Value)", "true")]
     [InlineData("'$(Value)'==(false)", "no")]
+    [InlineData("'$(Value)'==false", "no")]
     [InlineData("('$(Value)'==(false))", "no")]
     [InlineData("(true) and ($(Value)==off)", "no")]
     [InlineData("(true) and ($(Value)==xxx)", "xxx")]
@@ -661,6 +681,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("!$(Value)and true", "true")]
     [InlineData("$(Value) and true", "no")]
     [InlineData("$(Value)!=$(Value)", "1.9.5")]
+    [InlineData("!($(Value) <= 5)", "4")]
     public void EvaluateFalsePropertyExpressions(string expression, string value)
         => EvaluateExpression(expression, Properties("value", value))
             .ShouldBeFalse();
@@ -676,6 +697,14 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("$(Left)=='$(Right)'", "xxx", "xxx")]
     [InlineData("($(Left)==$(Right))", "xxx", "xxx")]
     [InlineData("$(Left) or $(Right)", "no", "true")]
+    [InlineData("$(Left)==$(Right)", "text (value).", "text (value).")]
+    [InlineData("'$(Left)'==$(Right)", "text (value).", "text (value).")]
+    [InlineData("$(Left)!=$(Right)", "text (value).", "text")]
+    [InlineData("'$(Left) $(Right)'=='text (value). text (value).'", "text (value).", "text (value).")]
+    [InlineData("$(Left)==$(Right)", "1", "1.0")]
+    [InlineData("$(Left)<=$(Right)", "1", "2")]
+    [InlineData("$(Left)>$(Right)", "2", "1.0")]
+    [InlineData("$(Left)!=$(Right)", "1", "2")]
     public void EvaluateTrueTwoPropertyExpressions(string expression, string left, string right)
         => EvaluateExpression(expression, Properties(("Left", left), ("Right", right)))
             .ShouldBeTrue();
@@ -690,9 +719,66 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     [InlineData("$(Left)==$(Right)", "1", "no")]
     [InlineData("$(Left)!=$(Right)", "xxx", "xxx")]
     [InlineData("!($(Left)==$(Right))", "xxx", "xxx")]
+    [InlineData("!($(Left) <= 5 and $(Right) >= 15)", "4", "32")]
     public void EvaluateFalseTwoPropertyExpressions(string expression, string left, string right)
         => EvaluateExpression(expression, Properties(("Left", left), ("Right", right)))
             .ShouldBeFalse();
+
+    /// <summary>
+    ///  Verifies that conditioned-property values accumulate across equality and inequality checks without duplicates.
+    /// </summary>
+    [Fact]
+    public void ConditionedPropertyUpdates()
+    {
+        Dictionary<string, List<string>> conditionedProperties = [];
+
+        void AssertValues(string name, params string[] expected)
+            => conditionedProperties.ShouldContain(name, values => values.ShouldBe(expected));
+
+        EvaluateExpression("'0' == '1'", NoProperties, conditionedProperties: conditionedProperties).ShouldBeFalse();
+        conditionedProperties.ShouldBeEmpty();
+
+        EvaluateExpression("$(Value) == first", NoProperties, conditionedProperties: conditionedProperties).ShouldBeFalse();
+        conditionedProperties.Count.ShouldBe(1);
+        AssertValues("Value", "first");
+
+        EvaluateExpression("'$(Value)' != 'second'", NoProperties, conditionedProperties: conditionedProperties).ShouldBeTrue();
+        conditionedProperties.Count.ShouldBe(1);
+        AssertValues("Value", "first", "second");
+
+        EvaluateExpression(
+            "'$(Branch)|$(Configuration)|$(Platform)' == 'first|debug|x86'",
+            NoProperties,
+            conditionedProperties: conditionedProperties).ShouldBeFalse();
+
+        conditionedProperties.Count.ShouldBe(4);
+        AssertValues("Value", "first", "second");
+        AssertValues("Branch", "first");
+        AssertValues("Configuration", "debug");
+        AssertValues("Platform", "x86");
+
+        EvaluateExpression(
+            "'$(Branch)|$(Configuration)|$(Platform)' == 'second|debug|x86'",
+            NoProperties,
+            conditionedProperties: conditionedProperties).ShouldBeFalse();
+
+        conditionedProperties.Count.ShouldBe(4);
+        AssertValues("Value", "first", "second");
+        AssertValues("Branch", "first", "second");
+        AssertValues("Configuration", "debug");
+        AssertValues("Platform", "x86");
+
+        EvaluateExpression(
+            "'$(Branch)|$(Configuration)|$(Platform)' == 'third|release|arm64'",
+            NoProperties,
+            conditionedProperties: conditionedProperties).ShouldBeFalse();
+
+        conditionedProperties.Count.ShouldBe(4);
+        AssertValues("Value", "first", "second");
+        AssertValues("Branch", "first", "second", "third");
+        AssertValues("Configuration", "debug", "release");
+        AssertValues("Platform", "x86", "arm64");
+    }
 
     /// <summary>
     ///  Verifies that an undefined property expands to an empty argument for <c>HasTrailingSlash</c>.
@@ -731,6 +817,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     /// <param name="include">The item include to expand.</param>
     [Theory]
     [InlineData("@(Value)", "true")]
+    [InlineData("@(Value)==true", "true")]
     [InlineData("@(Value)>0", "1")]
     [InlineData("1<=@(Value)", "1")]
     public void EvaluateTrueItemExpressions(string expression, string include)
@@ -743,7 +830,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     /// <param name="expression">The condition containing an item transform.</param>
     /// <param name="include">The item include to transform.</param>
     [Theory]
-    [InlineData("@(Value -> '%(filename)')=='file'", "file")]
+    [InlineData("@(Value -> '%(filename)')=='file'", "file.cs")]
     [InlineData("@(Value -> '%(definingprojectname).barproj')=='foo.barproj'", "file")]
     public void EvaluateItemTransforms(string expression, string include)
         => EvaluateExpression(expression, items: Items("Value", include))
@@ -752,15 +839,56 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     /// <summary>
     ///  Verifies ordered multi-item expansion with default and custom separators.
     /// </summary>
-    /// <param name="expression">The condition referencing both <c>Value</c> items.</param>
+    /// <param name="expression">The condition referencing all three <c>Value</c> items.</param>
     [Theory]
-    [InlineData("@(Value -> '%(filename).z', '$')=='first.z$second.z'")]
-    [InlineData("'@(Value)'=='first;second'")]
-    [InlineData("@(Value -> '%(filename)', '!')=='first!second'")]
-    [InlineData("'first!second'==@(Value -> '%(filename)', '!')")]
+    [InlineData("@(Value -> '%(filename).z', '$')=='first.z$second.z$third.z'")]
+    [InlineData("'@(Value)'=='first.cs;second.cs;third.cs'")]
+    [InlineData("@(Value)=='first.cs;second.cs;third.cs'")]
+    [InlineData("@(Value, ' ')=='first.cs second.cs third.cs'")]
+    [InlineData("@(Value, '')=='first.cssecond.csthird.cs'")]
+    [InlineData("@(Value -> '%(filename)')=='first;second;third'")]
+    [InlineData("@(Value -> '%(filename)', '!')=='first!second!third'")]
+    [InlineData("'first!second!third'==@(Value -> '%(filename)', '!')")]
     public void EvaluateMultipleItemExpressions(string expression)
-        => EvaluateExpression(expression, items: Items(("Value", "first"), ("Value", "second")))
+        => EvaluateExpression(expression, items: Items(("Value", "first.cs"), ("Value", "second.cs"), ("Value", "third.cs")))
             .ShouldBeTrue();
+
+    /// <summary>
+    ///  Verifies item transforms preserve a relative path prefix and replace filename extensions.
+    /// </summary>
+    [Fact]
+    public void ItemTransformsWithPathPrefixes()
+    {
+        string transform = Path.Combine("temp", "%(Filename).xml");
+        string first = Path.Combine("temp", "first.xml");
+        string second = Path.Combine("temp", "second.xml");
+        string third = Path.Combine("temp", "third.xml");
+
+        EvaluateExpression(
+            $"@(Value -> '{transform}', ' ') == '{first} {second} {third}'",
+            items: Items(("Value", "first.cs"), ("Value", "second.cs"), ("Value", "third.cs")))
+            .ShouldBeTrue();
+    }
+
+    /// <summary>
+    ///  Verifies that empty transform results retain default separators but disappear with an empty separator.
+    /// </summary>
+    /// <param name="expression">The condition containing an empty or missing-metadata transform.</param>
+    [Theory]
+    [InlineData("@(Value -> '', '') == ''")]
+    [InlineData("@(Value -> '') == ';;'")]
+    [InlineData("@(Value -> '%(Missing)', '') == ''")]
+    [InlineData("@(Value -> '%(Missing)') == ';;'")]
+    public void EvaluateEmptyItemTransforms(string expression)
+        => EvaluateExpression(expression, items: Items(("Value", "first.cs"), ("Value", "second.cs"), ("Value", "third.cs")))
+            .ShouldBeTrue();
+
+    /// <summary>
+    ///  Verifies that an undefined item list with an explicit separator expands to an empty string.
+    /// </summary>
+    [Fact]
+    public void UndefinedItemsExpandToEmptyString()
+        => EvaluateExpression("'@(Missing, ';')' == ''", items: NoItems).ShouldBeTrue();
 
     /// <summary>
     ///  Verifies evaluation errors for empty item expressions that the parser accepts.
@@ -869,6 +997,31 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
             .ShouldBeTrue();
 
     /// <summary>
+    ///  Verifies that quoted strings combine multiple properties and a case-insensitive item reference.
+    /// </summary>
+    [Fact]
+    public void EvaluateMixedStringExpansion()
+        => EvaluateExpression(
+            "'text: true first.cs;second.cs;third.cs' == '$(Text): $(Flag) @(files)'",
+            Properties(("Text", "text"), ("Flag", "true")),
+            Items(("Files", "first.cs"), ("Files", "second.cs"), ("Files", "third.cs")))
+            .ShouldBeTrue();
+
+    /// <summary>
+    ///  Verifies nested boolean and numeric conditions using independently expanded properties.
+    /// </summary>
+    /// <param name="expression">The condition referencing the <c>Flag</c>, <c>OtherFlag</c>, and <c>Number</c> properties.</param>
+    /// <param name="number">The numeric property value.</param>
+    /// <param name="expected">The expected condition result.</param>
+    [Theory]
+    [InlineData("(($(Flag) != 'other' and $(OtherFlag)) and 5 >= 1) or $(Number) == 1", "1", true)]
+    [InlineData("(($(Flag) != 'other' or !$(OtherFlag)) and 5 >= 1) or $(Number) == 1", "2", true)]
+    [InlineData("!((($(Flag) != 'other' or !$(OtherFlag)) and 5 >= 1) or $(Number) == 1)", "2", false)]
+    public void EvaluateExpandedCompoundConditions(string expression, string number, bool expected)
+        => EvaluateExpression(expression, Properties(("Flag", "true"), ("OtherFlag", "yes"), ("Number", number)))
+            .ShouldBe(expected);
+
+    /// <summary>
     ///  Verifies evaluation errors in parsed numeric comparisons combining one property and one item.
     /// </summary>
     [Fact]
@@ -892,6 +1045,25 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
 
         EvaluateExpression(expression, evaluationDirectory: root.Path)
             .ShouldBe(expected);
+    }
+
+    /// <summary>
+    ///  Verifies absolute paths with the case-insensitive <c>Exists</c> function name.
+    /// </summary>
+    /// <param name="fileExists">Whether to create the file and expect the condition to succeed.</param>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EvaluateAbsoluteExistsPaths(bool fileExists)
+    {
+        TransientTestFolder root = Environment.CreateFolder();
+        string filePath = Path.Combine(root.Path, "file");
+        if (fileExists)
+        {
+            Environment.CreateFile(root, "file", string.Empty);
+        }
+
+        EvaluateExpression($"Exists('{EscapingUtilities.Escape(filePath)}')").ShouldBe(fileExists);
     }
 
     /// <summary>
@@ -1197,6 +1369,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     /// <param name="items">The available items, if needed.</param>
     /// <param name="metadata">The available metadata, if needed.</param>
     /// <param name="evaluationDirectory">The base directory for existence checks; otherwise, the test assembly directory is used.</param>
+    /// <param name="conditionedProperties">The dictionary in which to collect conditioned-property values, if needed.</param>
     /// <returns>
     ///  The evaluated condition result.
     /// </returns>
@@ -1205,8 +1378,16 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
         IPropertyProvider<ProjectPropertyInstance>? properties = null,
         IItemProvider<ProjectItemInstance>? items = null,
         IMetadataTable? metadata = null,
-        string? evaluationDirectory = null)
-        => EvaluateExpression(ParseExpression(expression), expression, properties, items, metadata, evaluationDirectory);
+        string? evaluationDirectory = null,
+        Dictionary<string, List<string>>? conditionedProperties = null)
+        => EvaluateExpression(
+            ParseExpression(expression),
+            expression,
+            properties,
+            items,
+            metadata,
+            evaluationDirectory,
+            conditionedProperties);
 
     /// <summary>
     ///  Evaluates an already parsed condition with only the expansion inputs supplied by its test.
@@ -1217,6 +1398,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
     /// <param name="items">The available items, if needed.</param>
     /// <param name="metadata">The available metadata, if needed.</param>
     /// <param name="evaluationDirectory">The base directory for existence checks; otherwise, the test assembly directory is used.</param>
+    /// <param name="conditionedProperties">The dictionary in which to collect conditioned-property values, if needed.</param>
     /// <returns>
     ///  The evaluated condition result.
     /// </returns>
@@ -1226,7 +1408,8 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
         IPropertyProvider<ProjectPropertyInstance>? properties = null,
         IItemProvider<ProjectItemInstance>? items = null,
         IMetadataTable? metadata = null,
-        string? evaluationDirectory = null)
+        string? evaluationDirectory = null,
+        Dictionary<string, List<string>>? conditionedProperties = null)
     {
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, items, metadata, FileSystems.Default);
 
@@ -1251,7 +1434,7 @@ public sealed class ConditionEvaluatorTests(ITestOutputHelper output) : TestBase
                 expression,
                 expander,
                 options,
-                conditionedPropertiesInProject: null,
+                conditionedProperties,
                 evaluationDirectory ?? AppContext.BaseDirectory,
                 ElementLocation.Empty,
                 FileSystems.Default);
