@@ -3,119 +3,61 @@
 
 using System;
 using System.IO;
-using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
-#if FEATURE_WIN32_REGISTRY
-using Microsoft.Win32;
-#endif
 using Shouldly;
 using Xunit;
-
-#nullable disable
 
 namespace Microsoft.Build.UnitTests;
 
 public sealed partial class ToolLocationHelper_Tests
 {
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void GatherExtensionSDKsInvalidVersionDirectory()
     {
-        string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        string sdkDirectory = Path.Combine(tempDirectory, "Foo", "Bar");
+        TransientTestFolder root = Environment.CreateFolder();
+        root.CreateDirectory(Path.Combine("Foo", "Bar"));
 
-        try
-        {
-            Directory.CreateDirectory(sdkDirectory);
-            DirectoryInfo info = new DirectoryInfo(tempDirectory);
-            TargetPlatformSDK sdk = new TargetPlatformSDK("Foo", new Version(0, 0), string.Empty);
-            ToolLocationHelper.GatherExtensionSDKs(info, sdk);
-            sdk.ExtensionSDKs.Count.ShouldBe(0);
-        }
-        finally
-        {
-            if (Directory.Exists(tempDirectory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
-            }
-        }
+        DirectoryInfo info = new(root.Path);
+        TargetPlatformSDK sdk = new("Foo", new Version(0, 0), string.Empty);
+        ToolLocationHelper.GatherExtensionSDKs(info, sdk);
+        sdk.ExtensionSDKs.Count.ShouldBe(0);
     }
 
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void GatherExtensionSDKsNoManifest()
     {
-        string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        string sdkDirectory = Path.Combine(tempDirectory, "Foo", "1.0");
+        TransientTestFolder root = Environment.CreateFolder();
+        root.CreateDirectory(Path.Combine("Foo", "1.0"));
 
-        try
-        {
-            Directory.CreateDirectory(sdkDirectory);
-            DirectoryInfo info = new DirectoryInfo(tempDirectory);
-            TargetPlatformSDK sdk = new TargetPlatformSDK("Foo", new Version(0, 0), string.Empty);
-            ToolLocationHelper.GatherExtensionSDKs(info, sdk);
-            sdk.ExtensionSDKs.Count.ShouldBe(0);
-        }
-        finally
-        {
-            if (Directory.Exists(tempDirectory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
-            }
-        }
+        DirectoryInfo info = new(root.Path);
+        TargetPlatformSDK sdk = new("Foo", new Version(0, 0), string.Empty);
+        ToolLocationHelper.GatherExtensionSDKs(info, sdk);
+        sdk.ExtensionSDKs.Count.ShouldBe(0);
     }
 
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void GatherExtensionSDKsEmptyManifest()
     {
-        string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        string sdkDirectory = Path.Combine(tempDirectory, "Foo", "1.0");
+        TransientTestFolder root = Environment.CreateFolder();
+        TransientTestFolder sdkDirectory = root.CreateDirectory(Path.Combine("Foo", "1.0"));
+        Environment.CreateFile(sdkDirectory, "SDKManifest.xml", string.Empty);
 
-        try
-        {
-            Directory.CreateDirectory(sdkDirectory);
-            File.WriteAllText(Path.Combine(sdkDirectory, "SDKManifest.xml"), "");
-            DirectoryInfo info = new DirectoryInfo(tempDirectory);
-            TargetPlatformSDK sdk = new TargetPlatformSDK("Foo", new Version(0, 0), string.Empty);
-            ToolLocationHelper.GatherExtensionSDKs(info, sdk);
-            sdk.ExtensionSDKs.Count.ShouldBe(1);
-        }
-        finally
-        {
-            if (Directory.Exists(tempDirectory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
-            }
-        }
+        DirectoryInfo info = new(root.Path);
+        TargetPlatformSDK sdk = new("Foo", new Version(0, 0), string.Empty);
+        ToolLocationHelper.GatherExtensionSDKs(info, sdk);
+        sdk.ExtensionSDKs.Count.ShouldBe(1);
     }
 
     [Fact]
-    [Trait("Category", "netcore-osx-failing")]
-    [Trait("Category", "netcore-linux-failing")]
     public void GatherExtensionSDKsGarbageManifest()
     {
-        string tempDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        string sdkDirectory = Path.Combine(tempDirectory, "Foo", "1.0");
+        TransientTestFolder root = Environment.CreateFolder();
+        TransientTestFolder sdkDirectory = root.CreateDirectory(Path.Combine("Foo", "1.0"));
+        Environment.CreateFile(sdkDirectory, "SDKManifest.xml", "Garbaggggge");
 
-        try
-        {
-            Directory.CreateDirectory(sdkDirectory);
-            File.WriteAllText(Path.Combine(sdkDirectory, "SDKManifest.xml"), "Garbaggggge");
-            DirectoryInfo info = new DirectoryInfo(tempDirectory);
-            TargetPlatformSDK sdk = new TargetPlatformSDK("Foo", new Version(0, 0), string.Empty);
-            ToolLocationHelper.GatherExtensionSDKs(info, sdk);
-            sdk.ExtensionSDKs.Count.ShouldBe(1);
-        }
-        finally
-        {
-            if (Directory.Exists(tempDirectory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(tempDirectory, true);
-            }
-        }
+        DirectoryInfo info = new(root.Path);
+        TargetPlatformSDK sdk = new("Foo", new Version(0, 0), string.Empty);
+        ToolLocationHelper.GatherExtensionSDKs(info, sdk);
+        sdk.ExtensionSDKs.Count.ShouldBe(1);
     }
 }

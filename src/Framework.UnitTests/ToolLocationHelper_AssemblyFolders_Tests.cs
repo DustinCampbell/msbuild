@@ -1,115 +1,130 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#if FEATURE_WIN32_REGISTRY
+
 using System;
 using System.Collections.Generic;
+using System.Runtime.Versioning;
 using Microsoft.Build.Utilities;
-#if FEATURE_WIN32_REGISTRY
 using Microsoft.Win32;
-#endif
 using Shouldly;
 using Xunit;
-
-#nullable disable
+using ProcessorArchitecture = System.Reflection.ProcessorArchitecture;
 
 namespace Microsoft.Build.UnitTests;
 
 public sealed partial class ToolLocationHelper_Tests
 {
-#if FEATURE_WIN32_REGISTRY
     /// <summary>
-    /// Verify we can an argument exception if we try and pass a empty registry root
+    ///  Verifies that an empty registry root is rejected.
     /// </summary>
     [Fact]
     public void GetAssemblyFoldersExInfoTestEmptyRegistryRoot()
         => Should.Throw<ArgumentException>(() =>
-            ToolLocationHelper.GetAssemblyFoldersExInfo("", "v3.0", "AssemblyFoldersEx", null, null, System.Reflection.ProcessorArchitecture.MSIL));
+            ToolLocationHelper.GetAssemblyFoldersExInfo(
+                registryRoot: string.Empty,
+                targetFrameworkVersion: "v3.0",
+                registryKeySuffix: "AssemblyFoldersEx",
+                osVersion: null,
+                platform: null,
+                targetProcessorArchitecture: ProcessorArchitecture.MSIL));
 
     /// <summary>
-    /// Verify we can an argumentNull exception if we try and pass a null registry root
+    ///  Verifies that a <see langword="null"/> registry root is rejected.
     /// </summary>
     [Fact]
     public void GetAssemblyFoldersExInfoListTestNullRegistryRoot()
         => Should.Throw<ArgumentNullException>(() =>
-            ToolLocationHelper.GetAssemblyFoldersExInfo(null, "v3.0", "AssemblyFoldersEx", null, null, System.Reflection.ProcessorArchitecture.MSIL));
+            ToolLocationHelper.GetAssemblyFoldersExInfo(
+                registryRoot: null,
+                targetFrameworkVersion: "v3.0",
+                registryKeySuffix: "AssemblyFoldersEx",
+                osVersion: null,
+                platform: null,
+                targetProcessorArchitecture: ProcessorArchitecture.MSIL));
 
     /// <summary>
-    /// Verify we can an argument exception if we try and pass a empty registry suffix
+    ///  Verifies that an empty registry suffix is rejected.
     /// </summary>
     [Fact]
     public void GetAssemblyFoldersExInfoTestEmptyRegistrySuffix()
         => Should.Throw<ArgumentException>(() =>
-            ToolLocationHelper.GetAssemblyFoldersExInfo(@"SOFTWARE\Microsoft\.UnitTest", "v3.0", "", null, null, System.Reflection.ProcessorArchitecture.MSIL));
+            ToolLocationHelper.GetAssemblyFoldersExInfo(
+                registryRoot: @"SOFTWARE\Microsoft\.UnitTest",
+                targetFrameworkVersion: "v3.0",
+                registryKeySuffix: string.Empty,
+                osVersion: null,
+                platform: null,
+                targetProcessorArchitecture: ProcessorArchitecture.MSIL));
 
     /// <summary>
-    /// Verify we can an argumentNull exception if we try and pass a null registry suffix
+    ///  Verifies that a <see langword="null"/> registry suffix is rejected.
     /// </summary>
     [Fact]
     public void GetAssemblyFoldersExInfoTestNullRegistrySuffix()
         => Should.Throw<ArgumentNullException>(() =>
-        ToolLocationHelper.GetAssemblyFoldersExInfo(@"SOFTWARE\Microsoft\.UnitTest", "v3.0", null, null, null, System.Reflection.ProcessorArchitecture.MSIL));
+            ToolLocationHelper.GetAssemblyFoldersExInfo(
+                registryRoot: @"SOFTWARE\Microsoft\.UnitTest",
+                targetFrameworkVersion: "v3.0",
+                registryKeySuffix: null,
+                osVersion: null,
+                platform: null,
+                targetProcessorArchitecture: ProcessorArchitecture.MSIL));
 
     /// <summary>
-    /// Verify we can an argument exception if we try and pass a empty registry suffix
+    ///  Verifies that an empty target framework version is rejected.
     /// </summary>
     [Fact]
     public void GetAssemblyFoldersExInfoTestEmptyTargetRuntime()
         => Should.Throw<ArgumentException>(() =>
-            ToolLocationHelper.GetAssemblyFoldersExInfo(@"SOFTWARE\Microsoft\.UnitTest", "", "AssemblyFoldersEx", null, null, System.Reflection.ProcessorArchitecture.MSIL));
+            ToolLocationHelper.GetAssemblyFoldersExInfo(
+                registryRoot: @"SOFTWARE\Microsoft\.UnitTest",
+                targetFrameworkVersion: string.Empty,
+                registryKeySuffix: "AssemblyFoldersEx",
+                osVersion: null,
+                platform: null,
+                targetProcessorArchitecture: ProcessorArchitecture.MSIL));
 
     /// <summary>
-    /// Verify we can an argumentNull exception if we try and pass a null target runtime version
+    ///  Verifies that a <see langword="null"/> target framework version is rejected.
     /// </summary>
     [Fact]
     public void GetAssemblyFoldersExInfoTestNullTargetRuntimeVersion()
         => Should.Throw<ArgumentNullException>(() =>
-            ToolLocationHelper.GetAssemblyFoldersExInfo(@"SOFTWARE\Microsoft\.UnitTest", null, "AssemblyFoldersEx", null, null, System.Reflection.ProcessorArchitecture.MSIL));
+            ToolLocationHelper.GetAssemblyFoldersExInfo(
+                registryRoot: @"SOFTWARE\Microsoft\.UnitTest",
+                targetFrameworkVersion: null,
+                registryKeySuffix: "AssemblyFoldersEx",
+                osVersion: null,
+                platform: null,
+                targetProcessorArchitecture: ProcessorArchitecture.MSIL));
 
     /// <summary>
-    /// Verify we can get a list of directories out of the public API.
+    ///  Verifies that AssemblyFoldersEx entries are discovered in the expected precedence order.
     /// </summary>
     [WindowsOnlyFact]
+    [SupportedOSPlatform("windows")]
     public void GetAssemblyFoldersExInfoTest()
     {
-        SetupAssemblyFoldersExTestConditionRegistryKey();
-        IList<AssemblyFoldersExInfo> directories;
-        try
-        {
-            directories = ToolLocationHelper.GetAssemblyFoldersExInfo(@"SOFTWARE\Microsoft\.UnitTest", "v3.0", "AssemblyFoldersEx", null, null, System.Reflection.ProcessorArchitecture.MSIL);
-        }
-        finally
-        {
-            RemoveAssemblyFoldersExTestConditionRegistryKey();
-        }
-
-        directories.ShouldNotBeNull();
-        directories.Count.ShouldBe(2);
-        directories[0].DirectoryPath.ShouldBe(@"C:\V1Control2", StringCompareShould.IgnoreCase);
-        directories[1].DirectoryPath.ShouldBe(@"C:\V1Control", StringCompareShould.IgnoreCase);
-    }
-
-    private static void SetupAssemblyFoldersExTestConditionRegistryKey()
-    {
-        RegistryKey baseKey = Registry.CurrentUser;
-        baseKey.DeleteSubKeyTree(@"SOFTWARE\Microsoft\.UnitTest", false);
-        RegistryKey folderKey = baseKey.CreateSubKey(@"SOFTWARE\Microsoft\.UnitTest\v2.0.3600\AssemblyFoldersEx\Component1");
+        TransientTestRegistryKey registryKey = Environment.CreateRegistryKey();
+        using RegistryKey folderKey = registryKey.Key.CreateSubKey(@"v2.0.3600\AssemblyFoldersEx\Component1");
         folderKey.SetValue("", @"C:\V1Control");
-
-        RegistryKey servicePackKey = baseKey.CreateSubKey(@"SOFTWARE\Microsoft\.UnitTest\v2.0.3600\AssemblyFoldersEx\Component2");
+        using RegistryKey servicePackKey = registryKey.Key.CreateSubKey(@"v2.0.3600\AssemblyFoldersEx\Component2");
         servicePackKey.SetValue("", @"C:\V1Control2");
-    }
 
-    private static void RemoveAssemblyFoldersExTestConditionRegistryKey()
-    {
-        RegistryKey baseKey = Registry.CurrentUser;
-        try
-        {
-            baseKey.DeleteSubKeyTree(@"SOFTWARE\Microsoft\.UnitTest\v2.0.3600\AssemblyFoldersEx\Component1");
-            baseKey.DeleteSubKeyTree(@"SOFTWARE\Microsoft\.UnitTest\v2.0.3600\AssemblyFoldersEx\Component2");
-        }
-        catch (Exception)
-        {
-        }
+        IList<AssemblyFoldersExInfo> directories = ToolLocationHelper.GetAssemblyFoldersExInfo(
+            registryKey.SubKeyPath,
+            targetFrameworkVersion: "v3.0",
+            registryKeySuffix: "AssemblyFoldersEx",
+            osVersion: null,
+            platform: null,
+            targetProcessorArchitecture: ProcessorArchitecture.MSIL);
+
+        directories.ShouldHaveItems(
+            directory => directory.DirectoryPath.ShouldBe(@"C:\V1Control2", StringCompareShould.IgnoreCase),
+            directory => directory.DirectoryPath.ShouldBe(@"C:\V1Control", StringCompareShould.IgnoreCase));
     }
-#endif
 }
+
+#endif

@@ -4,30 +4,31 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.Versioning;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared;
 using Microsoft.Build.Utilities;
 using Shouldly;
 using Xunit;
-using FrameworkNameVersioning = System.Runtime.Versioning.FrameworkName;
-
-#nullable disable
 
 namespace Microsoft.Build.UnitTests;
 
 public sealed partial class ToolLocationHelper_Tests
 {
+    /// <summary>
+    ///  Verifies that reference-assembly paths include the framework identifier, version, and profile.
+    /// </summary>
     [Fact]
     public void GenerateReferencAssemblyPathAllElements()
     {
         string targetFrameworkRootPath = NativeMethodsShared.IsWindows
-                                             ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
-                                             : "/usr/lib";
+            ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
+            : "/usr/lib";
         string targetFrameworkIdentifier = "Compact Framework";
-        Version targetFrameworkVersion = new Version("1.0");
+        Version targetFrameworkVersion = new("1.0");
         string targetFrameworkProfile = "PocketPC";
 
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
+        FrameworkName frameworkName = new(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
 
         string expectedPath = Path.Combine(targetFrameworkRootPath, targetFrameworkIdentifier);
         expectedPath = Path.Combine(expectedPath, "v" + targetFrameworkVersion);
@@ -38,15 +39,18 @@ public sealed partial class ToolLocationHelper_Tests
         path.ShouldBe(expectedPath, StringCompareShould.IgnoreCase);
     }
 
+    /// <summary>
+    ///  Verifies that a reference-assembly path omits the profile directory when no profile is specified.
+    /// </summary>
     [Fact]
     public void GenerateReferencAssemblyPathNoProfile()
     {
         string targetFrameworkRootPath = NativeMethodsShared.IsWindows
-                                             ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
-                                             : "/usr/lib";
+            ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
+            : "/usr/lib";
         string targetFrameworkIdentifier = "Compact Framework";
-        Version targetFrameworkVersion = new Version("1.0");
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, targetFrameworkVersion, string.Empty);
+        Version targetFrameworkVersion = new("1.0");
+        FrameworkName frameworkName = new(targetFrameworkIdentifier, targetFrameworkVersion, string.Empty);
         string expectedPath = Path.Combine(targetFrameworkRootPath, targetFrameworkIdentifier);
         expectedPath = Path.Combine(expectedPath, "v" + targetFrameworkVersion);
 
@@ -55,70 +59,66 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Make sure if the profile has invalid chars which would be used as part of path generation that we get an InvalidOperationException
-    /// which indicates there was a problem generating the reference assembly path.
+    ///  Verifies that invalid profile-name characters cause <see cref="InvalidOperationException"/> during path generation.
     /// </summary>
     [Fact]
     public void GenerateReferencAssemblyInvalidProfile()
         => Should.Throw<InvalidOperationException>(() =>
         {
             string targetFrameworkRootPath = NativeMethodsShared.IsWindows
-                                                ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
-                                                : "/usr/lib";
+                ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
+                : "/usr/lib";
             string targetFrameworkIdentifier = "Compact Framework";
-            Version targetFrameworkVersion = new Version("1.0");
+            Version targetFrameworkVersion = new("1.0");
             string targetFrameworkProfile = "PocketPC" + new string(Path.GetInvalidFileNameChars());
 
-            FrameworkNameVersioning frameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
+            FrameworkName frameworkName = new(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
 
-            FrameworkLocationHelper.GenerateReferenceAssemblyPath(targetFrameworkRootPath, frameworkName);
+            _ = FrameworkLocationHelper.GenerateReferenceAssemblyPath(targetFrameworkRootPath, frameworkName);
         });
 
     /// <summary>
-    /// Make sure if the identifier has invalid chars which would be used as part of path generation that we get an InvalidOperationException
-    /// which indicates there was a problem generating the reference assembly path.
+    ///  Verifies that invalid framework-identifier characters cause <see cref="InvalidOperationException"/> during path generation.
     /// </summary>
     [Fact]
     public void GenerateReferencAssemblyInvalidIdentifier()
         => Should.Throw<InvalidOperationException>(() =>
         {
             string targetFrameworkRootPath = NativeMethodsShared.IsWindows
-                                                    ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
-                                                    : "/usr/lib";
+                ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
+                : "/usr/lib";
             string targetFrameworkIdentifier = "Compact Framework" + new string(Path.GetInvalidFileNameChars());
-            Version targetFrameworkVersion = new Version("1.0");
+            Version targetFrameworkVersion = new("1.0");
             string targetFrameworkProfile = "PocketPC";
 
-            FrameworkNameVersioning frameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
+            FrameworkName frameworkName = new(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
 
-            FrameworkLocationHelper.GenerateReferenceAssemblyPath(targetFrameworkRootPath, frameworkName);
+            _ = FrameworkLocationHelper.GenerateReferenceAssemblyPath(targetFrameworkRootPath, frameworkName);
         });
 
     /// <summary>
-    /// Make sure if the moniker and the root make a too long path that an InvalidOperationException is raised
-    /// which indicates there was a problem generating the reference assembly path.
+    ///  Verifies that an excessively long reference-assembly path causes <see cref="InvalidOperationException"/>.
     /// </summary>
     [WindowsFullFrameworkOnlyFact]
     public void GenerateReferencAssemblyPathTooLong()
         => Should.Throw<InvalidOperationException>(() =>
         {
-            string pathTooLong = new string('a', 500);
+            string pathTooLong = new('a', 500);
 
             string targetFrameworkRootPath = NativeMethodsShared.IsWindows
-                                                ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
-                                                : "/usr/lib";
+                ? @"c:\Program Files\Reference Assemblies\Microsoft\Framework"
+                : "/usr/lib";
             string targetFrameworkIdentifier = "Compact Framework" + pathTooLong;
-            Version targetFrameworkVersion = new Version("1.0");
+            Version targetFrameworkVersion = new("1.0");
             string targetFrameworkProfile = "PocketPC";
 
-            FrameworkNameVersioning frameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
+            FrameworkName frameworkName = new(targetFrameworkIdentifier, targetFrameworkVersion, targetFrameworkProfile);
 
-            FrameworkLocationHelper.GenerateReferenceAssemblyPath(targetFrameworkRootPath, frameworkName);
+            _ = FrameworkLocationHelper.GenerateReferenceAssemblyPath(targetFrameworkRootPath, frameworkName);
         });
 
     /// <summary>
-    /// Verify the chaining method returns a null if there is no redist list file for the framework we are trying to chain with. This is ok because the lack of a redist list file means we
-    /// do not have anything to chain with.
+    ///  Verifies that a missing redist list returns <see langword="null"/> because there is no framework to chain to.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistExistsNoRedistList()
@@ -128,521 +128,398 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Verify we do not hang, crash, go on forever if there is a circular reference with the include frameworks. What should happen is
-    /// we should notice that we have already chained to a given framework and not try and chain with it again.
+    ///  Verifies that a redist list resolves its included framework directory.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistExistsCircularRefernce()
     {
-        string redistString41 = "<FileList Redist='Random' IncludeFramework='v4.0'>" +
-                                 "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                              "</FileList >";
+        string redistString41 = """
+            <FileList Redist='Random' IncludeFramework='v4.0'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string redistString40 = "<FileList Redist='Random'>" +
-                                   "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                "</FileList >";
+        string redistString40 = """
+            <FileList Redist='Random'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistExistsChain");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
         string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-        string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
         string redist40Directory = Path.Combine(tempDirectory, "v4.0", "RedistList") + Path.DirectorySeparatorChar;
-        string redist40 = Path.Combine(redist40Directory, "FrameworkList.xml");
-        try
-        {
-            Directory.CreateDirectory(redist41Directory);
-            Directory.CreateDirectory(redist40Directory);
-            File.WriteAllText(redist40, redistString40);
-            File.WriteAllText(redist41, redistString41);
+        TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+        TransientTestFolder redist40Folder = Environment.CreateFolder(redist40Directory);
+        Environment.CreateFile(redist40Folder, "FrameworkList.xml", redistString40);
+        Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
 
-            string path = ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"));
-
-            string expectedChainedPath = Path.Combine(tempDirectory, "v4.0");
-            expectedChainedPath.ShouldBe(path, StringCompareShould.IgnoreCase);
-        }
-        finally
-        {
-            if (Directory.Exists(redist40Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist40Directory, true);
-            }
-
-            if (Directory.Exists(redist41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-            }
-        }
+        ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"))
+            .ShouldBe(Path.Combine(tempDirectory, "v4.0"), StringCompareShould.IgnoreCase);
     }
 
     /// <summary>
-    /// Verify the case where there is no Included framework attribute, there should be no errors and we should continue on as if there were no further framework chained with the current one
+    ///  Verifies that a redist list without <c>IncludeFramework</c> ends the chain with an empty result.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistExistsNoInclude()
     {
-        string redistString41 = "<FileList Redist='Random'>" +
-                                    "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                 "</FileList >";
+        string redistString41 = """
+            <FileList Redist='Random'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistExistsNoInclude");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
         string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-        string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
-        try
-        {
-            Directory.CreateDirectory(redist41Directory);
-            File.WriteAllText(redist41, redistString41);
-            string path = ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"));
-            path.ShouldBe(string.Empty); // "Expected the path to be empty"
-        }
-        finally
-        {
-            if (Directory.Exists(redist41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-            }
-        }
+        TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+        Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
+        ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"))
+            .ShouldBeEmpty(); // "Expected the path to be empty"
     }
 
     /// <summary>
-    /// Verify the case where the include framework is empty, this is ok, we should error but should just continue on as if there was no chaining of the redist list file.
+    ///  Verifies that an empty <c>IncludeFramework</c> value ends the chain without throwing.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistExistsEmptyInclude()
     {
-        string redistString41 = "<FileList Redist='Random' IncludeFramework=''>" +
-                                    "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                 "</FileList >";
+        string redistString41 = """
+            <FileList Redist='Random' IncludeFramework=''>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistExistsNoInclude");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
         string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-        string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
-        try
-        {
-            Directory.CreateDirectory(redist41Directory);
-            File.WriteAllText(redist41, redistString41);
-            string path = ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"));
-            path.ShouldBe(string.Empty); // "Expected the path to be empty"
-        }
-        finally
-        {
-            if (Directory.Exists(redist41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-            }
-        }
+        TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+        Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
+        ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"))
+            .ShouldBeEmpty(); // "Expected the path to be empty"
     }
 
     /// <summary>
-    /// Verify the case where the redist is a valid xml file but does not have the FileListElement, this is to make sure we do not crash or get an exception if the FileList element cannot be found
+    ///  Verifies that valid XML without a <c>FileList</c> element ends the chain without throwing.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistExistsNoFileList()
     {
-        string redistString41 = "<FileListNOT Redist='Random'>" +
-                                    "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                 "</FileListNOT >";
+        string redistString41 = """
+            <FileListNOT Redist='Random'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileListNOT >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistExistsNoFileList");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
         string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-        string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
-        try
-        {
-            Directory.CreateDirectory(redist41Directory);
-            File.WriteAllText(redist41, redistString41);
-            string path = ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"));
-            path.ShouldBe(string.Empty); // "Expected the path to be empty"
-        }
-        finally
-        {
-            if (Directory.Exists(redist41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-            }
-        }
+        TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+        Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
+        ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.1"))
+            .ShouldBeEmpty(); // "Expected the path to be empty"
     }
 
     /// <summary>
-    /// Make sure we get the correct exception when there is no xml in the redist list file
+    ///  Verifies that malformed redist XML causes <see cref="InvalidOperationException"/>.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistExistsBadFile()
         => Should.Throw<InvalidOperationException>(() =>
         {
             string redistString40 = "GARBAGE";
-            string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistExistsBadFile");
+            TransientTestFolder root = Environment.CreateFolder();
+            string tempDirectory = root.Path;
 
             string redist40Directory = Path.Combine(tempDirectory, "v4.0", "RedistList") + Path.DirectorySeparatorChar;
-            string redist40 = Path.Combine(redist40Directory, "FrameworkList.xml");
-            try
-            {
-                Directory.CreateDirectory(redist40Directory);
-                File.WriteAllText(redist40, redistString40);
+            TransientTestFolder redist40Folder = Environment.CreateFolder(redist40Directory);
+            Environment.CreateFile(redist40Folder, "FrameworkList.xml", redistString40);
 
-                string path = ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.0"));
-                path.ShouldBeNull(); // "Expected the path to be null"
-            }
-            finally
-            {
-                if (Directory.Exists(redist40Directory))
-                {
-                    FileUtilities.DeleteWithoutTrailingBackslash(redist40Directory, true);
-                }
-            }
+            ToolLocationHelper.ChainReferenceAssemblyPath(Path.Combine(tempDirectory, "v4.0"))
+                .ShouldBeNull(); // "Expected the path to be null"
         });
 
     /// <summary>
-    /// Make sure we get the correct exception when the xml file points to an included framework which does not exist.
+    ///  Verifies that a missing included framework directory produces <see langword="null"/>.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistPointsToInvalidInclude()
     {
-        string redistString41 = "<FileList Redist='Random' IncludeFramework='IDontExist'>" +
-                                          "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                       "</FileList>";
+        string redistString41 = """
+            <FileList Redist='Random' IncludeFramework='IDontExist'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList>
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistPointsToInvalidInclude");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
         string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-        string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
         string tempDirectoryPath = Path.Combine(tempDirectory, "v4.1");
-        try
-        {
-            Directory.CreateDirectory(redist41Directory);
-            File.WriteAllText(redist41, redistString41);
+        TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+        Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
 
-            string path = ToolLocationHelper.ChainReferenceAssemblyPath(tempDirectoryPath);
-            path.ShouldBeNull();
-        }
-        finally
-        {
-            if (Directory.Exists(redist41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-            }
-        }
+        ToolLocationHelper.ChainReferenceAssemblyPath(tempDirectoryPath)
+            .ShouldBeNull();
     }
 
     /// <summary>
-    /// Make sure we get the correct exception when the xml file points to an included framework which has invalid path chars.
+    ///  Verifies that invalid included-framework path characters cause <see cref="InvalidOperationException"/>.
     /// </summary>
     [Fact]
     public void ChainReferenceAssembliesRedistInvalidPathChars()
         => Should.Throw<InvalidOperationException>(() =>
-    {
-        char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
-
-        string redistString41 = "<FileList Redist='Random' IncludeFramework='" + new string(invalidFileNameChars) + "'>" +
-                                        "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                    "</FileList>";
-
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistInvalidPathChars");
-
-        string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-        string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
-        string tempDirectoryPath = Path.Combine(tempDirectory, "v4.1");
-        try
         {
-            Directory.CreateDirectory(redist41Directory);
-            File.WriteAllText(redist41, redistString41);
+            char[] invalidFileNameChars = Path.GetInvalidFileNameChars();
 
-            ToolLocationHelper.ChainReferenceAssemblyPath(tempDirectoryPath);
-        }
-        finally
-        {
-            if (Directory.Exists(redist41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-            }
-        }
-    });
+            string redistString41 = $"""
+                <FileList Redist='Random' IncludeFramework='{new string(invalidFileNameChars)}'>
+                    <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+                </FileList>
+                """;
+
+            TransientTestFolder root = Environment.CreateFolder();
+            string tempDirectory = root.Path;
+
+            string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
+            string tempDirectoryPath = Path.Combine(tempDirectory, "v4.1");
+            TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+            Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
+
+            _ = ToolLocationHelper.ChainReferenceAssemblyPath(tempDirectoryPath);
+        });
 
     /// <summary>
-    /// Make sure we get the correct exception when the xml file points to an included framework which has invalid path chars.
+    ///  Verifies that an excessively long included-framework path causes <see cref="InvalidOperationException"/>.
     /// </summary>
     [WindowsFullFrameworkOnlyFact]
     public void ChainReferenceAssembliesRedistPathTooLong()
         => Should.Throw<InvalidOperationException>(() =>
         {
-            string tooLong = new string('a', 500);
-            string redistString41 = "<FileList Redist='Random' IncludeFramework='" + tooLong + "'>" +
-                                                "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                            "</FileList>";
+            string tooLong = new('a', 500);
+            string redistString41 = $"""
+                <FileList Redist='Random' IncludeFramework='{tooLong}'>
+                    <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+                </FileList>
+                """;
 
-            string tempDirectory = Path.Combine(Path.GetTempPath(), "ChainReferenceAssembliesRedistPathTooLong");
+            TransientTestFolder root = Environment.CreateFolder();
+            string tempDirectory = root.Path;
 
             string redist41Directory = Path.Combine(tempDirectory, "v4.1", "RedistList") + Path.DirectorySeparatorChar;
-            string redist41 = Path.Combine(redist41Directory, "FrameworkList.xml");
             string tempDirectoryPath = Path.Combine(tempDirectory, "v4.1");
-            try
-            {
-                Directory.CreateDirectory(redist41Directory);
-                File.WriteAllText(redist41, redistString41);
+            TransientTestFolder redist41Folder = Environment.CreateFolder(redist41Directory);
+            Environment.CreateFile(redist41Folder, "FrameworkList.xml", redistString41);
 
-                ToolLocationHelper.ChainReferenceAssemblyPath(tempDirectoryPath);
-            }
-            finally
-            {
-                if (Directory.Exists(redist41Directory))
-                {
-                    FileUtilities.DeleteWithoutTrailingBackslash(redist41Directory, true);
-                }
-            }
+            _ = ToolLocationHelper.ChainReferenceAssemblyPath(tempDirectoryPath);
         });
 
     /// <summary>
-    /// Verify the case where we are chaining redist lists and they are properly formatted
+    ///  Verifies that chained reference-assembly directories are returned in framework inclusion order.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithRootGoodWithChain()
     {
-        string redistString41 = "<FileList Redist='Random' IncludeFramework='v4.0'>" +
-                                 "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                              "</FileList >";
+        string redistString41 = """
+            <FileList Redist='Random' IncludeFramework='v4.0'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string redistString40 = "<FileList Redist='Random' IncludeFramework='v3.9'>" +
-                                   "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                "</FileList >";
+        string redistString40 = """
+            <FileList Redist='Random' IncludeFramework='v3.9'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string redistString39 = "<FileList Redist='Random'>" +
-                                     "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                  "</FileList >";
+        string redistString39 = """
+            <FileList Redist='Random'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "GetPathToReferenceAssembliesWithRootGoodWithChain");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
         string framework41Directory = Path.Combine(tempDirectory, "MyFramework", "v4.1") + Path.DirectorySeparatorChar;
         string framework41redistDirectory = Path.Combine(framework41Directory, "RedistList");
-        string framework41RedistList = Path.Combine(framework41redistDirectory, "FrameworkList.xml");
 
         string framework40Directory = Path.Combine(tempDirectory, "MyFramework", "v4.0") + Path.DirectorySeparatorChar;
         string framework40redistDirectory = Path.Combine(framework40Directory, "RedistList");
-        string framework40RedistList = Path.Combine(framework40redistDirectory, "FrameworkList.xml");
 
         string framework39Directory = Path.Combine(tempDirectory, "MyFramework", "v3.9") + Path.DirectorySeparatorChar;
         string framework39redistDirectory = Path.Combine(framework39Directory, "RedistList");
-        string framework39RedistList = Path.Combine(framework39redistDirectory, "FrameworkList.xml");
 
-        try
-        {
-            Directory.CreateDirectory(framework41redistDirectory);
-            Directory.CreateDirectory(framework40redistDirectory);
-            Directory.CreateDirectory(framework39redistDirectory);
+        TransientTestFolder framework41RedistFolder = Environment.CreateFolder(framework41redistDirectory);
+        TransientTestFolder framework40RedistFolder = Environment.CreateFolder(framework40redistDirectory);
+        TransientTestFolder framework39RedistFolder = Environment.CreateFolder(framework39redistDirectory);
 
-            File.WriteAllText(framework39RedistList, redistString39);
-            File.WriteAllText(framework40RedistList, redistString40);
-            File.WriteAllText(framework41RedistList, redistString41);
+        Environment.CreateFile(framework39RedistFolder, "FrameworkList.xml", redistString39);
+        Environment.CreateFile(framework40RedistFolder, "FrameworkList.xml", redistString40);
+        Environment.CreateFile(framework41RedistFolder, "FrameworkList.xml", redistString41);
 
-            FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("MyFramework", new Version("4.1"));
-            IList<string> directories = ToolLocationHelper.GetPathToReferenceAssemblies(tempDirectory, frameworkName);
+        FrameworkName frameworkName = new("MyFramework", new Version("4.1"));
+        IList<string> directories = ToolLocationHelper.GetPathToReferenceAssemblies(tempDirectory, frameworkName);
 
-            directories.Count.ShouldBe(3); // "Expected the method to return three paths."
-            directories[0].ShouldBe(framework41Directory, StringCompareShould.IgnoreCase);
-            directories[1].ShouldBe(framework40Directory, StringCompareShould.IgnoreCase);
-            directories[2].ShouldBe(framework39Directory, StringCompareShould.IgnoreCase);
-        }
-        finally
-        {
-            if (Directory.Exists(framework41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework41Directory, true);
-            }
-
-            if (Directory.Exists(framework40Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework40Directory, true);
-            }
-
-            if (Directory.Exists(framework39Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework39Directory, true);
-            }
-        }
+        // "Expected the method to return three paths."
+        directories.ShouldHaveItems(
+            directory => directory.ShouldBe(framework41Directory, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(framework40Directory, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(framework39Directory, StringCompareShould.IgnoreCase));
     }
 
     /// <summary>
-    /// Verify the correct display name returned
+    ///  Verifies that display names use the redist list's name or fall back to the framework name, version, and profile.
     /// </summary>
     [Fact]
     public void DisplayNameGeneration()
     {
-        string redistString40 = "<FileList Redist='Random' Name='MyFramework 4.0' >" +
-                                   "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                "</FileList >";
+        string redistString40 = """
+            <FileList Redist='Random' Name='MyFramework 4.0' >
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string redistString39 = "<FileList Redist='Random'>" +
-                                     "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                  "</FileList >";
+        string redistString39 = """
+            <FileList Redist='Random'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "DisplayNameGeneration");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
-        string framework40Directory = Path.Combine(tempDirectory, "MyFramework", "v4.0")
-                                      + Path.DirectorySeparatorChar;
+        string framework40Directory = $"{Path.Combine(tempDirectory, "MyFramework", "v4.0")}{Path.DirectorySeparatorChar}";
         string framework40redistDirectory = Path.Combine(framework40Directory, "RedistList");
-        string framework40RedistList = Path.Combine(framework40redistDirectory, "FrameworkList.xml");
 
-        string framework39Directory =
-            Path.Combine(tempDirectory, "MyFramework", "v3.9", "Profile", "Client");
+        string framework39Directory = Path.Combine(tempDirectory, "MyFramework", "v3.9", "Profile", "Client");
         string framework39redistDirectory = Path.Combine(framework39Directory, "RedistList");
-        string framework39RedistList = Path.Combine(framework39redistDirectory, "FrameworkList.xml");
 
-        try
-        {
-            Directory.CreateDirectory(framework40redistDirectory);
-            Directory.CreateDirectory(framework39redistDirectory);
+        TransientTestFolder framework40RedistFolder = Environment.CreateFolder(framework40redistDirectory);
+        TransientTestFolder framework39RedistFolder = Environment.CreateFolder(framework39redistDirectory);
 
-            File.WriteAllText(framework39RedistList, redistString39);
-            File.WriteAllText(framework40RedistList, redistString40);
+        Environment.CreateFile(framework39RedistFolder, "FrameworkList.xml", redistString39);
+        Environment.CreateFile(framework40RedistFolder, "FrameworkList.xml", redistString40);
 
-            FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("MyFramework", new Version("4.0"));
-            string displayName40 = ToolLocationHelper.GetDisplayNameForTargetFrameworkDirectory(framework40Directory, frameworkName);
-
-            frameworkName = new FrameworkNameVersioning("MyFramework", new Version("3.9"), "Client");
-            string displayName39 = ToolLocationHelper.GetDisplayNameForTargetFrameworkDirectory(framework39Directory, frameworkName);
-            displayName40.ShouldBe("MyFramework 4.0", StringCompareShould.IgnoreCase);
-            displayName39.ShouldBe("MyFramework v3.9 Client", StringCompareShould.IgnoreCase);
-        }
-        finally
-        {
-            if (Directory.Exists(framework40Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework40Directory, true);
-            }
-
-            if (Directory.Exists(framework39Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework39Directory, true);
-            }
-        }
+        ToolLocationHelper.GetDisplayNameForTargetFrameworkDirectory(framework40Directory, new("MyFramework", new Version("4.0")))
+            .ShouldBe("MyFramework 4.0", StringCompareShould.IgnoreCase);
+        ToolLocationHelper.GetDisplayNameForTargetFrameworkDirectory(framework39Directory, new("MyFramework", new Version("3.9"), "Client"))
+            .ShouldBe("MyFramework v3.9 Client", StringCompareShould.IgnoreCase);
     }
 
     /// <summary>
-    /// Make sure we do not crash if there is a circular reference in the redist lists, we should only have a path in our reference assembly list once.
+    ///  Verifies that a circular redist-list chain terminates and includes each reference-assembly directory only once.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithRootCircularReference()
     {
-        string redistString41 = "<FileList Redist='Random' IncludeFramework='v4.0'>" +
-                                 "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                              "</FileList >";
+        string redistString41 = """
+            <FileList Redist='Random' IncludeFramework='v4.0'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string redistString40 = "<FileList Redist='Random' IncludeFramework='v4.1'>" +
-                                   "<File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />" +
-                                "</FileList >";
+        string redistString40 = """
+            <FileList Redist='Random' IncludeFramework='v4.1'>
+                <File AssemblyName='System' Version='4.0.0.0' PublicKeyToken='b77a5c561934e089' Culture='neutral' ProcessorArchitecture='MSIL' FileVersion='4.0.0.0' InGAC='false' />
+            </FileList >
+            """;
 
-        string tempDirectory = Path.Combine(Path.GetTempPath(), "GetPathToReferenceAssembliesWithRootCircularReference");
+        TransientTestFolder root = Environment.CreateFolder();
+        string tempDirectory = root.Path;
 
-        string framework41Directory = Path.Combine(tempDirectory, "MyFramework", "v4.1")
-                                      + Path.DirectorySeparatorChar;
+        string framework41Directory = $"{Path.Combine(tempDirectory, "MyFramework", "v4.1")}{Path.DirectorySeparatorChar}";
         string framework41redistDirectory = Path.Combine(framework41Directory, "RedistList");
-        string framework41RedistList = Path.Combine(framework41redistDirectory, "FrameworkList.xml");
 
-        string framework40Directory = Path.Combine(tempDirectory, "MyFramework", "v4.0")
-                                      + Path.DirectorySeparatorChar;
+        string framework40Directory = $"{Path.Combine(tempDirectory, "MyFramework", "v4.0")}{Path.DirectorySeparatorChar}";
         string framework40redistDirectory = Path.Combine(framework40Directory, "RedistList");
-        string framework40RedistList = Path.Combine(framework40redistDirectory, "FrameworkList.xml");
 
-        try
-        {
-            Directory.CreateDirectory(framework41redistDirectory);
-            Directory.CreateDirectory(framework40redistDirectory);
+        TransientTestFolder framework41RedistFolder = Environment.CreateFolder(framework41redistDirectory);
+        TransientTestFolder framework40RedistFolder = Environment.CreateFolder(framework40redistDirectory);
 
-            File.WriteAllText(framework40RedistList, redistString40);
-            File.WriteAllText(framework41RedistList, redistString41);
+        Environment.CreateFile(framework40RedistFolder, "FrameworkList.xml", redistString40);
+        Environment.CreateFile(framework41RedistFolder, "FrameworkList.xml", redistString41);
 
-            FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("MyFramework", new Version("4.1"));
-            IList<string> directories = ToolLocationHelper.GetPathToReferenceAssemblies(tempDirectory, frameworkName);
+        FrameworkName frameworkName = new("MyFramework", new Version("4.1"));
+        IList<string> directories = ToolLocationHelper.GetPathToReferenceAssemblies(tempDirectory, frameworkName);
 
-            directories.Count.ShouldBe(2); // "Expected the method to return two paths."
-            directories[0].ShouldBe(framework41Directory, StringCompareShould.IgnoreCase);
-            directories[1].ShouldBe(framework40Directory, StringCompareShould.IgnoreCase);
-        }
-        finally
-        {
-            if (Directory.Exists(framework41Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework41Directory, true);
-            }
-
-            if (Directory.Exists(framework40Directory))
-            {
-                FileUtilities.DeleteWithoutTrailingBackslash(framework40Directory, true);
-            }
-        }
+        // "Expected the method to return two paths."
+        directories.ShouldHaveItems(
+            directory => directory.ShouldBe(framework41Directory, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(framework40Directory, StringCompareShould.IgnoreCase));
     }
 
     /// <summary>
-    /// Test the case where the root path is a string but the framework name is null.
-    /// We should expect the correct argument null exception
+    ///  Verifies that a <see langword="null"/> framework name is rejected when a reference-assembly root is supplied.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesNullFrameworkName()
         => Should.Throw<ArgumentNullException>(() =>
-            ToolLocationHelper.GetPathToReferenceAssemblies("Not Null String", (FrameworkNameVersioning)null));
+            ToolLocationHelper.GetPathToReferenceAssemblies("Not Null String", frameworkName: null));
 
     /// <summary>
-    /// Make sure we get the correct exception when both parameters are null
+    ///  Verifies that <see langword="null"/> root and framework-name arguments are rejected.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesNullArgumentNameandFrameworkName()
         => Should.Throw<ArgumentNullException>(() =>
-            ToolLocationHelper.GetPathToReferenceAssemblies(null, (FrameworkNameVersioning)null));
+            ToolLocationHelper.GetPathToReferenceAssemblies(targetFrameworkRootPath: null, frameworkName: null));
 
     /// <summary>
-    /// Make sure we get the correct exception when the root is null but the frameworkname is not null
+    ///  Verifies that a <see langword="null"/> root is rejected when a framework name is supplied.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesNullArgumentGoodFrameworkNameNullRoot()
         => Should.Throw<ArgumentNullException>(() =>
-            ToolLocationHelper.GetPathToReferenceAssemblies(null, new FrameworkNameVersioning("Ident", new Version("2.0"))));
+            ToolLocationHelper.GetPathToReferenceAssemblies(targetFrameworkRootPath: null, new FrameworkName("Ident", new Version("2.0"))));
 
     /// <summary>
-    /// Make sure we get the correct exception when the root is null but the frameworkname is not null
-    /// With no framework name we cannot generate the path
+    ///  Verifies that an empty root is rejected when a framework name is supplied.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesNullArgumentGoodFrameworkNameEmptyRoot()
         => Should.Throw<ArgumentException>(() =>
-            ToolLocationHelper.GetPathToReferenceAssemblies(string.Empty, new FrameworkNameVersioning("Ident", new Version("2.0"))));
+            ToolLocationHelper.GetPathToReferenceAssemblies(string.Empty, new FrameworkName("Ident", new Version("2.0"))));
 
     /// <summary>
-    /// Make sure we get the correct exception when the root is null but the frameworkname is not empty to make sure we cover the different input cases
-    /// With no root we cannot properly generate the path.
+    ///  Verifies that an empty root cannot be used to generate a reference-assembly path.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesNullArgumentGoodFrameworkNameEmptyRoot2()
         => Should.Throw<ArgumentException>(() =>
-            ToolLocationHelper.GetPathToReferenceAssemblies(string.Empty, new FrameworkNameVersioning("Ident", new Version("2.0"))));
+            ToolLocationHelper.GetPathToReferenceAssemblies(string.Empty, new FrameworkName("Ident", new Version("2.0"))));
 
     /// <summary>
-    /// Test the case where the method which only takes in a FrameworkName will throw an exception when
-    /// the input is null since a null framework name is not useful
+    ///  Verifies that default-location lookup rejects a <see langword="null"/> framework name.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesDefaultLocationNullFrameworkName()
         => Should.Throw<ArgumentNullException>(() =>
-            ToolLocationHelper.GetPathToReferenceAssemblies((FrameworkNameVersioning)null));
+            ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName: null));
 
     /// <summary>
-    /// Verify the method correctly returns the 4.8 reference assembly location information if .net 4.8 and
-    /// its corresponding reference assemblies are installed.
-    /// .NET 4.8 should always be installed for our tests. We cannot validly verify on Windows that by adding a check
-    /// that ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies(TargetDotNetFrameworkVersion.Version48)
-    /// returns something reasonable because later versions of the framework overwrote the current version in
-    /// place, which means it just looks for a folder starting with v4.0 in the right spot for any higher version.
+    ///  Verifies that .NET Framework 4.8 reference-assembly lookup matches the framework-location helper when available.
     /// </summary>
+    /// <remarks>
+    ///  Later .NET Framework releases update the runtime in place. A runtime directory beginning with
+    ///  <c>v4.0</c> therefore does not establish which reference-assembly versions are installed.
+    /// </remarks>
     [Fact]
     public void GetPathToReferenceAssembliesDefaultLocation48()
     {
-        if (ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies(TargetDotNetFrameworkVersion.Version48) != null)
+        string? referenceAssemblyPath = ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies(TargetDotNetFrameworkVersion.Version48);
+        if (referenceAssemblyPath is not null)
         {
-            FrameworkNameVersioning frameworkName = new(".NETFramework", new Version("4.8"));
+            FrameworkName frameworkName = new(".NETFramework", new Version("4.8"));
             IList<string> directories = ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName);
-            directories.Count.ShouldBe(1); // "Expected the method to return one path."
 
-            string referenceAssemblyPath = ToolLocationHelper.GetPathToDotNetFrameworkReferenceAssemblies(TargetDotNetFrameworkVersion.Version48);
-            directories[0].ShouldBe(referenceAssemblyPath, StringCompareShould.IgnoreCase);
+            // "Expected the method to return one path."
+            directories.ShouldHaveSingleItem(directory => directory.ShouldBe(referenceAssemblyPath, StringCompareShould.IgnoreCase));
         }
 
         // else
@@ -650,28 +527,30 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Test the case where the framework requested does not exist. Since we do an existence check before returning the path this non existent path should return an empty list
+    ///  Verifies that an unavailable framework version produces no reference-assembly directories.
     /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesDefaultLocation99()
     {
         string targetFrameworkIdentifier = ".Net Framework";
-        Version targetFrameworkVersion = new Version("99.99");
+        Version targetFrameworkVersion = new("99.99");
 
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning(targetFrameworkIdentifier, targetFrameworkVersion, string.Empty);
+        FrameworkName frameworkName = new(targetFrameworkIdentifier, targetFrameworkVersion, string.Empty);
 
         IList<string> directories = ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName);
-        directories.Count.ShouldBe(0); // "Expected the method to return no paths."
+        directories.ShouldBeEmpty(); // "Expected the method to return no paths."
     }
 
     /// <summary>
-    /// Make sure we choose the correct path for program files based on the operating system
+    ///  Verifies that the 32-bit Program Files directory is selected according to the operating system's architecture.
     /// </summary>
     [WindowsOnlyFact]
     public void TestGenerateProgramFiles32()
     {
-        Environment.SpecialFolder folder = Environment.Is64BitOperatingSystem ? Environment.SpecialFolder.ProgramFilesX86 : Environment.SpecialFolder.ProgramFiles;
-        string programFilesX86 = Environment.GetFolderPath(folder);
+        Environment.SpecialFolder folder = System.Environment.Is64BitOperatingSystem
+            ? System.Environment.SpecialFolder.ProgramFilesX86
+            : System.Environment.SpecialFolder.ProgramFiles;
+        string programFilesX86 = System.Environment.GetFolderPath(folder);
         string result = FrameworkLocationHelper.GenerateProgramFiles32();
 
         // 32-bit OS: "Expected to use program files"
@@ -680,14 +559,14 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Verify we get the correct reference assembly path out of the framework location helper
+    ///  Verifies that the reference-assembly root is derived from the 32-bit Program Files directory.
     /// </summary>
     [WindowsOnlyFact(additionalMessage: "No ProgramFiles known location outside Windows.")]
     public void TestGeneratedReferenceAssemblyPath()
     {
         string programFiles32 = FrameworkLocationHelper.GenerateProgramFiles32();
         string referenceAssemblyRoot = FrameworkLocationHelper.GenerateProgramFilesReferenceAssemblyRoot();
-        string pathToCombineWith = "Reference Assemblies\\Microsoft\\Framework";
+        string pathToCombineWith = @"Reference Assemblies\Microsoft\Framework";
         string combinedPath = Path.Combine(programFiles32, pathToCombineWith);
         string fullPath = Path.GetFullPath(combinedPath);
 
@@ -695,43 +574,42 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Verify when 20 is simulated to be installed that the method returns the 2.0 directory
+    ///  Verifies that a simulated .NET Framework 2.0 installation returns its runtime directory.
     /// </summary>
     [Fact]
     public void LegacyFramework20Good()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("2.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("2.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
-            DotNet20Installed = true
+            DotNet20Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(1);
-        list[0].ShouldBe(LegacyFrameworkTestHelper.DotNet20FrameworkPath);
+        list.ShouldHaveSingleItem(directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet20FrameworkPath));
     }
 
     /// <summary>
-    /// Verify when 20 is simulated to not be installed that the method returns an empty list
+    ///  Verifies that a missing .NET Framework 2.0 installation produces no legacy assembly paths.
     /// </summary>
     [Fact]
     public void LegacyFramework20NotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("2.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper();
+        FrameworkName frameworkName = new("Anything", new Version("2.0"));
+        LegacyFrameworkTestHelper legacyHelper = new();
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Verify when 30 is simulated to be installed that the method returns the 3.0 directory
+    ///  Verifies that .NET Framework 3.0 lookup includes its reference and runtime directories followed by the 2.0 runtime.
     /// </summary>
     [Fact]
     public void LegacyFramework30Good()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies30Installed = true,
             DotNet30Installed = true,
@@ -739,52 +617,52 @@ public sealed partial class ToolLocationHelper_Tests
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(3);
-        list[0].ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath);
-        list[1].ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath);
-        list[2].ShouldBe(LegacyFrameworkTestHelper.DotNet20FrameworkPath);
+        list.ShouldHaveItems(
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet20FrameworkPath));
     }
 
     /// <summary>
-    /// Verify when 30 is simulated to not be installed that the method returns an empty list
+    ///  Verifies that .NET Framework 3.0 lookup produces no paths when its runtime directory is missing.
     /// </summary>
     [Fact]
     public void LegacyFramework30NotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies30Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Verify when the 30 reference assemblies are simulated to not be installed that the method returns an empty list
+    ///  Verifies that .NET Framework 3.0 lookup produces no paths when its reference assemblies are missing.
     /// </summary>
     [Fact]
     public void LegacyFramework30ReferenceAssembliesNotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNet30Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Verify when 30 is installed but 2.0 is not installed that we only get one of the paths back.
+    ///  Verifies that .NET Framework 3.0 lookup omits the 2.0 runtime when it is not installed.
     /// </summary>
     [Fact]
     public void LegacyFramework30WithNo20Installed()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNet30Installed = true,
             DotNetReferenceAssemblies30Installed = true,
@@ -792,19 +670,19 @@ public sealed partial class ToolLocationHelper_Tests
 
         // Note no 2.0 installed
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(2);
-        list[0].ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath, StringCompareShould.IgnoreCase);
-        list[1].ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath, StringCompareShould.IgnoreCase);
+        list.ShouldHaveItems(
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath, StringCompareShould.IgnoreCase));
     }
 
     /// <summary>
-    /// Verify when 35 is simulated to be installed that the method returns the 3.5 directory
+    ///  Verifies that .NET Framework 3.5 lookup includes its reference and runtime directories and the 3.0 and 2.0 chain.
     /// </summary>
     [Fact]
     public void LegacyFramework35Good()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.5"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.5"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies35Installed = true,
             DotNetReferenceAssemblies30Installed = true,
@@ -814,58 +692,53 @@ public sealed partial class ToolLocationHelper_Tests
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(5);
-        list[0].ShouldBe(LegacyFrameworkTestHelper.DotNet35ReferenceAssemblyPath);
-        list[1].ShouldBe(LegacyFrameworkTestHelper.DotNet35FrameworkPath);
-        list[2].ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath);
-        list[3].ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath);
-        list[4].ShouldBe(LegacyFrameworkTestHelper.DotNet20FrameworkPath);
+        list.ShouldHaveItems(
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet35ReferenceAssemblyPath),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet35FrameworkPath),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet20FrameworkPath));
     }
 
     /// <summary>
-    /// Verify when 35 is simulated to not be installed that the method returns an empty list
+    ///  Verifies that .NET Framework 3.5 lookup produces no paths when its runtime directory is missing.
     /// </summary>
     [Fact]
     public void LegacyFramework35NotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.5"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.5"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies35Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Verify when 35 reference assembly are simulated to not be installed that the method returns an empty list
+    ///  Verifies that .NET Framework 3.5 lookup produces no paths when its reference assemblies are missing.
     /// </summary>
     [Fact]
     public void LegacyFramework35ReferenceAssembliesNotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.5"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.5"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNet35Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Make sure when we are targeting .net framework 3.5 and are on a 64 bit machine we get the correct framework path.
-    ///
-    /// We are on a 64 bit machine
-    /// Targeting .net framework 3.5
-    ///
-    /// 1) Target platform is x86. We expect to get the 32 bit framework directory
-    /// 2) Target platform is x64, we expect to get the 64 bit framework directory
-    /// 3) Target platform is Itanium, we expect to get the 64 bit framework directory
-    /// 3) Target platform is some other value (AnyCpu, or anything else)  expect the framework directory for the "current" bitness of the process we are running under.
-    ///
+    ///  Verifies architecture-specific .NET Framework 3.5 standard-library paths on a 64-bit operating system.
     /// </summary>
+    /// <remarks>
+    ///  <c>x86</c> selects the 32-bit .NET Framework 2.0 runtime directory; <c>x64</c> and <c>itanium</c>
+    ///  select the 64-bit directory. Unrecognized platforms use the current process's architecture.
+    /// </remarks>
     [Fact]
     public void GetPathToStandardLibraries64Bit35()
     {
@@ -873,7 +746,7 @@ public sealed partial class ToolLocationHelper_Tests
         string frameworkDirectory2064bit = FrameworkLocationHelper.GetPathToDotNetFrameworkV20(DotNetFrameworkArchitecture.Bitness64);
         string frameworkDirectory20Current = FrameworkLocationHelper.GetPathToDotNetFrameworkV20(DotNetFrameworkArchitecture.Current);
 
-        if (!Environment.Is64BitOperatingSystem)
+        if (!System.Environment.Is64BitOperatingSystem)
         {
             // "Not 64 bit OS "
             return;
@@ -894,7 +767,7 @@ public sealed partial class ToolLocationHelper_Tests
         pathToFramework = ToolLocationHelper.GetPathToStandardLibraries(".NetFramework", "v3.5", string.Empty, "itanium");
         pathToFramework.ShouldBe(frameworkDirectory2064bit, StringCompareShould.IgnoreCase);
 
-        if (!Environment.Is64BitProcess)
+        if (!System.Environment.Is64BitProcess)
         {
             pathToFramework = ToolLocationHelper.GetPathToStandardLibraries(".NetFramework", "v3.5", string.Empty, "RandomPlatform");
             pathToFramework.ShouldBe(frameworkDirectory2032bit, StringCompareShould.IgnoreCase);
@@ -907,19 +780,18 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Make sure when we are targeting .net framework 3.5 and are on a 64 bit machine we get the correct framework path.
-    ///
-    /// We are on a 64 bit machine
-    /// Targeting .net framework 4.0
-    ///
-    /// We expect to always get the same path which is returned by GetPathToReferenceAssemblies.
+    ///  Verifies that .NET Framework 4.0 standard-library paths are architecture-independent on a 64-bit operating system.
     /// </summary>
+    /// <remarks>
+    ///  Every tested platform resolves to the directory returned by
+    ///  <see cref="ToolLocationHelper.GetPathToReferenceAssemblies(FrameworkName)"/>.
+    /// </remarks>
     [Fact]
     public void GetPathToStandardLibraries64Bit40()
     {
-        IList<string> referencePaths = ToolLocationHelper.GetPathToReferenceAssemblies(new FrameworkNameVersioning(".NETFramework", new Version("4.0")));
+        IList<string> referencePaths = ToolLocationHelper.GetPathToReferenceAssemblies(new FrameworkName(".NETFramework", new Version("4.0")));
 
-        if (!Environment.Is64BitOperatingSystem)
+        if (!System.Environment.Is64BitOperatingSystem)
         {
             // "Not 64 bit OS "
             return;
@@ -946,25 +818,18 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Make sure when we are targeting .net framework 3.5 and are on a 32 bit machine we get the correct framework path.
-    ///
-    /// We are on a 32 bit machine
-    /// Targeting .net framework 3.5
-    ///
-    /// 1) Target platform is x86. We expect to get the 32 bit framework directory
-    /// 2) Target platform is x64, we expect to get the 32 bit framework directory
-    /// 3) Target platform is Itanium, we expect to get the 32 bit framework directory
-    /// 3) Target platform is some other value (AnyCpu, or anything else)  expect the framework directory for the "current" bitness of the process we are running under. In the
-    ///    case of the unit test this should be the 32 bit framework directory.
-    ///
+    ///  Verifies that .NET Framework 3.5 standard-library lookup uses the 32-bit runtime on a 32-bit operating system.
     /// </summary>
+    /// <remarks>
+    ///  <c>x86</c>, <c>x64</c>, <c>itanium</c>, and unrecognized platforms all select the 32-bit .NET Framework 2.0 directory.
+    /// </remarks>
     [Fact]
     public void GetPathToStandardLibraries32Bit35()
     {
         string frameworkDirectory2032bit = FrameworkLocationHelper.GetPathToDotNetFrameworkV20(DotNetFrameworkArchitecture.Bitness32);
         string frameworkDirectory20Current = FrameworkLocationHelper.GetPathToDotNetFrameworkV20(DotNetFrameworkArchitecture.Current);
 
-        if (Environment.Is64BitOperatingSystem)
+        if (System.Environment.Is64BitOperatingSystem)
         {
             // "Is a 64 bit OS "
             return;
@@ -990,19 +855,18 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Make sure when we are targeting .net framework 4.0 and are on a 32 bit machine we get the correct framework path.
-    ///
-    /// We are on a 32 bit machine
-    /// Targeting .net framework 4.0
-    ///
-    /// We expect to always get the same path which is returned by GetPathToReferenceAssemblies.
+    ///  Verifies that .NET Framework 4.0 standard-library paths are architecture-independent on a 32-bit operating system.
     /// </summary>
+    /// <remarks>
+    ///  Every tested platform resolves to the directory returned by
+    ///  <see cref="ToolLocationHelper.GetPathToReferenceAssemblies(FrameworkName)"/>.
+    /// </remarks>
     [Fact]
     public void GetPathToStandardLibraries32Bit40()
     {
-        IList<string> referencePaths = ToolLocationHelper.GetPathToReferenceAssemblies(new FrameworkNameVersioning(".NETFramework", new Version("4.0")));
+        IList<string> referencePaths = ToolLocationHelper.GetPathToReferenceAssemblies(new FrameworkName(".NETFramework", new Version("4.0")));
 
-        if (Environment.Is64BitOperatingSystem)
+        if (System.Environment.Is64BitOperatingSystem)
         {
             // "Is 64 bit OS "
             return;
@@ -1029,13 +893,13 @@ public sealed partial class ToolLocationHelper_Tests
     }
 
     /// <summary>
-    /// Verify when 35 is installed but 2.0 is not installed we to find 3.5 and 3.0 but no 2.0 because it does not exist.
+    ///  Verifies that .NET Framework 3.5 lookup retains the 3.0 chain but omits an unavailable 2.0 runtime.
     /// </summary>
     [Fact]
     public void LegacyFramework35WithNo20Installed()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.5"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.5"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies35Installed = true,
             DotNetReferenceAssemblies30Installed = true,
@@ -1044,23 +908,22 @@ public sealed partial class ToolLocationHelper_Tests
         };
 
         // Note no 2.0 installed
-
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(4);
-        list[0].ShouldBe(LegacyFrameworkTestHelper.DotNet35ReferenceAssemblyPath, StringCompareShould.IgnoreCase);
-        list[1].ShouldBe(LegacyFrameworkTestHelper.DotNet35FrameworkPath, StringCompareShould.IgnoreCase);
-        list[2].ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath, StringCompareShould.IgnoreCase);
-        list[3].ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath, StringCompareShould.IgnoreCase);
+        list.ShouldHaveItems(
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet35ReferenceAssemblyPath, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet35FrameworkPath, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30ReferenceAssemblyPath, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet30FrameworkPath, StringCompareShould.IgnoreCase));
     }
 
     /// <summary>
-    /// Verify when 35 is installed but 3.0 is not installed we expect not to find 3.0 or 2.0.
+    ///  Verifies that an incomplete .NET Framework 3.0 installation stops the 3.5 chain before both 3.0 and 2.0.
     /// </summary>
     [Fact]
     public void LegacyFramework35WithNo30Installed()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("3.5"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("3.5"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies35Installed = true,
             DotNet35Installed = true,
@@ -1070,72 +933,75 @@ public sealed partial class ToolLocationHelper_Tests
         // Note no 3.0
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(2);
-        list[0].ShouldBe(LegacyFrameworkTestHelper.DotNet35ReferenceAssemblyPath, StringCompareShould.IgnoreCase);
-        list[1].ShouldBe(LegacyFrameworkTestHelper.DotNet35FrameworkPath, StringCompareShould.IgnoreCase);
+        list.ShouldHaveItems(
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet35ReferenceAssemblyPath, StringCompareShould.IgnoreCase),
+            directory => directory.ShouldBe(LegacyFrameworkTestHelper.DotNet35FrameworkPath, StringCompareShould.IgnoreCase));
     }
 
     /// <summary>
-    /// Verify when 40 is simulated to not be installed that the method returns an empty list
+    ///  Verifies that a missing .NET Framework 4.0 installation produces no legacy assembly paths.
     /// </summary>
     [Fact]
     public void LegacyFramework40NotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("4.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper();
+        FrameworkName frameworkName = new("Anything", new Version("4.0"));
+        LegacyFrameworkTestHelper legacyHelper = new();
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Verify when 40 reference assemblies are installed but the dot net framework is not, in this case we return empty indicating .net 4.0 is not properly installed
+    ///  Verifies that .NET Framework 4.0 lookup produces no paths when its runtime directory is missing.
     /// </summary>
     [Fact]
     public void LegacyFramework40DotNetFrameworkDirectoryNotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("4.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("4.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNetReferenceAssemblies40Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
     /// <summary>
-    /// Verify when 40 reference assemblies are installed but the dot net framework is not we only get one of the paths back, this is because right now the assemblies are not in the right location
+    ///  Verifies that .NET Framework 4.0 lookup produces no paths when its reference assemblies are missing.
     /// </summary>
     [Fact]
     public void LegacyFramework40DotNetReferenceAssemblyDirectoryNotInstalled()
     {
-        FrameworkNameVersioning frameworkName = new FrameworkNameVersioning("Anything", new Version("4.0"));
-        LegacyFrameworkTestHelper legacyHelper = new LegacyFrameworkTestHelper
+        FrameworkName frameworkName = new("Anything", new Version("4.0"));
+        LegacyFrameworkTestHelper legacyHelper = new()
         {
             DotNet40Installed = true,
         };
 
         IList<string> list = ToolLocationHelper.HandleLegacyDotNetFrameworkReferenceAssemblyPaths(legacyHelper.GetDotNetVersionToPathDelegate, legacyHelper.GetDotNetReferenceAssemblyDelegate, frameworkName);
-        list.Count.ShouldBe(0);
+        list.ShouldBeEmpty();
     }
 
+    /// <summary>
+    ///  Verifies that standard-library lookup finds a framework under a custom root.
+    /// </summary>
     [Fact]
     public void GetPathToStandardLibrariesWithCustomTargetFrameworkRoot()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string frameworkName = "Foo Framework";
-            string frameworkVersion = "v0.1";
-            string rootDir = Path.Combine(env.DefaultTestDirectory.Path, "framework-root");
+        string frameworkName = "Foo Framework";
+        string frameworkVersion = "v0.1";
+        string rootDir = Path.Combine(Environment.DefaultTestDirectory.Path, "framework-root");
 
-            string asmPath = CreateNewFrameworkAndGetAssembliesPath(env, frameworkName, frameworkVersion, rootDir);
+        string asmPath = CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersion, rootDir);
 
-            string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null, rootDir);
-            stdLibPath.ShouldBe(asmPath);
-        }
+        string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null, rootDir);
+        stdLibPath.ShouldBe(asmPath);
     }
 
+    /// <summary>
+    ///  Verifies that a <see langword="null"/> platform argument preserves the default standard-library path.
+    /// </summary>
     [Fact]
     public void GetPathToStandardLibrariesWithNullTargetFrameworkRootPath()
     {
@@ -1143,29 +1009,33 @@ public sealed partial class ToolLocationHelper_Tests
         string frameworkVersion = "v4.5";
 
         string v45Path = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty);
+
         // This look up should fall back the default path with the .NET frameworks
         string v45PathWithNullRoot = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null);
 
         v45PathWithNullRoot.ShouldBe(v45Path);
     }
 
+    /// <summary>
+    ///  Verifies that standard-library lookup searches fallback roots when no custom root is specified.
+    /// </summary>
     [Fact]
     public void GetPathToStandardLibrariesWithCustomTargetFrameworkInFallbackSearchPathAndNullRoot()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string frameworkName = "Foo Framework";
-            string frameworkVersion = "v0.1";
-            string customFrameworkRootPath = Path.Combine(env.DefaultTestDirectory.Path, "framework-root");
+        string frameworkName = "Foo Framework";
+        string frameworkVersion = "v0.1";
+        string customFrameworkRootPath = Path.Combine(Environment.DefaultTestDirectory.Path, "framework-root");
 
-            string asmPath = CreateNewFrameworkAndGetAssembliesPath(env, frameworkName, frameworkVersion, customFrameworkRootPath);
-            string fallbackSearchPaths = $"/foo/bar;{customFrameworkRootPath};/a/b";
+        string asmPath = CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersion, customFrameworkRootPath);
+        string fallbackSearchPaths = $"/foo/bar;{customFrameworkRootPath};/a/b";
 
-            string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null, null, fallbackSearchPaths);
-            stdLibPath.ShouldBe(asmPath);
-        }
+        string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null, null, fallbackSearchPaths);
+        stdLibPath.ShouldBe(asmPath);
     }
 
+    /// <summary>
+    ///  Verifies that a custom standard-library root takes precedence over fallback search paths.
+    /// </summary>
     [Fact]
     public void GetPathToStandardLibrariesWithCustomRootAndCustomTargetFrameworkInFallbackSearchPath()
     {
@@ -1174,24 +1044,24 @@ public sealed partial class ToolLocationHelper_Tests
         // the framework in the root path, because the search order is:
         //  1. rootPath or default path, if null
         //  2. fallback search paths
-        using (var env = TestEnvironment.Create())
-        {
-            string frameworkName = "Foo Framework";
-            string frameworkVersion = "v0.1";
-            string rootDir = Path.Combine(env.CreateFolder().Path, "framework-root");
-            string fallbackPath = Path.Combine(env.CreateFolder().Path, "framework-root");
+        string frameworkName = "Foo Framework";
+        string frameworkVersion = "v0.1";
+        string rootDir = Path.Combine(Environment.CreateFolder().Path, "framework-root");
+        string fallbackPath = Path.Combine(Environment.CreateFolder().Path, "framework-root");
 
-            string asmPathForRoot = CreateNewFrameworkAndGetAssembliesPath(env, frameworkName, frameworkVersion, rootDir);
-            CreateNewFrameworkAndGetAssembliesPath(env, frameworkName, frameworkVersion, fallbackPath);
-            string fallbackSearchPaths = $"/foo/bar;{fallbackPath};/a/b";
+        string asmPathForRoot = CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersion, rootDir);
+        CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersion, fallbackPath);
+        string fallbackSearchPaths = $"/foo/bar;{fallbackPath};/a/b";
 
-            string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null, rootDir, fallbackSearchPaths);
+        string stdLibPath = ToolLocationHelper.GetPathToStandardLibraries(frameworkName, frameworkVersion, string.Empty, null, rootDir, fallbackSearchPaths);
 
-            // the path should be for the framework in the root path
-            stdLibPath.ShouldBe(asmPathForRoot);
-        }
+        // the path should be for the framework in the root path
+        stdLibPath.ShouldBe(asmPathForRoot);
     }
 
+    /// <summary>
+    ///  Verifies that <see langword="null"/> platform and root arguments preserve the default standard-library path.
+    /// </summary>
     [Fact]
     public void GetPathToStandardLibrariesWithNullTargetFrameworkFallbackSearchPaths()
     {
@@ -1206,127 +1076,142 @@ public sealed partial class ToolLocationHelper_Tests
         v45PathWithNullRoot.ShouldBe(v45Path);
     }
 
+    /// <summary>
+    ///  Verifies that reference-assembly lookup finds a framework under a custom root.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithCustomTargetFrameworkInRoot()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string customFrameworkDirToUse = Path.Combine(env.CreateFolder().Path, "framework-root");
+        string customFrameworkDirToUse = Path.Combine(Environment.CreateFolder().Path, "framework-root");
 
-            CheckGetPathToReferenceAssemblies(
-                env,
-                customFrameworkDirToUse,
-                null,
-                (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string fallbackSearchPaths)
-                    => ToolLocationHelper.GetPathToReferenceAssemblies(frameworkName, "v" + frameworkVersion, frameworkProfile, customFrameworkDir));
-        }
+        CheckGetPathToReferenceAssemblies(
+            customFrameworkDirToUse,
+            null,
+            (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string? fallbackSearchPaths)
+                => ToolLocationHelper.GetPathToReferenceAssemblies(
+                    frameworkName, $"v{frameworkVersion}", frameworkProfile, customFrameworkDir));
     }
 
+    /// <summary>
+    ///  Verifies that reference-assembly lookup searches fallback paths when a custom root has no matching framework.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithCustomTargetFrameworkInFallbackPath()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string customFrameworkDirToUse = Path.Combine(env.CreateFolder().Path, "framework-root");
-            string searchPaths = $"/foo/bar;{customFrameworkDirToUse}";
-            string rootDir = env.CreateFolder().Path;
+        string customFrameworkDirToUse = Path.Combine(Environment.CreateFolder().Path, "framework-root");
+        string searchPaths = $"/foo/bar;{customFrameworkDirToUse}";
+        string rootDir = Environment.CreateFolder().Path;
 
-            CheckGetPathToReferenceAssemblies(
-                env,
-                customFrameworkDirToUse,
-                searchPaths,
-                (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string fallbackSearchPaths)
-                    => ToolLocationHelper.GetPathToReferenceAssemblies(
-                        frameworkName, "v" + frameworkVersion, frameworkProfile, rootDir, fallbackSearchPaths));
-        }
+        CheckGetPathToReferenceAssemblies(
+            customFrameworkDirToUse,
+            searchPaths,
+            (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string? fallbackSearchPaths)
+                => ToolLocationHelper.GetPathToReferenceAssemblies(
+                    frameworkName, $"v{frameworkVersion}", frameworkProfile, rootDir, fallbackSearchPaths));
     }
 
+    /// <summary>
+    ///  Verifies that reference-assembly lookup searches fallback paths when the custom root is <see langword="null"/>.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithCustomTargetFrameworkInFallbackPathAndNullRoot()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string customFrameworkDirToUse = Path.Combine(env.CreateFolder().Path, "framework-root");
-            string searchPaths = $"/foo/bar;{customFrameworkDirToUse}";
+        string customFrameworkDirToUse = Path.Combine(Environment.CreateFolder().Path, "framework-root");
+        string searchPaths = $"/foo/bar;{customFrameworkDirToUse}";
 
-            CheckGetPathToReferenceAssemblies(
-                env,
-                customFrameworkDirToUse,
-                searchPaths,
-                (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string fallbackSearchPaths)
-                    => ToolLocationHelper.GetPathToReferenceAssemblies(
-                        frameworkName, "v" + frameworkVersion, frameworkProfile, targetFrameworkRootPath: null, targetFrameworkFallbackSearchPaths: fallbackSearchPaths));
-        }
+        CheckGetPathToReferenceAssemblies(
+            customFrameworkDirToUse,
+            searchPaths,
+            (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string? fallbackSearchPaths)
+                => ToolLocationHelper.GetPathToReferenceAssemblies(
+                    frameworkName,
+                    $"v{frameworkVersion}",
+                    frameworkProfile,
+                    targetFrameworkRootPath: null,
+                    targetFrameworkFallbackSearchPaths: fallbackSearchPaths));
     }
 
-    // second overload of GetPathToReferenceAssemblies
+    /// <summary>
+    ///  Verifies that the <see cref="FrameworkName"/> overload finds reference assemblies under a custom root.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithCustomTargetFrameworkInRoot2()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string customFrameworkDirToUse = Path.Combine(env.CreateFolder().Path, "framework-root");
-            CheckGetPathToReferenceAssemblies(
-                env,
-                customFrameworkDirToUse,
-                null,
-                (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string fallbackSearchPaths)
-                    => ToolLocationHelper.GetPathToReferenceAssemblies(
-                        customFrameworkDir, fallbackSearchPaths, new FrameworkNameVersioning(frameworkName, new Version(frameworkVersion), frameworkProfile)));
-        }
+        string customFrameworkDirToUse = Path.Combine(Environment.CreateFolder().Path, "framework-root");
+        CheckGetPathToReferenceAssemblies(
+            customFrameworkDirToUse,
+            null,
+            (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string? fallbackSearchPaths)
+                => ToolLocationHelper.GetPathToReferenceAssemblies(
+                    customFrameworkDir,
+                    fallbackSearchPaths,
+                    new FrameworkName(frameworkName, new Version(frameworkVersion), frameworkProfile)));
     }
 
-    // second overload of GetPathToReferenceAssemblies
+    /// <summary>
+    ///  Verifies that the <see cref="FrameworkName"/> overload searches fallback paths after an unmatched custom root.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithCustomTargetFrameworkRootInFallbackPath2()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string customFrameworkDirToUse = Path.Combine(env.CreateFolder().Path, "framework-root");
-            string searchPaths = $"{customFrameworkDirToUse};/a/b";
-            string rootDir = env.CreateFolder().Path;
+        string customFrameworkDirToUse = Path.Combine(Environment.CreateFolder().Path, "framework-root");
+        string searchPaths = $"{customFrameworkDirToUse};/a/b";
+        string rootDir = Environment.CreateFolder().Path;
 
-            CheckGetPathToReferenceAssemblies(
-                env,
-                customFrameworkDirToUse,
-                searchPaths,
-                (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string fallbackSearchPaths)
-                    => ToolLocationHelper.GetPathToReferenceAssemblies(
-                        rootDir, fallbackSearchPaths, new FrameworkNameVersioning(frameworkName, new Version(frameworkVersion), frameworkProfile)));
-        }
+        CheckGetPathToReferenceAssemblies(
+            customFrameworkDirToUse,
+            searchPaths,
+            (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string? fallbackSearchPaths)
+                => ToolLocationHelper.GetPathToReferenceAssemblies(
+                    rootDir,
+                    fallbackSearchPaths,
+                    new FrameworkName(frameworkName, new Version(frameworkVersion), frameworkProfile)));
     }
 
+    /// <summary>
+    ///  Verifies that the <see cref="FrameworkName"/> overload searches fallback paths with a <see langword="null"/> root.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithCustomTargetFrameworkRootInFallbackPathAndNullRoot2()
     {
-        using (var env = TestEnvironment.Create())
-        {
-            string customFrameworkDirToUse = Path.Combine(env.CreateFolder().Path, "framework-root");
-            string searchPaths = $"{customFrameworkDirToUse};/a/b";
-            CheckGetPathToReferenceAssemblies(
-                env,
-                customFrameworkDirToUse,
-                searchPaths,
-                (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string fallbackSearchPaths)
-                    => ToolLocationHelper.GetPathToReferenceAssemblies(
-                        null, fallbackSearchPaths, new FrameworkNameVersioning(frameworkName, new Version(frameworkVersion), frameworkProfile)));
-        }
+        string customFrameworkDirToUse = Path.Combine(Environment.CreateFolder().Path, "framework-root");
+        string searchPaths = $"{customFrameworkDirToUse};/a/b";
+        CheckGetPathToReferenceAssemblies(
+            customFrameworkDirToUse,
+            searchPaths,
+            (string frameworkName, string frameworkVersion, string frameworkProfile, string customFrameworkDir, string? fallbackSearchPaths)
+                => ToolLocationHelper.GetPathToReferenceAssemblies(
+                    targetFrameworkRootPath: null,
+                    fallbackSearchPaths,
+                    new FrameworkName(frameworkName, new Version(frameworkVersion), frameworkProfile)));
     }
 
-    private void CheckGetPathToReferenceAssemblies(TestEnvironment env, string customFrameworkDir, string fallbackSearchPaths, Func<string, string, string, string, string, IList<string>> getPathToReferenceAssemblies)
+    /// <summary>
+    ///  Verifies that a lookup delegate finds a framework created under a custom root.
+    /// </summary>
+    /// <param name="customFrameworkDir">The root under which to create the framework.</param>
+    /// <param name="fallbackSearchPaths">The fallback search paths, or <see langword="null"/> to omit them.</param>
+    /// <param name="getPathToReferenceAssemblies">The reference-assembly lookup to verify.</param>
+    private void CheckGetPathToReferenceAssemblies(
+        string customFrameworkDir,
+        string? fallbackSearchPaths,
+        Func<string, string, string, string, string?, IList<string>> getPathToReferenceAssemblies)
     {
         string frameworkName = "Foo Framework";
         string frameworkVersion = "0.1";
-        string frameworkVersionWithV = "v" + frameworkVersion;
+        string frameworkVersionWithV = $"v{frameworkVersion}";
         string frameworkProfile = string.Empty;
 
-        string asmPath = CreateNewFrameworkAndGetAssembliesPath(env, frameworkName, frameworkVersionWithV, customFrameworkDir);
+        CreateNewFrameworkAndGetAssembliesPath(frameworkName, frameworkVersionWithV, customFrameworkDir);
 
-        var stdLibPaths = getPathToReferenceAssemblies(frameworkName, frameworkVersion, frameworkProfile, customFrameworkDir, fallbackSearchPaths);
-        stdLibPaths.Count.ShouldBe(1);
-        stdLibPaths[0].ShouldBe(Path.Combine(customFrameworkDir, frameworkName, frameworkVersionWithV) + Path.DirectorySeparatorChar, stdLibPaths[0]);
+        IList<string> stdLibPaths = getPathToReferenceAssemblies(frameworkName, frameworkVersion, frameworkProfile, customFrameworkDir, fallbackSearchPaths);
+        string expectedPath = $"{Path.Combine(customFrameworkDir, frameworkName, frameworkVersionWithV)}{Path.DirectorySeparatorChar}";
+        stdLibPaths.ShouldHaveSingleItem(directory => directory.ShouldBe(expectedPath, directory));
     }
 
+    /// <summary>
+    ///  Verifies that a <see langword="null"/> reference-assembly root preserves default framework lookup.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithNullTargetFrameworkRootPath()
     {
@@ -1341,6 +1226,9 @@ public sealed partial class ToolLocationHelper_Tests
         v45PathsWithNullRoot.ShouldBe(v45Paths);
     }
 
+    /// <summary>
+    ///  Verifies that <see langword="null"/> root and fallback arguments preserve default reference-assembly lookup.
+    /// </summary>
     [Fact]
     public void GetPathToReferenceAssembliesWithNullTargetFrameworkFallbackSearchPaths()
     {
@@ -1355,19 +1243,28 @@ public sealed partial class ToolLocationHelper_Tests
         v45PathsWithNullRoot.ShouldBe(v45Paths);
     }
 
-    private static string CreateNewFrameworkAndGetAssembliesPath(TestEnvironment env, string frameworkName, string frameworkVersion, string rootDir)
+    /// <summary>
+    ///  Creates reference assemblies and a redist list for a framework under the specified root.
+    /// </summary>
+    /// <param name="frameworkName">The framework identifier.</param>
+    /// <param name="frameworkVersion">The version directory name, including any leading <c>v</c>.</param>
+    /// <param name="rootDir">The directory under which to create the framework.</param>
+    /// <returns>
+    ///  The directory containing the test reference assemblies.
+    /// </returns>
+    private string CreateNewFrameworkAndGetAssembliesPath(string frameworkName, string frameworkVersion, string rootDir)
     {
-        string frameworkListXml = @"<?xml version=""1.0"" encoding=""utf-8""?>
-                <FileList  Name=""{0}""/>";
+        string frameworkListXml = $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <FileList  Name="{frameworkName}"/>
+            """;
 
-        string redistPath = Path.Combine(rootDir, frameworkName, frameworkVersion, "RedistList");
         string asmPath = Path.Combine(rootDir, frameworkName, frameworkVersion);
+        TransientTestFolder frameworkFolder = Environment.CreateFolder(asmPath);
+        TransientTestFolder redistFolder = frameworkFolder.CreateDirectory("RedistList");
 
-        env.CreateFolder(redistPath);
-        env.CreateFolder(asmPath);
-
-        File.WriteAllText(Path.Combine(redistPath, "FrameworkList.xml"), string.Format(frameworkListXml, frameworkName));
-        File.WriteAllText(Path.Combine(asmPath, "mscorlib.dll"), string.Empty);
+        Environment.CreateFile(redistFolder, "FrameworkList.xml", frameworkListXml);
+        Environment.CreateFile(frameworkFolder, "mscorlib.dll", string.Empty);
 
         return asmPath;
     }
