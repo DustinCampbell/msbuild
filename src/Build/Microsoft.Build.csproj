@@ -143,7 +143,9 @@
     <Compile Include="BuildCheck\**\*.cs" />
     <Compile Include="BackEnd\TaskExecutionHost\TaskEngineAssemblyResolver.cs" />
     <Compile Include="Collections\IKeyed.cs" />
+    <Compile Include="Collections\ItemDictionary.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
+    <Compile Include="Collections\PropertyDictionary.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
     <Compile Include="Evaluation\Expander.Function.cs" />
     <Compile Include="Evaluation\Expander.FunctionBuilder.cs" />
@@ -381,13 +383,13 @@
     <Compile Include="Collections\ICopyOnWritePropertyDictionary.cs" />
     <Compile Include="Collections\IItemDictionary.cs" />
     <Compile Include="Collections\IMultiDictionary.cs" />
-    <Compile Include="Collections\ItemDictionary.cs" />
+    <Compile Include="Collections\ItemDictionary`1.cs" />
     <Compile Include="Collections\ItemDictionarySlim.cs" />
     <Compile Include="Collections\IImmutable.cs" />
     <Compile Include="Collections\MultiDictionary.cs" />
     <Compile Include="Collections\IValued.cs" />
     <Compile Include="Collections\LookasideStringInterner.cs" />
-    <Compile Include="Collections\PropertyDictionary.cs" />
+    <Compile Include="Collections\PropertyDictionary`1.cs" />
     <Compile Include="Collections\ReadOnlyConvertingDictionary.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\BitHelper.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\HashSetDebugView.cs" />
