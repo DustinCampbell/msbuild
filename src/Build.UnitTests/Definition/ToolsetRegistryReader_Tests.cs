@@ -5,606 +5,639 @@
 
 using System;
 using System.Collections.Generic;
-
+using System.Runtime.Versioning;
+using System.Threading.Tasks;
 using Microsoft.Build.Collections;
 using Microsoft.Build.Evaluation;
+using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Internal;
 using Microsoft.Win32;
-using Constants = Microsoft.Build.Framework.Constants;
-
+using Shouldly;
 using Xunit;
 using Xunit.NetCore.Extensions;
 
-using InvalidToolsetDefinitionException = Microsoft.Build.Exceptions.InvalidToolsetDefinitionException;
+namespace Microsoft.Build.UnitTests.Definition;
 
-#nullable disable
-
-namespace Microsoft.Build.UnitTests.Definition
+/// <summary>
+///  Tests for <see cref="ToolsetRegistryReader"/>.
+/// </summary>
+/// <param name="output">The output helper for the test.</param>
+[SupportedOSPlatform("windows")]
+public class ToolsetRegistryReader_Tests(ITestOutputHelper output) : TestBase(output)
 {
-    /// <summary>
-    /// Unit test for ToolsetRegistryReader class
-    /// </summary>
-    public class ToolsetRegistryReader_Tests : IDisposable
+    private TransientTestRegistryKey _registryKey = null!;
+
+    // Subkey for the current MSBuild assembly version.
+    private RegistryKey _currentVersionRegistryKey = null!;
+
+    // Subkey "ToolsVersions"
+    private RegistryKey _toolsVersionsRegistryKey = null!;
+
+    protected override ValueTask InitializeAsync()
     {
-        // Subkey "3.5"
-        private RegistryKey _currentVersionRegistryKey = null;
-        // Subkey "ToolsVersions"
-        private RegistryKey _toolsVersionsRegistryKey = null;
+        _registryKey = Environment.CreateRegistryKey();
+        _currentVersionRegistryKey = _registryKey.Key.CreateSubKey(Constants.AssemblyVersion);
+        RegisterDisposable(_currentVersionRegistryKey);
+        _toolsVersionsRegistryKey = _registryKey.Key.CreateSubKey("ToolsVersions");
+        RegisterDisposable(_toolsVersionsRegistryKey);
 
-        // Path to the registry key under HKCU
-        // Note that this is a test registry key created solely for unit testing.
-        private const string testRegistryPath = @"msbuildUnitTests";
+        Environment.SetEnvironmentVariable("VisualStudioVersion", null);
+        return default;
+    }
 
-        /// <summary>
-        /// Store the value of the "VisualStudioVersion" environment variable here so that
-        /// we can unset it for the duration of the test.
-        /// </summary>
-        private string _oldVisualStudioVersion;
+    private ToolsetRegistryReader GetStandardRegistryReader()
+    {
+#pragma warning disable CA2000 // TestBase owns disposal through RegisterDisposable; the returned reader still needs the key.
+        var registry = new MockRegistryKey(_registryKey.SubKeyPath);
+#pragma warning restore CA2000
+        RegisterDisposable(registry);
 
-        /// <summary>
-        /// Reset the testRegistryKey
-        /// </summary>
-        public ToolsetRegistryReader_Tests()
+        using var collection = new ProjectCollection();
+        return new ToolsetRegistryReader(collection.EnvironmentProperties, globalProperties: [], registry);
+    }
+
+    /// <summary>
+    ///  Verifies that a deleted registry root produces no toolsets without throwing.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_DeletedKey()
+    {
+        // Close the fixture handles before deleting the root so the reader sees a missing key.
+        _currentVersionRegistryKey.Dispose();
+        _toolsVersionsRegistryKey.Dispose();
+        _registryKey.Revert();
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+        toolsets.ShouldBeEmpty();
+    }
+
+    /// <summary>
+    ///  Verifies that installation creates the expected toolsets and default tools version in the registry.
+    /// </summary>
+    [Fact(Skip = "Test requires installed toolset.")]
+    public void DefaultValuesInRegistryCreatedBySetup()
+    {
+        if (NativeMethodsShared.IsUnixLike)
         {
-            DeleteTestRegistryKey();
-            _currentVersionRegistryKey = Registry.CurrentUser.CreateSubKey(testRegistryPath + "\\" + Constants.AssemblyVersion);
-            _toolsVersionsRegistryKey = Registry.CurrentUser.CreateSubKey(testRegistryPath + "\\ToolsVersions");
-
-            _oldVisualStudioVersion = Environment.GetEnvironmentVariable("VisualStudioVersion");
-            Environment.SetEnvironmentVariable("VisualStudioVersion", null);
+            return; // "TODO: under Unix this runs out of stack. Investigate"
         }
 
-        public void Dispose()
+        using var collection = new ProjectCollection();
+        ToolsetReader reader = new ToolsetRegistryReader(collection.EnvironmentProperties, globalProperties: []);  // we don't use the test registry key because we want to verify the install
+
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        // Check the values in the data
+        toolsets.ContainsKey("4.0").ShouldBeTrue(); // "Tools version 4.0 should be defined by default"
+        toolsets.ContainsKey(ObjectModelHelpers.MSBuildDefaultToolsVersion)
+            .ShouldBeTrue($"Tools version {ObjectModelHelpers.MSBuildDefaultToolsVersion} should be defined by default");
+        defaultToolsVersion.ShouldBe("2.0"); // "Default tools version should be 2.0"
+    }
+
+    /// <summary>
+    ///  Verifies that reading the registry without a configured default tools version returns <see langword="null"/>.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void DefaultValueInRegistryDoesNotExist()
+    {
+        using var collection = new ProjectCollection();
+        using var registry = new MockRegistryKey(_registryKey.SubKeyPath, "3.5" /* fail to find subkey 3.5 */);
+        ToolsetReader reader = new ToolsetRegistryReader(collection.EnvironmentProperties, globalProperties: [], registry);
+
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out _,
+            out _);
+
+        defaultToolsVersion.ShouldBeNull();
+    }
+
+    /// <summary>
+    ///  Verifies that an empty toolset registry key produces no toolsets or default tools version.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_NoSubkeyNoValues()
+    {
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.ShouldBeEmpty();
+        defaultToolsVersion.ShouldBeNull();
+    }
+
+    /// <summary>
+    ///  Verifies that values directly under the <c>ToolsVersions</c> key do not define toolsets.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_NoSubkeysOnlyValues()
+    {
+        _toolsVersionsRegistryKey.SetValue("Name1", "Value1");
+        _toolsVersionsRegistryKey.SetValue("Name2", "Value2");
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.ShouldBeEmpty();
+        defaultToolsVersion.ShouldBeNull();
+    }
+
+    /// <summary>
+    ///  Verifies that a single toolset's tools path is read without adding extra properties.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_OnlyOneSubkey()
+    {
+        string xdir = NativeMethodsShared.IsWindows ? @"c:\xxx" : "/xxx";
+
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", xdir);
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        defaultToolsVersion.ShouldBeNull();
+        toolsets.ShouldHaveSingleItem("tv1", toolset =>
         {
-            DeleteTestRegistryKey();
+            toolset.Properties.ShouldBeEmpty();
+            toolset.ToolsPath.ShouldBe(xdir, StringCompareShould.IgnoreCase);
+        });
+    }
 
-            Environment.SetEnvironmentVariable("VisualStudioVersion", _oldVisualStudioVersion);
-        }
+    /// <summary>
+    ///  Verifies that tools paths and custom properties are read from multiple registry toolsets.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_Basic()
+    {
+        string xdir = NativeMethodsShared.IsWindows ? @"c:\xxx" : "/xxx";
+        string ydir = NativeMethodsShared.IsWindows ? @"c:\yyy" : "/yyy";
 
-        /// <summary>
-        /// Helper class to delete the testRegistryKey tree.
-        /// </summary>
-        private void DeleteTestRegistryKey()
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", xdir);
+        key1.SetValue("name1", "value1");
+
+        using RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
+        key2.SetValue("name2", "value2");
+        key2.SetValue("msbuildtoolspath", ydir);
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.Count.ShouldBe(2);
+        toolsets.ShouldContain("tv1", toolset =>
         {
-            if (Registry.CurrentUser.OpenSubKey(testRegistryPath) != null)
-            {
-                Registry.CurrentUser.DeleteSubKeyTree(testRegistryPath);
-            }
-        }
-
-        /// <summary>
-        /// If the base key has been deleted, then we just don't get any information (no exception)
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_DeletedKey()
+            toolset.ToolsPath.ShouldBe(xdir);
+            toolset.Properties.ShouldHaveSingleItem("name1", property => property.EvaluatedValue.ShouldBe("value1"));
+        });
+        toolsets.ShouldContain("tv2", toolset =>
         {
-            DeleteTestRegistryKey();
+            toolset.ToolsPath.ShouldBe(ydir);
+            toolset.Properties.ShouldHaveSingleItem("name2", property => property.EvaluatedValue.ShouldBe("value2"));
+        });
+    }
 
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-            Assert.Empty(values);
-        }
-
-        /// <summary>
-        /// Tests the tools version 4.0 is written to the registry at install time
-        /// </summary>
-        [Fact(Skip = "Test requires installed toolset.")]
-        public void DefaultValuesInRegistryCreatedBySetup()
+    /// <summary>
+    ///  Verifies that non-string toolset property values are rejected.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_NonStringData()
+        => Should.Throw<InvalidToolsetDefinitionException>(() =>
         {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "TODO: under Unix this runs out of stack. Investigate"
-            }
-            using var collection = new ProjectCollection();
-            ToolsetReader reader = new ToolsetRegistryReader(collection.EnvironmentProperties, new PropertyDictionary<ProjectPropertyInstance>());  // we don't use the test registry key because we want to verify the install
-
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            // Check the values in the data
-            Assert.True(values.ContainsKey("4.0")); // "Tools version 4.0 should be defined by default"
-            Assert.True(values.ContainsKey(ObjectModelHelpers.MSBuildDefaultToolsVersion), String.Format("Tools version {0} should be defined by default", ObjectModelHelpers.MSBuildDefaultToolsVersion));
-            Assert.Equal("2.0", defaultToolsVersion); // "Default tools version should be 2.0"
-        }
-
-        /// <summary>
-        /// Tests we handle no default toolset specified in the registry
-        /// </summary>
-        [WindowsOnlyFact]
-        public void DefaultValueInRegistryDoesNotExist()
-        {
-            using var collection = new ProjectCollection();
-            using var registry = new MockRegistryKey(testRegistryPath, "3.5" /* fail to find subkey 3.5 */);
-            ToolsetReader reader = new ToolsetRegistryReader(collection.EnvironmentProperties, new PropertyDictionary<ProjectPropertyInstance>(), registry);
-
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-
-
-            // Should not throw
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Null(defaultToolsVersion);
-        }
-
-        /// <summary>
-        /// The base key exists but contains no subkey or values: this is okay
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_NoSubkeyNoValues()
-        {
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Empty(values);
-            Assert.Null(defaultToolsVersion);
-        }
-
-        /// <summary>
-        /// Here we validate that MSBuild does not fail when there are unrecognized values underneath
-        /// the ToolsVersion key.
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_NoSubkeysOnlyValues()
-        {
-            _toolsVersionsRegistryKey.SetValue("Name1", "Value1");
-            _toolsVersionsRegistryKey.SetValue("Name2", "Value2");
-
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Empty(values);
-            Assert.Null(defaultToolsVersion);
-        }
-
-        /// <summary>
-        /// Basekey has only 1 subkey
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_OnlyOneSubkey()
-        {
-            string xdir = NativeMethodsShared.IsWindows ? "c:\\xxx" : "/xxx";
-
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", xdir);
-
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Null(defaultToolsVersion);
-            Assert.Single(values);
-            Assert.Empty(values["tv1"].Properties);
-            Assert.Equal(0, String.Compare(xdir, values["tv1"].ToolsPath, StringComparison.OrdinalIgnoreCase));
-        }
-
-        /// <summary>
-        /// Basic case
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_Basic()
-        {
-            string xdir = NativeMethodsShared.IsWindows ? "c:\\xxx" : "/xxx";
-            string ydir = NativeMethodsShared.IsWindows ? "c:\\yyy" : "/yyy";
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", xdir);
+            using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+            key1.SetValue("msbuildtoolspath", @"c:\xxx");
             key1.SetValue("name1", "value1");
-            RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
-            key2.SetValue("name2", "value2");
-            key2.SetValue("msbuildtoolspath", ydir);
+
+            using RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
+            key2.SetValue("msbuildtoolspath", @"c:\xxx");
+            key2.SetValue("name2", new[] { "value2a", "value2b" }, RegistryValueKind.MultiString);
 
             ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
 
-            Assert.Equal(2, values.Count);
-            Assert.Single(values["tv1"].Properties);
-            Assert.Equal(0, String.Compare(xdir, values["tv1"].ToolsPath, StringComparison.OrdinalIgnoreCase));
-            Assert.Equal(0, String.Compare("value1", values["tv1"].Properties["name1"].EvaluatedValue, StringComparison.OrdinalIgnoreCase));
-            Assert.Single(values["tv2"].Properties);
-            Assert.Equal(0, String.Compare(ydir, values["tv2"].ToolsPath, StringComparison.OrdinalIgnoreCase));
-            Assert.Equal(0, String.Compare("value2", values["tv2"].Properties["name2"].EvaluatedValue, StringComparison.OrdinalIgnoreCase));
-        }
+            _ = reader.ReadToolsets(
+                toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+                globalProperties: [],
+                initialProperties: [],
+                accumulateProperties: false,
+                out _,
+                out _);
+        });
 
-        /// <summary>
-        /// baseKey contains some non-String data
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_NonStringData()
+    /// <summary>
+    ///  Verifies that toolsets include their immediate subtoolsets and the properties defined under each.
+    /// </summary>
+    /// <remarks>
+    ///  The registry contains the following toolset and subtoolset hierarchy:
+    ///  <code>
+    ///   ToolsVersions
+    ///       tv1
+    ///           SubKey1
+    ///       tv2
+    ///           SubKey2
+    ///           SubKey3
+    ///  </code>
+    /// </remarks>
+    [WindowsOnlyFact]
+    public void ReadRegistry_HasSubToolsets()
+    {
+        string xdir = NativeMethodsShared.IsWindows ? @"c:\xxx" : "/xxx";
+        string ydir = NativeMethodsShared.IsWindows ? @"c:\yyy" : "/yyy";
+
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", xdir);
+        key1.SetValue("name1", "value1");
+
+        using RegistryKey subKey1 = key1.CreateSubKey("SubKey1");
+        subKey1.SetValue("name1a", "value1a");
+        subKey1.SetValue("name2a", "value2a");
+
+        using RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
+        key2.SetValue("msbuildtoolspath", ydir);
+        key2.SetValue("name2", "value2");
+
+        using RegistryKey subKey2 = key2.CreateSubKey("SubKey2");
+        subKey2.SetValue("name3a", "value3a");
+        subKey2.SetValue("name2a", "value2a");
+
+        using RegistryKey subKey3 = key2.CreateSubKey("SubKey3");
+        subKey3.SetValue("name4a", "value4a");
+        subKey3.SetValue("name5a", "value5a");
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.Count.ShouldBe(2);
+        toolsets.ShouldContain("tv1", toolset =>
         {
-            Assert.Throws<InvalidToolsetDefinitionException>(() =>
+            toolset.ToolsPath.ShouldBe(xdir);
+            toolset.Properties.ShouldHaveSingleItem("name1", property => property.EvaluatedValue.ShouldBe("value1"));
+            toolset.SubToolsets.ShouldHaveSingleItem("SubKey1", subToolset =>
             {
-                RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-                key1.SetValue("msbuildtoolspath", "c:\\xxx");
-                key1.SetValue("name1", "value1");
-                RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
-                key2.SetValue("msbuildtoolspath", "c:\\xxx");
-                key2.SetValue("name2", new String[] { "value2a", "value2b" }, RegistryValueKind.MultiString);
-
-                ToolsetReader reader = GetStandardRegistryReader();
-                string msbuildOverrideTasksPath = null;
-                string defaultOverrideToolsVersion = null;
-
-                Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-                reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+                subToolset.Properties.Count.ShouldBe(2);
+                subToolset.Properties.ShouldContain("name1a", property => property.EvaluatedValue.ShouldBe("value1a"));
+                subToolset.Properties.ShouldContain("name2a", property => property.EvaluatedValue.ShouldBe("value2a"));
             });
-        }
-        /// <summary>
-        /// Registry has the following structure
-        /// [HKCU]\basekey\
-        ///    Key1
-        ///        SubKey1
-        ///    Key2
-        ///        SubKey2
-        ///        SubKey3
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_HasSubToolsets()
+        });
+        toolsets.ShouldContain("tv2", toolset =>
         {
-            string xdir = NativeMethodsShared.IsWindows ? "c:\\xxx" : "/xxx";
-            string ydir = NativeMethodsShared.IsWindows ? "c:\\yyy" : "/yyy";
+            toolset.ToolsPath.ShouldBe(ydir);
+            toolset.Properties.ShouldHaveSingleItem("name2", property => property.EvaluatedValue.ShouldBe("value2"));
+            toolset.SubToolsets.Count.ShouldBe(2);
+            toolset.SubToolsets.ShouldContain("SubKey2", subToolset =>
+            {
+                subToolset.Properties.Count.ShouldBe(2);
+                subToolset.Properties.ShouldContain("name3a", property => property.EvaluatedValue.ShouldBe("value3a"));
+                subToolset.Properties.ShouldContain("name2a", property => property.EvaluatedValue.ShouldBe("value2a"));
+            });
+            toolset.SubToolsets.ShouldContain("SubKey3", subToolset =>
+            {
+                subToolset.Properties.Count.ShouldBe(2);
+                subToolset.Properties.ShouldContain("name4a", property => property.EvaluatedValue.ShouldBe("value4a"));
+                subToolset.Properties.ShouldContain("name5a", property => property.EvaluatedValue.ShouldBe("value5a"));
+            });
+        });
+    }
 
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", xdir);
-            key1.SetValue("name1", "value1");
-            RegistryKey subKey1 = key1.CreateSubKey("SubKey1");
-            subKey1.SetValue("name1a", "value1a");
-            subKey1.SetValue("name2a", "value2a");
-            RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
-            key2.SetValue("msbuildtoolspath", ydir);
-            key2.SetValue("name2", "value2");
-            RegistryKey subKey2 = key2.CreateSubKey("SubKey2");
-            subKey2.SetValue("name3a", "value3a");
-            subKey2.SetValue("name2a", "value2a");
-            RegistryKey subKey3 = key2.CreateSubKey("SubKey3");
-            subKey3.SetValue("name4a", "value4a");
-            subKey3.SetValue("name5a", "value5a");
+    /// <summary>
+    ///  Verifies that subkeys below a subtoolset are ignored.
+    /// </summary>
+    /// <remarks>
+    ///  The nested <c>SubSubKey1</c> key must not contribute properties to <c>SubKey1</c>:
+    ///  <code>
+    ///   ToolsVersions
+    ///       tv1
+    ///           SubKey1
+    ///               SubSubKey1
+    ///  </code>
+    /// </remarks>
+    [WindowsOnlyFact]
+    public void ReadRegistry_IgnoreSubToolsetSubKeys()
+    {
+        string xdir = NativeMethodsShared.IsWindows ? @"c:\xxx" : "/xxx";
 
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", xdir);
+        key1.SetValue("name1", "value1");
 
-            Assert.Equal(2, values.Count);
-            Assert.Single(values["tv1"].Properties);
-            Assert.Equal(xdir, values["tv1"].ToolsPath);
-            Assert.Equal("value1", values["tv1"].Properties["name1"].EvaluatedValue);
-            Assert.Single(values["tv1"].SubToolsets);
-            Assert.Equal(2, values["tv1"].SubToolsets["SubKey1"].Properties.Count);
-            Assert.Equal("value1a", values["tv1"].SubToolsets["SubKey1"].Properties["name1a"].EvaluatedValue);
-            Assert.Equal("value2a", values["tv1"].SubToolsets["SubKey1"].Properties["name2a"].EvaluatedValue);
+        using RegistryKey subKey1 = key1.CreateSubKey("SubKey1");
+        subKey1.SetValue("name1a", "value1a");
+        subKey1.SetValue("name2a", "value2a");
 
-            Assert.Single(values["tv2"].Properties);
-            Assert.Equal(ydir, values["tv2"].ToolsPath);
-            Assert.Equal("value2", values["tv2"].Properties["name2"].EvaluatedValue);
-            Assert.Equal(2, values["tv2"].SubToolsets.Count);
-            Assert.Equal(2, values["tv2"].SubToolsets["SubKey2"].Properties.Count);
-            Assert.Equal("value3a", values["tv2"].SubToolsets["SubKey2"].Properties["name3a"].EvaluatedValue);
-            Assert.Equal("value2a", values["tv2"].SubToolsets["SubKey2"].Properties["name2a"].EvaluatedValue);
-            Assert.Equal(2, values["tv2"].SubToolsets["SubKey3"].Properties.Count);
-            Assert.Equal("value4a", values["tv2"].SubToolsets["SubKey3"].Properties["name4a"].EvaluatedValue);
-            Assert.Equal("value5a", values["tv2"].SubToolsets["SubKey3"].Properties["name5a"].EvaluatedValue);
-        }
+        using RegistryKey subSubKey1 = subKey1.CreateSubKey("SubSubKey1");
+        subSubKey1.SetValue("name2b", "value2b");
 
-        /// <summary>
-        /// Registry has the following structure
-        /// [HKCU]\basekey\
-        ///    Key1
-        ///        SubKey1
-        ///            SubSubKey1
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_IgnoreSubToolsetSubKeys()
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.ShouldHaveSingleItem("tv1", toolset =>
         {
-            string xdir = NativeMethodsShared.IsWindows ? "c:\\xxx" : "/xxx";
+            toolset.ToolsPath.ShouldBe(xdir);
+            toolset.Properties.ShouldHaveSingleItem("name1", property => property.EvaluatedValue.ShouldBe("value1"));
+            toolset.SubToolsets.ShouldHaveSingleItem("SubKey1", subToolset =>
+            {
+                subToolset.Properties.Count.ShouldBe(2);
+                subToolset.Properties.ShouldContain("name1a", property => property.EvaluatedValue.ShouldBe("value1a"));
+                subToolset.Properties.ShouldContain("name2a", property => property.EvaluatedValue.ShouldBe("value2a"));
+            });
+        });
+    }
 
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", xdir);
-            key1.SetValue("name1", "value1");
-            RegistryKey subKey1 = key1.CreateSubKey("SubKey1");
-            subKey1.SetValue("name1a", "value1a");
-            subKey1.SetValue("name2a", "value2a");
-            RegistryKey subSubKey1 = subKey1.CreateSubKey("SubSubKey1");
-            subSubKey1.SetValue("name2b", "value2b");
+    /// <summary>
+    ///  Verifies that selected subtoolset properties override base-toolset properties, including empty values.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_SubToolsetOverridesBaseToolsetEntries()
+    {
+        string xdir = NativeMethodsShared.IsWindows ? @"c:\xxx" : "/xxx";
 
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", xdir);
+        key1.SetValue("name1", "value1");
+        key1.SetValue("name2", "value2");
 
-            Assert.Single(values);
-            Assert.Single(values["tv1"].Properties);
-            Assert.Equal(xdir, values["tv1"].ToolsPath);
-            Assert.Equal("value1", values["tv1"].Properties["name1"].EvaluatedValue);
-            Assert.Single(values["tv1"].SubToolsets);
-            Assert.Equal(2, values["tv1"].SubToolsets["SubKey1"].Properties.Count);
-            Assert.Equal("value1a", values["tv1"].SubToolsets["SubKey1"].Properties["name1a"].EvaluatedValue);
-            Assert.Equal("value2a", values["tv1"].SubToolsets["SubKey1"].Properties["name2a"].EvaluatedValue);
-        }
+        using RegistryKey subKey1 = key1.CreateSubKey("Foo");
+        subKey1.SetValue("name1", "value1a");
+        subKey1.SetValue("name2", "");
 
-        /// <summary>
-        /// Verifies that if a value is defined in both the base toolset and the
-        /// selected subtoolset, the subtoolset value overrides -- even if that
-        /// value is empty.
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_SubToolsetOverridesBaseToolsetEntries()
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.ShouldHaveSingleItem("tv1", toolset =>
         {
-            string xdir = NativeMethodsShared.IsWindows ? "c:\\xxx" : "/xxx";
-
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", xdir);
-            key1.SetValue("name1", "value1");
-            key1.SetValue("name2", "value2");
-            RegistryKey subKey1 = key1.CreateSubKey("Foo");
-            subKey1.SetValue("name1", "value1a");
-            subKey1.SetValue("name2", "");
-
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Single(values);
-            Assert.Equal(2, values["tv1"].Properties.Count);
-            Assert.Equal(xdir, values["tv1"].ToolsPath);
-            Assert.Equal("value1", values["tv1"].Properties["name1"].EvaluatedValue);
-            Assert.Equal("value2", values["tv1"].Properties["name2"].EvaluatedValue);
-            Assert.Single(values["tv1"].SubToolsets);
-            Assert.Equal(2, values["tv1"].SubToolsets["Foo"].Properties.Count);
-            Assert.Equal("value1a", values["tv1"].SubToolsets["Foo"].Properties["name1"].EvaluatedValue);
-            Assert.Equal("", values["tv1"].SubToolsets["Foo"].Properties["name2"].EvaluatedValue);
+            toolset.ToolsPath.ShouldBe(xdir);
+            toolset.Properties.Count.ShouldBe(2);
+            toolset.Properties.ShouldContain("name1", property => property.EvaluatedValue.ShouldBe("value1"));
+            toolset.Properties.ShouldContain("name2", property => property.EvaluatedValue.ShouldBe("value2"));
+            toolset.SubToolsets.ShouldHaveSingleItem("Foo", subToolset =>
+            {
+                subToolset.Properties.Count.ShouldBe(2);
+                subToolset.Properties.ShouldContain("name1", property => property.EvaluatedValue.ShouldBe("value1a"));
+                subToolset.Properties.ShouldContain("name2", property => property.EvaluatedValue.ShouldBeEmpty());
+            });
 
             // Check when requesting the final evaluated value of the property in the context of its sub-toolset
             // that the sub-toolset overrides
-            Assert.Equal("value1a", values["tv1"].GetProperty("name1", "Foo").EvaluatedValue);
-            Assert.Equal("", values["tv1"].GetProperty("name2", "Foo").EvaluatedValue);
-        }
+            toolset.GetProperty("name1", "Foo").EvaluatedValue.ShouldBe("value1a");
+            toolset.GetProperty("name2", "Foo").EvaluatedValue.ShouldBeEmpty();
+        });
+    }
 
-        /// <summary>
-        /// Verifies that if a value is defined in both the base toolset and the
-        /// selected subtoolset, the subtoolset value overrides -- even if that
-        /// value is empty.
-        /// </summary>
-        [WindowsOnlyFact]
-        public void ReadRegistry_UnselectedSubToolsetIsIgnored()
+    /// <summary>
+    ///  Verifies that base-toolset properties remain unchanged when no subtoolset is selected.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadRegistry_UnselectedSubToolsetIsIgnored()
+    {
+        string xdir = NativeMethodsShared.IsWindows ? @"c:\xxx" : "/xxx";
+
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", xdir);
+        key1.SetValue("name1", "value1");
+        key1.SetValue("name2", "value2");
+
+        using RegistryKey subKey1 = key1.CreateSubKey("Foo");
+        subKey1.SetValue("name1", "value1a");
+        subKey1.SetValue("name2", "");
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
+
+        toolsets.ShouldHaveSingleItem("tv1", toolset =>
         {
-            string xdir = NativeMethodsShared.IsWindows ? "c:\\xxx" : "/xxx";
+            toolset.ToolsPath.ShouldBe(xdir);
+            toolset.Properties.Count.ShouldBe(2);
+            toolset.Properties.ShouldContain("name1", property => property.EvaluatedValue.ShouldBe("value1"));
+            toolset.Properties.ShouldContain("name2", property => property.EvaluatedValue.ShouldBe("value2"));
+        });
+    }
 
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", xdir);
-            key1.SetValue("name1", "value1");
-            key1.SetValue("name2", "value2");
-            RegistryKey subKey1 = key1.CreateSubKey("Foo");
-            subKey1.SetValue("name1", "value1a");
-            subKey1.SetValue("name2", "");
+    /// <summary>
+    ///  Verifies that the configured default tools version is read from the current-version registry key.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetDefaultToolsVersionFromRegistry_Basic()
+    {
+        _currentVersionRegistryKey.SetValue("DefaultToolsVersion", "tv1");
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1"); // Need matching tools version
+        key1.SetValue("msbuildtoolspath", @"c:\xxx");
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out _,
+            out _);
+
+        defaultToolsVersion.ShouldBe("tv1");
+    }
+
+    /// <summary>
+    ///  Verifies that a missing <c>DefaultToolsVersion</c> registry value yields <see langword="null"/>.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetDefaultToolsVersionFromRegistry_DefaultValueNotSet()
+    {
+        ToolsetReader reader = GetStandardRegistryReader();
+        string defaultToolsVersion = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out _,
+            out _);
+
+        defaultToolsVersion.ShouldBeNull();
+    }
+
+    /// <summary>
+    ///  Verifies that a non-string <c>DefaultToolsVersion</c> registry value is rejected.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetDefaultToolsVersionFromRegistry_NonStringData()
+        => Should.Throw<InvalidToolsetDefinitionException>(() =>
+        {
+            _currentVersionRegistryKey.SetValue("DefaultToolsVersion", new[] { "2.0.xxxx.a", "2.0.xxxx.b" }, RegistryValueKind.MultiString);
 
             ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
 
-            Assert.Single(values);
-            Assert.Equal(2, values["tv1"].Properties.Count);
-            Assert.Equal(xdir, values["tv1"].ToolsPath);
-            Assert.Equal("value1", values["tv1"].Properties["name1"].EvaluatedValue);
-            Assert.Equal("value2", values["tv1"].Properties["name2"].EvaluatedValue);
+            _ = reader.ReadToolsets(
+                toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+                globalProperties: [],
+                initialProperties: [],
+                accumulateProperties: false,
+                out _,
+                out _);
+        });
+
+    /// <summary>
+    ///  Verifies that the configured override-task path is read from the current-version registry key.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetOverrideTasksPathFromRegistry_Basic()
+    {
+        if (NativeMethodsShared.IsUnixLike)
+        {
+            return; // "Registry is not supported under Unix"
         }
 
-        /// <summary>
-        /// Regular case of getting default tools version
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetDefaultToolsVersionFromRegistry_Basic()
+        _currentVersionRegistryKey.SetValue("MsBuildOverrideTasksPath", @"c:\Foo");
+
+        ToolsetReader reader = GetStandardRegistryReader();
+        _ = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out string msbuildOverrideTasksPath,
+            out _);
+
+        msbuildOverrideTasksPath.ShouldBe(@"c:\Foo");
+    }
+
+    /// <summary>
+    ///  Verifies that a missing <c>MsBuildOverrideTasksPath</c> registry value yields <see langword="null"/>.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetOverrideTasksPathFromRegistry_ValueNotSet()
+    {
+        ToolsetReader reader = GetStandardRegistryReader();
+        _ = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out string msbuildOverrideTasksPath,
+            out _);
+
+        msbuildOverrideTasksPath.ShouldBeNull();
+    }
+
+    /// <summary>
+    ///  Verifies that a non-string <c>MsBuildOverrideTasksPath</c> registry value is rejected.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetOverrideTasksPathFromRegistry_NonStringData()
+        => Should.Throw<InvalidToolsetDefinitionException>(() =>
         {
-            _currentVersionRegistryKey.SetValue("DefaultToolsVersion", "tv1");
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1"); // Need matching tools version
-            key1.SetValue("msbuildtoolspath", "c:\\xxx");
+            _currentVersionRegistryKey.SetValue("MsBuildOverrideTasksPath", new[] { "2938304894", "3948394.2.3.3.3" }, RegistryValueKind.MultiString);
 
             ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+            _ = reader.ReadToolsets(
+                toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+                globalProperties: [],
+                initialProperties: [],
+                accumulateProperties: false,
+                out _,
+                out _);
+        });
 
-            Assert.Equal("tv1", defaultToolsVersion);
-        }
+    /// <summary>
+    ///  Verifies that the configured default override tools version is read from the registry.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetDefaultOverrideToolsVersionFromRegistry_Basic()
+    {
+        _currentVersionRegistryKey.SetValue("DefaultOverrideToolsVersion", "Current");
 
-        /// <summary>
-        /// Default value is not set
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetDefaultToolsVersionFromRegistry_DefaultValueNotSet()
+        ToolsetReader reader = GetStandardRegistryReader();
+        _ = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out _,
+            out string defaultOverrideToolsVersion);
+
+        defaultOverrideToolsVersion.ShouldBe("Current");
+    }
+
+    /// <summary>
+    ///  Verifies that a missing <c>DefaultOverrideToolsVersion</c> registry value yields <see langword="null"/>.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetDefaultOverrideToolsVersionFromRegistry_ValueNotSet()
+    {
+        ToolsetReader reader = GetStandardRegistryReader();
+        _ = reader.ReadToolsets(
+            toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+            globalProperties: [],
+            initialProperties: [],
+            accumulateProperties: false,
+            out _, out string defaultOverrideToolsVersion);
+
+        defaultOverrideToolsVersion.ShouldBeNull();
+    }
+
+    /// <summary>
+    ///  Verifies that a non-string <c>DefaultOverrideToolsVersion</c> registry value is rejected.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void GetDefaultOverrideToolsVersionFromRegistry_NonStringData()
+        => Should.Throw<InvalidToolsetDefinitionException>(() =>
         {
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            string defaultToolsVersion = reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Null(defaultToolsVersion);
-        }
-
-        /// <summary>
-        /// "DefaultToolsVersion" has non-String data
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetDefaultToolsVersionFromRegistry_NonStringData()
-        {
-            Assert.Throws<InvalidToolsetDefinitionException>(() =>
-            {
-                _currentVersionRegistryKey.SetValue("DefaultToolsVersion", new String[] { "2.0.xxxx.a", "2.0.xxxx.b" }, RegistryValueKind.MultiString);
-
-                ToolsetReader reader = GetStandardRegistryReader();
-                string msbuildOverrideTasksPath = null;
-                string defaultOverrideToolsVersion = null;
-
-                Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-                reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-            });
-        }
-        private ToolsetRegistryReader GetStandardRegistryReader()
-        {
-            using var collection = new ProjectCollection();
-#pragma warning disable CA2000 // The return object depends on the registry key that should not be disposed in this scope.
-            var registry = new MockRegistryKey(testRegistryPath);
-#pragma warning restore CA2000 // The return object depends on the registry key that should not be disposed in this scope.
-            return new ToolsetRegistryReader(collection.EnvironmentProperties, new PropertyDictionary<ProjectPropertyInstance>(), registry);
-        }
-
-        /// <summary>
-        /// Regular case of getting overridetaskspath
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetOverrideTasksPathFromRegistry_Basic()
-        {
-            if (NativeMethodsShared.IsUnixLike)
-            {
-                return; // "Registry is not supported under Unix"
-            }
-
-            _currentVersionRegistryKey.SetValue("MsBuildOverrideTasksPath", "c:\\Foo");
+            _currentVersionRegistryKey.SetValue("DefaultOverrideToolsVersion", new[] { "2938304894", "3948394.2.3.3.3" }, RegistryValueKind.MultiString);
 
             ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+            _ = reader.ReadToolsets(
+                toolsets: [with(StringComparer.OrdinalIgnoreCase)],
+                globalProperties: [],
+                initialProperties: [],
+                accumulateProperties: false,
+                out _,
+                out _);
+        });
 
-            Assert.Equal("c:\\Foo", msbuildOverrideTasksPath);
-        }
+    /// <summary>
+    ///  Verifies that toolsets without a tools path or binary path are ignored.
+    /// </summary>
+    [WindowsOnlyFact]
+    public void ReadToolsets_NoBinPathOrToolsPath()
+    {
+        using RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
+        key1.SetValue("msbuildtoolspath", @"c:\xxx");
+        key1.SetValue("name1", "value1");
 
-        /// <summary>
-        /// OverrideTasksPath is not set
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetOverrideTasksPathFromRegistry_ValueNotSet()
-        {
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+        using RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
+        key2.SetValue("name2", "value2");
 
-            Assert.Null(msbuildOverrideTasksPath);
-        }
+        using RegistryKey key3 = _toolsVersionsRegistryKey.CreateSubKey("tv3");
+        key3.SetValue("msbuildtoolspath", @"c:\zzz");
+        key3.SetValue("name3", "value3");
 
-        /// <summary>
-        /// "OverrideTasksPath" has non-String data
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetOverrideTasksPathFromRegistry_NonStringData()
-        {
-            Assert.Throws<InvalidToolsetDefinitionException>(() =>
-            {
-                _currentVersionRegistryKey.SetValue("MsBuildOverrideTasksPath", new String[] { "2938304894", "3948394.2.3.3.3" }, RegistryValueKind.MultiString);
+        ToolsetReader reader = GetStandardRegistryReader();
+        Dictionary<string, Toolset> toolsets = [with(StringComparer.OrdinalIgnoreCase)];
 
-                ToolsetReader reader = GetStandardRegistryReader();
-                Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-                string msbuildOverrideTasksPath = null;
-                string defaultOverrideToolsVersion = null;
-                reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-            });
-        }
-        /// <summary>
-        /// Regular case of getting the default override toolsversion
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetDefaultOverrideToolsVersionFromRegistry_Basic()
-        {
-            _currentVersionRegistryKey.SetValue("DefaultOverrideToolsVersion", "Current");
+        _ = reader.ReadToolsets(toolsets, globalProperties: [], initialProperties: [], accumulateProperties: false, out _, out _);
 
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
+        toolsets.ContainsKey("tv1").ShouldBeTrue();
 
-            Assert.Equal("Current", defaultOverrideToolsVersion);
-        }
+        // should not contain the second toolset because it does not define a tools/bin path
+        toolsets.ContainsKey("tv2").ShouldBeFalse();
 
-        /// <summary>
-        /// DefaultOverrideToolsVersion is not set
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetDefaultOverrideToolsVersionFromRegistry_ValueNotSet()
-        {
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.Null(defaultOverrideToolsVersion);
-        }
-
-        /// <summary>
-        /// "DefaultOverrideToolsVersion" has non-String data
-        /// </summary>
-        [WindowsOnlyFact]
-        public void GetDefaultOverrideToolsVersionFromRegistry_NonStringData()
-        {
-            Assert.Throws<InvalidToolsetDefinitionException>(() =>
-            {
-                _currentVersionRegistryKey.SetValue("DefaultOverrideToolsVersion", new String[] { "2938304894", "3948394.2.3.3.3" }, RegistryValueKind.MultiString);
-
-                ToolsetReader reader = GetStandardRegistryReader();
-                Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-                string msbuildOverrideTasksPath = null;
-                string defaultOverrideToolsVersion = null;
-                reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-            });
-        }
-        [WindowsOnlyFact]
-        public void ReadToolsets_NoBinPathOrToolsPath()
-        {
-            RegistryKey key1 = _toolsVersionsRegistryKey.CreateSubKey("tv1");
-            key1.SetValue("msbuildtoolspath", "c:\\xxx");
-            key1.SetValue("name1", "value1");
-            RegistryKey key2 = _toolsVersionsRegistryKey.CreateSubKey("tv2");
-            key2.SetValue("name2", "value2");
-            RegistryKey key3 = _toolsVersionsRegistryKey.CreateSubKey("tv3");
-            key3.SetValue("msbuildtoolspath", "c:\\zzz");
-            key3.SetValue("name3", "value3");
-
-            ToolsetReader reader = GetStandardRegistryReader();
-            Dictionary<string, Toolset> values = new Dictionary<string, Toolset>(StringComparer.OrdinalIgnoreCase);
-
-            string msbuildOverrideTasksPath;
-            string defaultOverrideToolsVersion;
-            // should not throw
-            reader.ReadToolsets(values, new PropertyDictionary<ProjectPropertyInstance>(), new PropertyDictionary<ProjectPropertyInstance>(), false, out msbuildOverrideTasksPath, out defaultOverrideToolsVersion);
-
-            Assert.True(values.ContainsKey("tv1"));
-
-            // should not contain the second toolset because it does not define a tools/bin path
-            Assert.False(values.ContainsKey("tv2"));
-
-            Assert.True(values.ContainsKey("tv3"));
-        }
+        toolsets.ContainsKey("tv3").ShouldBeTrue();
     }
 }
+
 #endif
