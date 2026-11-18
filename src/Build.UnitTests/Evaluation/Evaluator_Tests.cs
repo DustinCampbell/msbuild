@@ -1633,6 +1633,60 @@ namespace Microsoft.Build.UnitTests.Evaluation
             Assert.Null(metadatum.Predecessor.Predecessor.Predecessor);
         }
 
+        // https://github.com/dotnet/msbuild/issues/5436
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void SupportsItemDefinitionGroupInWhenOtherwise(bool context)
+        {
+            string projectContent = $$"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion" xmlns="msbuildnamespace">
+                    <Choose>
+                        <When Condition="{{context}}">
+                            <PropertyGroup>
+                                <Foo>bar</Foo>
+                            </PropertyGroup>
+                            <ItemGroup>
+                                <A Include="$(Foo)">
+                                    <n>n1</n>
+                                </A>
+                            </ItemGroup>
+                            <ItemDefinitionGroup>
+                                <A>
+                                    <m>m1</m>
+                                    <n>n2</n>
+                                </A>
+                            </ItemDefinitionGroup>
+                        </When>
+                        <Otherwise>
+                            <PropertyGroup>
+                                <Foo>bar</Foo>
+                            </PropertyGroup>
+                            <ItemGroup>
+                                <A Include="$(Foo)">
+                                    <n>n1</n>
+                                </A>
+                            </ItemGroup>
+                            <ItemDefinitionGroup>
+                                <A>
+                                    <m>m2</m>
+                                    <n>n2</n>
+                                </A>
+                            </ItemDefinitionGroup>
+                        </Otherwise>
+                    </Choose>
+                </Project>
+                """.Cleanup();
+
+            var project = ObjectModelHelpers.CreateInMemoryProject(projectContent);
+            var projectItem = project.GetItems("A").First();
+
+            projectItem.EvaluatedInclude.ShouldBe("bar");
+            projectItem.GetMetadata("m").EvaluatedValue.ShouldBe(context ? "m1" : "m2");
+            projectItem.GetMetadata("n").EvaluatedValue.ShouldBe("n1");
+            projectItem.GetMetadata("n").Predecessor.EvaluatedValue.ShouldBe("n2");
+        }
+
         /// <summary>
         /// Predecessor of item is on the same item.
         /// </summary>
