@@ -32,11 +32,15 @@ namespace Microsoft.Build.UnitTests.Evaluation
     /// </summary>
     public class Evaluator_Tests : IDisposable
     {
+        private readonly ITestOutputHelper _output;
+
         /// <summary>
-        /// Cleanup
+        ///  Initializes evaluation tests with an empty global project collection.
         /// </summary>
-        public Evaluator_Tests()
+        /// <param name="output">The output helper for the test.</param>
+        public Evaluator_Tests(ITestOutputHelper output)
         {
+            _output = output;
             ProjectCollection.GlobalProjectCollection.UnloadAllProjects();
             GC.Collect();
         }
@@ -1536,6 +1540,69 @@ namespace Microsoft.Build.UnitTests.Evaluation
             ProjectProperty property = project.SetProperty("outdir", "x"); // Outdir is set in microsoft.common.targets
 
             Assert.Null(property.Predecessor);
+        }
+
+        /// <summary>
+        ///  Verifies item definitions are accepted in both choose branches and preserve item-metadata precedence.
+        /// </summary>
+        /// <param name="context">Whether to select the when branch rather than the otherwise branch.</param>
+        /// <remarks>
+        ///  Regression coverage for https://github.com/dotnet/msbuild/issues/5436.
+        /// </remarks>
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void SupportItemDefinationGroupInWhenOtherwise(bool context)
+        {
+            string projectContent = $"""
+                <Project ToolsVersion="msbuilddefaulttoolsversion">
+                    <Choose>
+                        <When Condition="{context}">
+                            <PropertyGroup>
+                                <Foo>bar</Foo>
+                            </PropertyGroup>
+                            <ItemGroup>
+                                <A Include="$(Foo)">
+                                    <n>n1</n>
+                                </A>
+                            </ItemGroup>
+                            <ItemDefinitionGroup>
+                                <A>
+                                    <m>m1</m>
+                                    <n>n2</n>
+                                </A>
+                            </ItemDefinitionGroup>
+                        </When>
+                        <Otherwise>
+                            <PropertyGroup>
+                                <Foo>bar</Foo>
+                            </PropertyGroup>
+                            <ItemGroup>
+                                <A Include="$(Foo)">
+                                    <n>n1</n>
+                                </A>
+                            </ItemGroup>
+                            <ItemDefinitionGroup>
+                                <A>
+                                    <m>m2</m>
+                                    <n>n2</n>
+                                </A>
+                            </ItemDefinitionGroup>
+                        </Otherwise>
+                    </Choose>
+                </Project>
+                """.Cleanup();
+
+            using ProjectCollection collection = new();
+            Project project = ObjectModelHelpers.CreateInMemoryProject(collection, projectContent, new MockLogger(_output));
+            ProjectItem item = project.GetItems("A").ShouldHaveSingleItem();
+
+            item.EvaluatedInclude.ShouldBe("bar");
+            item.GetMetadataValue("m").ShouldBe(context ? "m1" : "m2");
+
+            ProjectMetadata metadata = item.GetMetadata("n").ShouldNotBeNull();
+            metadata.EvaluatedValue.ShouldBe("n1");
+            metadata.Predecessor.ShouldNotBeNull().EvaluatedValue.ShouldBe("n2");
         }
 
         /// <summary>
