@@ -125,6 +125,21 @@ public class ParserTest
             Parse(condition));
 
     [Theory]
+    [InlineData(" @(foo", 2)]
+    [InlineData("1234=5678", 6)]
+    [InlineData("1==0xFG", 7)]
+    [InlineData("1==-0xF", 6)]
+    [InlineData(" ", 2)]
+    [InlineData(" (", 3)]
+    [InlineData(" false or  ", 12)]
+    public void ReportsErrorPosition(string expression, int expectedPosition)
+    {
+        Parser parser = new();
+        _ = Should.Throw<InvalidProjectFileException>(() => parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance));
+        parser.errorPosition.ShouldBe(expectedPosition);
+    }
+
+    [Theory]
     [InlineData("$(a) == 1 and $(b) == 2 or $(c) == 3", true)]
     [InlineData("$(a) == 1 or $(b) == 2 and $(c) == 3", true)]
     [InlineData("($(a) == 1 or $(b) == 2 and $(c) == 3) or $(d) == 4", true)]
