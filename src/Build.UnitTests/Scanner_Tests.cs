@@ -5,7 +5,6 @@ using System;
 using Microsoft.Build.Evaluation;
 using Shouldly;
 using Xunit;
-using TokenType = Microsoft.Build.Evaluation.Token.TokenType;
 
 namespace Microsoft.Build.UnitTests;
 
@@ -33,11 +32,11 @@ public class ScannerTest
     public void ScansNumericTokenWithMultipleDots()
     {
         Scanner scanner = new("1==1.1.", ParserOptions.AllowAll);
-        AssertNextToken(scanner, TokenType.Numeric);
-        AssertNextToken(scanner, TokenType.EqualTo);
-        AssertNextToken(scanner, TokenType.Numeric);
+        AssertNextToken(scanner, TokenKind.Number);
+        AssertNextToken(scanner, TokenKind.EqualTo);
+        AssertNextToken(scanner, TokenKind.Number);
         scanner.IsNextString().ShouldBe("1.1.");
-        AssertNextToken(scanner, TokenType.EndOfInput);
+        AssertNextToken(scanner, TokenKind.EndOfInput);
     }
 
     [Fact]
@@ -70,8 +69,8 @@ public class ScannerTest
     public void AllowsWhitespaceInPropertyFunctions(string expression)
     {
         Scanner scanner = new(expression, ParserOptions.AllowProperties);
-        AssertNextToken(scanner, TokenType.Property);
-        AssertNextToken(scanner, TokenType.EndOfInput);
+        AssertNextToken(scanner, TokenKind.Property);
+        AssertNextToken(scanner, TokenKind.EndOfInput);
     }
 
     [Theory]
@@ -112,105 +111,105 @@ public class ScannerTest
     public void ScansNumericTokens(string expression)
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
-        AssertNextToken(scanner, TokenType.Numeric);
+        AssertNextToken(scanner, TokenKind.Number);
         scanner.IsNextString().ShouldBe(expression);
     }
 
     [Theory]
-    [InlineData("$(foo)", (int)TokenType.Property)]
-    [InlineData("@(foo)", (int)TokenType.ItemList)]
-    [InlineData("(", (int)TokenType.LeftParenthesis)]
-    [InlineData(")", (int)TokenType.RightParenthesis)]
-    [InlineData(",", (int)TokenType.Comma)]
-    [InlineData("==", (int)TokenType.EqualTo)]
-    [InlineData("!=", (int)TokenType.NotEqualTo)]
-    [InlineData("<", (int)TokenType.LessThan)]
-    [InlineData(">", (int)TokenType.GreaterThan)]
-    [InlineData("<=", (int)TokenType.LessThanOrEqualTo)]
-    [InlineData(">=", (int)TokenType.GreaterThanOrEqualTo)]
-    [InlineData("!", (int)TokenType.Not)]
-    [InlineData("'String with an embedded \\' in it'", (int)TokenType.String)]
+    [InlineData("$(foo)", (int)TokenKind.Property)]
+    [InlineData("@(foo)", (int)TokenKind.ItemList)]
+    [InlineData("(", (int)TokenKind.LeftParenthesis)]
+    [InlineData(")", (int)TokenKind.RightParenthesis)]
+    [InlineData(",", (int)TokenKind.Comma)]
+    [InlineData("==", (int)TokenKind.EqualTo)]
+    [InlineData("!=", (int)TokenKind.NotEqualTo)]
+    [InlineData("<", (int)TokenKind.LessThan)]
+    [InlineData(">", (int)TokenKind.GreaterThan)]
+    [InlineData("<=", (int)TokenKind.LessThanOrEqualTo)]
+    [InlineData(">=", (int)TokenKind.GreaterThanOrEqualTo)]
+    [InlineData("!", (int)TokenKind.Not)]
+    [InlineData("'String with an embedded \\' in it'", (int)TokenKind.String)]
     public void ScansFirstToken(string expression, int expectedType)
-        => AssertTokens(expression, (TokenType)expectedType);
+        => AssertTokens(expression, (TokenKind)expectedType);
 
     [Theory]
-    [InlineData("abcde", (int)TokenType.String, "abcde")]
-    [InlineData("'abc-efg'", (int)TokenType.String, "abc-efg")]
-    [InlineData("and", (int)TokenType.And, "and")]
-    [InlineData("or", (int)TokenType.Or, "or")]
-    [InlineData("AnD", (int)TokenType.And, "and")]
-    [InlineData("Or", (int)TokenType.Or, "or")]
-    [InlineData("'String with a $(Property) inside'", (int)TokenType.String, "String with a $(Property) inside")]
-    [InlineData("@(list, ' ')", (int)TokenType.ItemList, "@(list, ' ')")]
-    [InlineData("@(files->'%(Filename)')", (int)TokenType.ItemList, "@(files->'%(Filename)')")]
-    public void ScansTokenValues(string expression, int expectedType, string expectedValue)
+    [InlineData("abcde", (int)TokenKind.String, "abcde")]
+    [InlineData("'abc-efg'", (int)TokenKind.String, "abc-efg")]
+    [InlineData("and", (int)TokenKind.And, "and")]
+    [InlineData("or", (int)TokenKind.Or, "or")]
+    [InlineData("AnD", (int)TokenKind.And, "and")]
+    [InlineData("Or", (int)TokenKind.Or, "or")]
+    [InlineData("'String with a $(Property) inside'", (int)TokenKind.String, "String with a $(Property) inside")]
+    [InlineData("@(list, ' ')", (int)TokenKind.ItemList, "@(list, ' ')")]
+    [InlineData("@(files->'%(Filename)')", (int)TokenKind.ItemList, "@(files->'%(Filename)')")]
+    public void ScansTokenValues(string expression, int expectedKind, string expectedValue)
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
-        AssertNextToken(scanner, (TokenType)expectedType);
+        AssertNextToken(scanner, (TokenKind)expectedKind);
         scanner.IsNextString().ShouldBe(expectedValue);
     }
 
     [Theory]
-    [InlineData("@(Foo, ' ')", (int)TokenType.ItemList)]
-    [InlineData("'@(Foo, ' ')'", (int)TokenType.String)]
-    [InlineData("'%40(( '", (int)TokenType.String)]
-    public void ScansStringEdgeCases(string expression, int expectedType)
-        => AssertTokens(expression, (TokenType)expectedType, TokenType.EndOfInput);
+    [InlineData("@(Foo, ' ')", (int)TokenKind.ItemList)]
+    [InlineData("'@(Foo, ' ')'", (int)TokenKind.String)]
+    [InlineData("'%40(( '", (int)TokenKind.String)]
+    public void ScansStringEdgeCases(string expression, int expectedKind)
+        => AssertTokens(expression, (TokenKind)expectedKind, TokenKind.EndOfInput);
 
     [Fact]
     public void ScansQuotedItemListInComparison()
         => AssertTokens(
             "'@(Complex_ItemType-123, ';')' == ''",
-            TokenType.String,
-            TokenType.EqualTo,
-            TokenType.String,
-            TokenType.EndOfInput);
+            TokenKind.String,
+            TokenKind.EqualTo,
+            TokenKind.String,
+            TokenKind.EndOfInput);
 
     [Theory]
     [InlineData("Foo()", new int[0])]
-    [InlineData("Foo( 1 )", new[] { (int)TokenType.Numeric })]
-    [InlineData("Foo( $(Property) )", new[] { (int)TokenType.Property })]
-    [InlineData("Foo( @(ItemList) )", new[] { (int)TokenType.ItemList })]
-    [InlineData("Foo( simplestring )", new[] { (int)TokenType.String })]
-    [InlineData("Foo( 'Not a Simple String' )", new[] { (int)TokenType.String })]
+    [InlineData("Foo( 1 )", new[] { (int)TokenKind.Number })]
+    [InlineData("Foo( $(Property) )", new[] { (int)TokenKind.Property })]
+    [InlineData("Foo( @(ItemList) )", new[] { (int)TokenKind.ItemList })]
+    [InlineData("Foo( simplestring )", new[] { (int)TokenKind.String })]
+    [InlineData("Foo( 'Not a Simple String' )", new[] { (int)TokenKind.String })]
     [InlineData(
         "Foo( 'Not a Simple String', 1234 )",
-        new[] { (int)TokenType.String, (int)TokenType.Comma, (int)TokenType.Numeric })]
+        new[] { (int)TokenKind.String, (int)TokenKind.Comma, (int)TokenKind.Number })]
     [InlineData(
         "Foo( $(Property), 'Not a Simple String', 1234 )",
-        new[] { (int)TokenType.Property, (int)TokenType.Comma, (int)TokenType.String, (int)TokenType.Comma, (int)TokenType.Numeric })]
+        new[] { (int)TokenKind.Property, (int)TokenKind.Comma, (int)TokenKind.String, (int)TokenKind.Comma, (int)TokenKind.Number })]
     [InlineData(
         "Foo( @(ItemList), $(Property), simplestring, 'Not a Simple String', 1234 )",
         new[]
         {
-            (int)TokenType.ItemList, (int)TokenType.Comma, (int)TokenType.Property, (int)TokenType.Comma,
-            (int)TokenType.String, (int)TokenType.Comma, (int)TokenType.String, (int)TokenType.Comma, (int)TokenType.Numeric,
+            (int)TokenKind.ItemList, (int)TokenKind.Comma, (int)TokenKind.Property, (int)TokenKind.Comma,
+            (int)TokenKind.String, (int)TokenKind.Comma, (int)TokenKind.String, (int)TokenKind.Comma, (int)TokenKind.Number,
         })]
-    public void ScansFunctionTokens(string expression, int[] argumentTypes)
+    public void ScansFunctionTokens(string expression, int[] argumentKinds)
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
-        AssertNextToken(scanner, TokenType.Function);
+        AssertNextToken(scanner, TokenKind.FunctionName);
         scanner.IsNextString().ShouldBe("Foo");
-        AssertNextToken(scanner, TokenType.LeftParenthesis);
+        AssertNextToken(scanner, TokenKind.LeftParenthesis);
 
-        foreach (int argumentType in argumentTypes)
+        foreach (int argumentType in argumentKinds)
         {
-            AssertNextToken(scanner, (TokenType)argumentType);
+            AssertNextToken(scanner, (TokenKind)argumentType);
         }
 
-        AssertNextToken(scanner, TokenType.RightParenthesis);
+        AssertNextToken(scanner, TokenKind.RightParenthesis);
     }
 
     [Theory]
-    [InlineData("'abc-efg'==$(foo)", (int)TokenType.String, (int)TokenType.EqualTo, (int)TokenType.Property)]
-    [InlineData("$(debug)!=true", (int)TokenType.Property, (int)TokenType.NotEqualTo, (int)TokenType.String)]
-    [InlineData("$(VERSION)<5", (int)TokenType.Property, (int)TokenType.LessThan, (int)TokenType.Numeric)]
+    [InlineData("'abc-efg'==$(foo)", (int)TokenKind.String, (int)TokenKind.EqualTo, (int)TokenKind.Property)]
+    [InlineData("$(debug)!=true", (int)TokenKind.Property, (int)TokenKind.NotEqualTo, (int)TokenKind.String)]
+    [InlineData("$(VERSION)<5", (int)TokenKind.Property, (int)TokenKind.LessThan, (int)TokenKind.Number)]
     public void ScansComparisonTokens(string expression, int leftType, int comparisonType, int rightType)
-        => AssertTokens(expression, (TokenType)leftType, (TokenType)comparisonType, (TokenType)rightType, TokenType.EndOfInput);
+        => AssertTokens(expression, (TokenKind)leftType, (TokenKind)comparisonType, (TokenKind)rightType, TokenKind.EndOfInput);
 
     [Fact]
     public void ScansWhitespaceSeparatedTokens()
-        => AssertTokens("$(DEBUG) and $(FOO)", TokenType.Property, TokenType.And, TokenType.Property);
+        => AssertTokens("$(DEBUG) and $(FOO)", TokenKind.Property, TokenKind.And, TokenKind.Property);
 
     [Theory]
     [InlineData("1234$(DEBUG)0xabcd@(foo)asdf<>'foo'<=false>=true==1234!=")]
@@ -218,22 +217,22 @@ public class ScannerTest
     public void ScansTokensWithAndWithoutWhitespace(string expression)
         => AssertTokens(
             expression,
-            TokenType.Numeric,
-            TokenType.Property,
-            TokenType.Numeric,
-            TokenType.ItemList,
-            TokenType.String,
-            TokenType.LessThan,
-            TokenType.GreaterThan,
-            TokenType.String,
-            TokenType.LessThanOrEqualTo,
-            TokenType.String,
-            TokenType.GreaterThanOrEqualTo,
-            TokenType.String,
-            TokenType.EqualTo,
-            TokenType.Numeric,
-            TokenType.NotEqualTo,
-            TokenType.EndOfInput);
+            TokenKind.Number,
+            TokenKind.Property,
+            TokenKind.Number,
+            TokenKind.ItemList,
+            TokenKind.String,
+            TokenKind.LessThan,
+            TokenKind.GreaterThan,
+            TokenKind.String,
+            TokenKind.LessThanOrEqualTo,
+            TokenKind.String,
+            TokenKind.GreaterThanOrEqualTo,
+            TokenKind.String,
+            TokenKind.EqualTo,
+            TokenKind.Number,
+            TokenKind.NotEqualTo,
+            TokenKind.EndOfInput);
 
     [Theory]
     [InlineData("@(foo)")]
@@ -263,7 +262,7 @@ public class ScannerTest
     private static Scanner ScanToError(string expression, ParserOptions options = ParserOptions.AllowAll)
     {
         Scanner scanner = new(expression, options);
-        while (scanner.Advance() && !scanner.IsNext(TokenType.EndOfInput))
+        while (scanner.Advance() && !scanner.IsNext(TokenKind.EndOfInput))
         {
         }
 
@@ -271,18 +270,18 @@ public class ScannerTest
         return scanner;
     }
 
-    private static void AssertTokens(string expression, params ReadOnlySpan<TokenType> expectedTokens)
+    private static void AssertTokens(string expression, params ReadOnlySpan<TokenKind> expectedKinds)
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
-        foreach (TokenType expectedToken in expectedTokens)
+        foreach (TokenKind expectedKind in expectedKinds)
         {
-            AssertNextToken(scanner, expectedToken);
+            AssertNextToken(scanner, expectedKind);
         }
     }
 
-    private static void AssertNextToken(Scanner scanner, TokenType expectedToken)
+    private static void AssertNextToken(Scanner scanner, TokenKind expectedKind)
     {
         scanner.Advance().ShouldBeTrue();
-        scanner.IsNext(expectedToken).ShouldBeTrue();
+        scanner.IsNext(expectedKind).ShouldBeTrue();
     }
 }
