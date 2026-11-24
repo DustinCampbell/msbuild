@@ -10,7 +10,8 @@ namespace Microsoft.Build.Evaluation
     /// Evaluates a numeric comparison, such as less-than, or greater-or-equal-than
     /// Does not update conditioned properties table.
     /// </summary>
-    internal abstract class NumericComparisonExpressionNode : OperatorExpressionNode
+    internal abstract class NumericComparisonExpressionNode(GenericExpressionNode leftChild, GenericExpressionNode rightChild)
+        : OperatorExpressionNode(leftChild, rightChild)
     {
         /// <summary>
         /// Compare numbers

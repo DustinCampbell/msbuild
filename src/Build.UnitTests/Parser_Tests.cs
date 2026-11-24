@@ -42,6 +42,28 @@ public class ParserTest
     public void ParsesComplexConditions(string condition)
         => Parse(condition);
 
+    [Fact]
+    public void ParsesOperatorsWithGrammarPrecedence()
+    {
+        OrExpressionNode root = Parse("!a == b or c and d").Root.ShouldBeOfType<OrExpressionNode>();
+        EqualExpressionNode comparison = root.LeftChild.ShouldBeOfType<EqualExpressionNode>();
+
+        _ = comparison.LeftChild.ShouldBeOfType<NotExpressionNode>();
+        _ = root.RightChild.ShouldBeOfType<AndExpressionNode>();
+    }
+
+    [Fact]
+    public void ParsesBooleanChainsLeftAssociatively()
+    {
+        OrExpressionNode orNode = Parse("a or b or c").Root.ShouldBeOfType<OrExpressionNode>();
+        _ = orNode.LeftChild.ShouldBeOfType<OrExpressionNode>();
+        orNode.RightChild.ShouldBeOfType<StringExpressionNode>().GetUnexpandedValue(null).ShouldBe("c");
+
+        AndExpressionNode andNode = Parse("a and b and c").Root.ShouldBeOfType<AndExpressionNode>();
+        _ = andNode.LeftChild.ShouldBeOfType<AndExpressionNode>();
+        andNode.RightChild.ShouldBeOfType<StringExpressionNode>().GetUnexpandedValue(null).ShouldBe("c");
+    }
+
     [Theory]
     [InlineData("!true")]
     [InlineData("!(true)")]
@@ -57,6 +79,9 @@ public class ParserTest
     [InlineData("SimpleFunctionCall( true )")]
     [InlineData("SimpleFunctionCall( $(property) )")]
     [InlineData("SimpleFunctionCall( $(property), 1234, abcd, 'abcd efgh' )")]
+    [InlineData("SimpleFunctionCall(,)")]
+    [InlineData("SimpleFunctionCall(a,)")]
+    [InlineData("SimpleFunctionCall(,a)")]
     public void ParsesFunctionCalls(string condition)
         => Parse(condition);
 
@@ -120,6 +145,9 @@ public class ParserTest
     [InlineData("true!=false==")]
     [InlineData("true!=false==true")]
     [InlineData("1==(2")]
+    [InlineData("f(a == b)")]
+    [InlineData("f((a))")]
+    [InlineData("f(g(a))")]
     public void RejectsMalformedConditions(string condition)
         => Should.Throw<InvalidProjectFileException>(() =>
             Parse(condition));
@@ -134,11 +162,14 @@ public class ParserTest
     [InlineData(" false or  ", 12)]
     [InlineData("true false", 6)]
     [InlineData("(true", 6)]
+    [InlineData("true == )", 9)]
+    [InlineData("f(a", 4)]
     public void ReportsErrorPosition(string expression, int expectedPosition)
     {
-        Parser parser = new();
-        _ = Should.Throw<InvalidProjectFileException>(() => parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance));
-        parser.errorPosition.ShouldBe(expectedPosition);
+        Parser parser = new(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
+        _ = Should.Throw<InvalidProjectFileException>(() =>
+            parser.Parse());
+        parser.ErrorPosition.ShouldBe(expectedPosition);
     }
 
     [Theory]
@@ -163,9 +194,9 @@ public class ParserTest
         EvaluationLoggingContext loggingContext = new(
             loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
 
-        Parser parser = new();
+        Parser parser = new(condition, ParserOptions.AllowAll, MockElementLocation.Instance);
 
-        _ = parser.Parse(condition, ParserOptions.AllowAll, MockElementLocation.Instance, loggingContext);
+        _ = parser.Parse();
         parser.LogWarnings(condition, loggingContext);
 
         warningLogged.ShouldBe(expectedWarning);
@@ -192,19 +223,44 @@ public class ParserTest
         EvaluationLoggingContext loggingContext = new(
             loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
 
-        Parser parser = new();
+        Parser parser = new(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
 
-        _ = parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance, loggingContext);
+        _ = parser.Parse(loggingContext);
 
         warningCount.ShouldBe(0);
         parser.LogWarnings(expression, loggingContext);
         warningCount.ShouldBe(expectedWarningCount);
 
-        _ = parser.Parse("true", ParserOptions.AllowAll, MockElementLocation.Instance, loggingContext);
+        parser = new("true", ParserOptions.AllowAll, MockElementLocation.Instance);
+
+        _ = parser.Parse(loggingContext);
         parser.LogWarnings("true", loggingContext);
         warningCount.ShouldBe(expectedWarningCount);
     }
 
+    [Theory]
+    [InlineData("true or false and true false", 1)]
+    [InlineData("true or false and", 0)]
+    public void ReportsRecordedWarningsWhenParsingFails(string expression, int expectedWarningCount)
+    {
+        int warningCount = 0;
+        MockLoggingService loggingService = new(message =>
+        {
+            if (message == "ConditionMaybeEvaluatedIncorrectly")
+            {
+                warningCount++;
+            }
+        });
+
+        EvaluationLoggingContext loggingContext = new(
+            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
+
+        Parser parser = new(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
+        _ = Should.Throw<InvalidProjectFileException>(() => parser.Parse(loggingContext));
+
+        warningCount.ShouldBe(expectedWarningCount);
+    }
+
     private static ParsedCondition Parse(string condition, ParserOptions options = ParserOptions.AllowAll) =>
-        new Parser().Parse(condition, options, MockElementLocation.Instance);
+        Parser.Parse(condition, options, MockElementLocation.Instance);
 }

@@ -10,8 +10,10 @@ namespace Microsoft.Build.Evaluation
     /// Compares for left &lt; right
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class LessThanExpressionNode : NumericComparisonExpressionNode
+    internal sealed class LessThanExpressionNode(GenericExpressionNode leftChild, GenericExpressionNode rightChild)
+        : NumericComparisonExpressionNode(leftChild, rightChild)
     {
+
         /// <summary>
         /// Compare numerically
         /// </summary>

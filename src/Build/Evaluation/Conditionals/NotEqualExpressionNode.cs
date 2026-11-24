@@ -10,7 +10,8 @@ namespace Microsoft.Build.Evaluation
     /// Compares for inequality
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class NotEqualExpressionNode : MultipleComparisonNode
+    internal sealed class NotEqualExpressionNode(GenericExpressionNode leftChild, GenericExpressionNode rightChild)
+        : MultipleComparisonNode(leftChild, rightChild)
     {
         /// <summary>
         /// Compare numbers

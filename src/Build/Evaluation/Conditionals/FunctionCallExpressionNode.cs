@@ -16,16 +16,11 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// Evaluates a function expression, such as "Exists('foo')"
     /// </summary>
-    internal sealed class FunctionCallExpressionNode : OperatorExpressionNode
+    internal sealed class FunctionCallExpressionNode(string functionName, List<GenericExpressionNode> arguments)
+        : OperatorExpressionNode(leftChild: null, rightChild: null)
     {
-        private readonly List<GenericExpressionNode> _arguments;
-        private readonly string _functionName;
-
-        internal FunctionCallExpressionNode(string functionName, List<GenericExpressionNode> arguments)
-        {
-            _functionName = functionName;
-            _arguments = arguments;
-        }
+        private readonly List<GenericExpressionNode> _arguments = arguments;
+        private readonly string _functionName = functionName;
 
         /// <summary>
         /// Evaluate node as boolean

@@ -19,11 +19,11 @@ namespace MSBuild.Benchmarks;
 [MemoryDiagnoser]
 public class ConditionParsingBenchmark
 {
-    private ElementLocation _elementLocation = null!;
+    private ElementLocation _location = null!;
 
     [GlobalSetup]
     public void GlobalSetup()
-        => _elementLocation = ElementLocation.Empty;
+        => _location = ElementLocation.Empty;
 
     [Benchmark(Baseline = true)]
     public object SimpleEquality_Parse()
@@ -126,5 +126,5 @@ public class ConditionParsingBenchmark
         => Parse(RealisticMultiTargeting);
 
     private object Parse(string condition)
-        => new Parser().Parse(condition, ParserOptions.AllowAll, _elementLocation);
+        => Parser.Parse(condition, ParserOptions.AllowAll, _location);
 }

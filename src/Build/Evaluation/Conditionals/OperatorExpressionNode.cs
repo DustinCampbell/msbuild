@@ -10,8 +10,18 @@ namespace Microsoft.Build.Evaluation
     /// <summary>
     /// Base class for nodes that are operators (have children in the parse tree)
     /// </summary>
-    internal abstract class OperatorExpressionNode : GenericExpressionNode
+    internal abstract class OperatorExpressionNode(GenericExpressionNode leftChild, GenericExpressionNode rightChild) : GenericExpressionNode
     {
+        /// <summary>
+        /// Storage for the left child
+        /// </summary>
+        internal GenericExpressionNode LeftChild { get; } = leftChild;
+
+        /// <summary>
+        /// Storage for the right child
+        /// </summary>
+        internal GenericExpressionNode RightChild { get; } = rightChild;
+
         internal override bool TryBoolEvaluate(ConditionEvaluator.IConditionEvaluationState state, out bool result)
         {
             result = BoolEvaluate(state);
@@ -53,15 +63,5 @@ namespace Microsoft.Build.Evaluation
         {
             return null;
         }
-
-        /// <summary>
-        /// Storage for the left child
-        /// </summary>
-        internal GenericExpressionNode LeftChild { set; get; }
-
-        /// <summary>
-        /// Storage for the right child
-        /// </summary>
-        internal GenericExpressionNode RightChild { set; get; }
     }
 }

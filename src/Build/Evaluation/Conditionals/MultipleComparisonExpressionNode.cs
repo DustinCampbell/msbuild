@@ -12,7 +12,8 @@ namespace Microsoft.Build.Evaluation
     /// Order in which comparisons are attempted is numeric, boolean, then string.
     /// Updates conditioned properties table.
     /// </summary>
-    internal abstract class MultipleComparisonNode : OperatorExpressionNode
+    internal abstract class MultipleComparisonNode(GenericExpressionNode leftChild, GenericExpressionNode rightChild)
+        : OperatorExpressionNode(leftChild, rightChild)
     {
         /// <summary>
         /// Compare numbers

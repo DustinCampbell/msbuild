@@ -317,8 +317,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
         const string condition = "'$(Value)' > '1'";
-        ParsedCondition parsed = new Parser().Parse(
-            condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
         PropertyDictionary<ProjectPropertyInstance> properties = new();
         properties.Set(ProjectPropertyInstance.Create("Value", "not-a-number"));
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
@@ -382,8 +381,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
         string outerPath = Path.Combine(env.DefaultTestDirectory.Path, "outer.file");
         string innerPath = Path.Combine(env.DefaultTestDirectory.Path, "inner.file");
         string condition = "'$(Value)' != 'none' And Exists('$(File)')";
-        ParsedCondition parsed = new Parser().Parse(
-            condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
         MSBuildFileSystemBase fileSystem = A.Fake<MSBuildFileSystemBase>();
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> outerState = new(
             condition, CreateExpander(fileSystem, ("Value", "outer"), ("File", outerPath)),
@@ -444,8 +442,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     public void ToolsVersionCompatibilityUsesEachEvaluationsExpandedValue(string condition)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
-        ParsedCondition parsed = new Parser().Parse(
-            condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
         (string Value, bool Expected)[] cases =
         [
             (MSBuildConstants.CurrentToolsVersion, true),
@@ -521,8 +518,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     public void StringStateSlotsOnlyIncludeExpandableNodes(string condition, int expectedSlots)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
-        ParsedCondition parsed = new Parser().Parse(
-            condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
         parsed.StateLayout.StringSlotCount.ShouldBe(expectedSlots);
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             condition, CreateExpander(FileSystems.Default, ("Value", "value"), ("Other", "other")),
@@ -543,8 +539,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
         string condition = $"'{value}'";
-        ParsedCondition parsed = new Parser().Parse(
-            condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
         StringExpressionNode node = parsed.Root.ShouldBeOfType<StringExpressionNode>();
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             condition, CreateExpander(FileSystems.Default), ExpanderOptions.ExpandProperties,

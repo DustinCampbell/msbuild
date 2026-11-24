@@ -37,8 +37,8 @@ internal sealed class CachedCondition
         ElementLocation elementLocation,
         LoggingContext? loggingContext)
     {
-        Parser conditionParser = new();
-        ParsedCondition parsed = conditionParser.Parse(condition, options, elementLocation, loggingContext);
+        Parser conditionParser = new(condition, options, elementLocation);
+        ParsedCondition parsed = conditionParser.Parse(loggingContext);
         ParsedCondition? existing = Interlocked.CompareExchange(ref _condition, parsed, null);
         if (existing is not null)
         {

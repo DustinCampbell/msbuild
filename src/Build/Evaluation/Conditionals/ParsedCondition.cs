@@ -31,8 +31,8 @@ internal sealed record ParsedCondition(GenericExpressionNode Root, NodeStateLayo
         ElementLocation elementLocation,
         LoggingContext? loggingContext)
     {
-        Parser conditionParser = new();
-        ParsedCondition parsed = conditionParser.Parse(condition, options, elementLocation, loggingContext);
+        Parser conditionParser = new(condition, options, elementLocation);
+        ParsedCondition parsed = conditionParser.Parse(loggingContext);
         conditionParser.LogWarnings(condition, loggingContext);
         return parsed;
     }

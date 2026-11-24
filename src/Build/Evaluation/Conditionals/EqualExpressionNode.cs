@@ -10,7 +10,8 @@ namespace Microsoft.Build.Evaluation
     /// Compares for equality
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal sealed class EqualExpressionNode : MultipleComparisonNode
+    internal sealed class EqualExpressionNode(GenericExpressionNode leftChild, GenericExpressionNode rightChild)
+        : MultipleComparisonNode(leftChild, rightChild)
     {
         /// <summary>
         /// Compare numbers
