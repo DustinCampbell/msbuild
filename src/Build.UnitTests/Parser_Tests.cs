@@ -132,6 +132,8 @@ public class ParserTest
     [InlineData(" ", 2)]
     [InlineData(" (", 3)]
     [InlineData(" false or  ", 12)]
+    [InlineData("true false", 6)]
+    [InlineData("(true", 6)]
     public void ReportsErrorPosition(string expression, int expectedPosition)
     {
         Parser parser = new();

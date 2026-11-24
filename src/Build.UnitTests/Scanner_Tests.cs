@@ -18,6 +18,8 @@ public class ScannerTest
     [InlineData(" $", 2)]
     [InlineData(" $(foo", 2)]
     [InlineData(" $(", 2)]
+    [InlineData("$( x )", 4)]
+    [InlineData("$(A$( x ))", 7)]
     [InlineData("'%24%28x' == '%24(x''", 21)]
     public void ReportsErrorPosition(string expression, int expectedPosition)
         => AssertErrorPosition(expression, ParserOptions.AllowAll, expectedPosition);
@@ -28,6 +30,23 @@ public class ScannerTest
     public void ReportsPositionOfDisallowedItemLists(string expression, int expectedPosition)
         => AssertErrorPosition(expression, ParserOptions.AllowProperties, expectedPosition);
 
+    [Theory]
+    [InlineData("true false", new[] { 1, 6, 11 })]
+    [InlineData("  true == false  ", new[] { 3, 8, 11, 18 })]
+    public void ReportsTokenPositions(string expression, int[] expectedPositions)
+    {
+        Scanner scanner = new(expression, ParserOptions.AllowAll);
+        foreach (int expectedPosition in expectedPositions)
+        {
+            scanner.Advance().ShouldBeTrue();
+            scanner.TokenPosition.ShouldBe(expectedPosition);
+        }
+
+        scanner.IsKind(TokenKind.EndOfInput).ShouldBeTrue();
+        scanner.Advance().ShouldBeTrue();
+        scanner.TokenPosition.ShouldBe(expectedPositions[^1]);
+    }
+
     [Fact]
     public void ScansNumericTokenWithMultipleDots()
     {
@@ -35,7 +54,7 @@ public class ScannerTest
         AssertNextToken(scanner, TokenKind.Number);
         AssertNextToken(scanner, TokenKind.EqualTo);
         AssertNextToken(scanner, TokenKind.Number);
-        scanner.IsNextString().ShouldBe("1.1.");
+        scanner.CurrentTokenText.ShouldBe("1.1.");
         AssertNextToken(scanner, TokenKind.EndOfInput);
     }
 
@@ -43,11 +62,14 @@ public class ScannerTest
     public void ReportsSingleEqualsError()
     {
         Scanner scanner = ScanToError("a=b", ParserOptions.AllowProperties);
-        scanner.GetErrorResource().ShouldBe("IllFormedEqualsInCondition");
-        scanner.UnexpectedlyFound.ShouldBe("b");
+        scanner.ErrorResource.ShouldBe("IllFormedEqualsInCondition");
+        scanner.ErrorFormatArg.ShouldBe("b");
+        scanner.TokenPosition.ShouldBe(2);
+        scanner.ErrorPosition.ShouldBe(3);
     }
 
     [Theory]
+    [InlineData("$", "IllFormedPropertyCloseParenthesisInCondition")]
     [InlineData("$(", "IllFormedPropertyCloseParenthesisInCondition")]
     [InlineData("$x", "IllFormedPropertyOpenParenthesisInCondition")]
     [InlineData("$(x )", "IllFormedPropertySpaceInCondition")]
@@ -57,7 +79,7 @@ public class ScannerTest
     public void ReportsMalformedProperty(string expression, string expectedResource)
     {
         Scanner scanner = ScanToError(expression, ParserOptions.AllowProperties);
-        scanner.GetErrorResource().ShouldBe(expectedResource);
+        scanner.ErrorResource.ShouldBe(expectedResource);
     }
 
     [Theory]
@@ -74,6 +96,7 @@ public class ScannerTest
     }
 
     [Theory]
+    [InlineData("@", "IllFormedItemListCloseParenthesisInCondition")]
     [InlineData("@(", "IllFormedItemListCloseParenthesisInCondition")]
     [InlineData("@x", "IllFormedItemListOpenParenthesisInCondition")]
     [InlineData("@(x", "IllFormedItemListCloseParenthesisInCondition")]
@@ -83,8 +106,8 @@ public class ScannerTest
     public void ReportsMalformedItemList(string expression, string expectedResource)
     {
         Scanner scanner = ScanToError(expression);
-        scanner.GetErrorResource().ShouldBe(expectedResource);
-        scanner.UnexpectedlyFound.ShouldBeNull();
+        scanner.ErrorResource.ShouldBe(expectedResource);
+        scanner.ErrorFormatArg.ShouldBeNull();
     }
 
     [Theory]
@@ -94,8 +117,20 @@ public class ScannerTest
     public void ReportsUnterminatedQuotedString(string expression)
     {
         Scanner scanner = ScanToError(expression);
-        scanner.GetErrorResource().ShouldBe("IllFormedQuotedStringInCondition");
-        scanner.UnexpectedlyFound.ShouldBeNull();
+        scanner.ErrorResource.ShouldBe("IllFormedQuotedStringInCondition");
+        scanner.ErrorFormatArg.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("'@(foo")]
+    [InlineData("'@(foo'")]
+    public void ReportsQuotedStringErrorForMalformedEmbeddedItemList(string expression)
+    {
+        Scanner scanner = new(expression, ParserOptions.AllowAll);
+        scanner.Advance().ShouldBeFalse();
+        scanner.ErrorResource.ShouldBe("IllFormedQuotedStringInCondition");
+        scanner.ErrorPosition.ShouldBe(1);
+        scanner.ErrorFormatArg.ShouldBeNull();
     }
 
     [Theory]
@@ -112,7 +147,7 @@ public class ScannerTest
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
         AssertNextToken(scanner, TokenKind.Number);
-        scanner.IsNextString().ShouldBe(expression);
+        scanner.CurrentTokenText.ShouldBe(expression);
     }
 
     [Theory]
@@ -146,7 +181,7 @@ public class ScannerTest
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
         AssertNextToken(scanner, (TokenKind)expectedKind);
-        scanner.IsNextString().ShouldBe(expectedValue);
+        scanner.CurrentTokenText.ShouldBe(expectedValue);
     }
 
     [Theory]
@@ -189,7 +224,7 @@ public class ScannerTest
     {
         Scanner scanner = new(expression, ParserOptions.AllowAll);
         AssertNextToken(scanner, TokenKind.FunctionName);
-        scanner.IsNextString().ShouldBe("Foo");
+        scanner.CurrentTokenText.ShouldBe("Foo");
         AssertNextToken(scanner, TokenKind.LeftParenthesis);
 
         foreach (int argumentType in argumentKinds)
@@ -241,7 +276,7 @@ public class ScannerTest
     {
         Scanner scanner = new(expression, ParserOptions.AllowProperties);
         scanner.Advance().ShouldBeFalse();
-        scanner.GetErrorResource().ShouldBe("ItemListNotAllowedInThisConditional");
+        scanner.ErrorResource.ShouldBe("ItemListNotAllowedInThisConditional");
     }
 
     [Fact]
@@ -250,23 +285,23 @@ public class ScannerTest
         Scanner scanner = new("1234 '@(foo)'", ParserOptions.AllowProperties);
         scanner.Advance().ShouldBeTrue();
         scanner.Advance().ShouldBeFalse();
-        scanner.GetErrorResource().ShouldBe("ItemListNotAllowedInThisConditional");
+        scanner.ErrorResource.ShouldBe("ItemListNotAllowedInThisConditional");
     }
 
     private static void AssertErrorPosition(string expression, ParserOptions options, int expectedPosition)
     {
         Scanner scanner = ScanToError(expression, options);
-        scanner.GetErrorPosition().ShouldBe(expectedPosition);
+        scanner.ErrorPosition.ShouldBe(expectedPosition);
     }
 
     private static Scanner ScanToError(string expression, ParserOptions options = ParserOptions.AllowAll)
     {
         Scanner scanner = new(expression, options);
-        while (scanner.Advance() && !scanner.IsNext(TokenKind.EndOfInput))
+        while (scanner.Advance() && !scanner.IsKind(TokenKind.EndOfInput))
         {
         }
 
-        scanner._errorState.ShouldBeTrue();
+        scanner.HasError.ShouldBeTrue();
         return scanner;
     }
 
@@ -282,6 +317,6 @@ public class ScannerTest
     private static void AssertNextToken(Scanner scanner, TokenKind expectedKind)
     {
         scanner.Advance().ShouldBeTrue();
-        scanner.IsNext(expectedKind).ShouldBeTrue();
+        scanner.IsKind(expectedKind).ShouldBeTrue();
     }
 }
