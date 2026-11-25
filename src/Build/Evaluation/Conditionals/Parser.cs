@@ -2,11 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Build.BackEnd.Logging;
+using Microsoft.Build.Construction;
 using Microsoft.Build.Exceptions;
 using Microsoft.Build.Internal;
-using Microsoft.Build.Shared;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -48,15 +49,14 @@ namespace Microsoft.Build.Evaluation;
 ///  </para>
 ///  <para>
 ///   Node-producing <c>TryParse</c> methods return <see langword="false"/> with a
-///   <see langword="null"/> node and leave input untouched when no production matches.
-///   Once a production has started, malformed input throws <see cref="InvalidProjectFileException"/>.
+///   <see langword="null"/> node when no production matches or a diagnostic error is recorded.
+///   A non-match leaves input untouched. Parsing stops at the first error without returning a partial tree.
 ///  </para>
 ///  <para>
-///   Each parser instance is used for one parse. Retain the instance when successful-parse warnings
-///   must be reported through <see cref="LogWarnings"/>; cache callers report them only after winning
-///   publication. The static <see cref="Parse(string, ParserOptions, IElementLocation, LoggingContext)"/>
-///   convenience method does not report successful-parse warnings. Failed parses report recorded
-///   warnings through the supplied logging context before throwing.
+///   Each parser instance is used for one parse. Parsing returns errors and warnings as
+///   <see cref="ParseDiagnostic"/> data without formatting messages, reporting warnings, or throwing
+///   project-file exceptions. Callers own reporting and cache-publication policy and can explicitly
+///   invoke <see cref="ReportDiagnostics"/>.
 ///  </para>
 ///  <para>
 ///   Evaluate the returned <see cref="ParsedCondition"/> through
@@ -77,9 +77,9 @@ internal sealed class Parser
     private readonly Scanner _lexer;
 
     /// <summary>
-    ///  The project-file location associated with diagnostics.
+    ///  Diagnostics collected in discovery order, allocated only when a diagnostic is recorded.
     /// </summary>
-    private readonly IElementLocation _location;
+    private List<ParseDiagnostic>? _diagnostics;
 
     /// <summary>
     ///  Whether a completed expression mixed unparenthesized <c>AND</c> and <c>OR</c> operators.
@@ -87,9 +87,9 @@ internal sealed class Parser
     private bool _hasMixedAndOr;
 
     /// <summary>
-    ///  The most recent scanner or parser error position.
+    ///  Whether the first fatal parsing or scanning error has been recorded.
     /// </summary>
-    private int _errorPosition;
+    private bool _hasError;
 
     /// <summary>
     ///  The number of evaluation-state slots assigned to expandable string nodes in this condition.
@@ -101,8 +101,7 @@ internal sealed class Parser
     /// </summary>
     /// <param name="text">The condition text to parse.</param>
     /// <param name="options">The permitted reference forms. Must include <see cref="ParserOptions.AllowProperties"/>.</param>
-    /// <param name="location">The project-file location to use for diagnostics.</param>
-    public Parser(string text, ParserOptions options, IElementLocation location)
+    private Parser(string text, ParserOptions options)
     {
         // We currently have no support (and no scenarios) for disallowing property references
         // in Conditions.
@@ -110,108 +109,99 @@ internal sealed class Parser
 
         _text = text;
         _lexer = new Scanner(text, options);
-        _location = location;
         _hasMixedAndOr = false;
     }
 
     /// <summary>
-    ///  The most recent scanner or parser error position.
-    /// </summary>
-    public int ErrorPosition => _errorPosition;
-
-    /// <summary>
-    ///  Parses a condition without retaining the parser instance.
+    ///  Parses a condition and collects diagnostics without reporting them.
     /// </summary>
     /// <param name="text">The condition text to parse.</param>
     /// <param name="options">The permitted reference forms. Must include <see cref="ParserOptions.AllowProperties"/>.</param>
-    /// <param name="location">The project-file location to use for diagnostics.</param>
-    /// <param name="loggingContext">Reports recorded warnings on parse failure, or <see langword="null"/> to omit them.</param>
     /// <returns>
-    ///  The parsed expression tree and its evaluation-state layout.
+    ///  The completed condition and any warnings, or diagnostics describing why parsing failed.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">The condition contains invalid syntax or a disallowed reference.</exception>
-    /// <remarks>
-    ///  Successful-parse warnings are not reported. Use an instance and call <see cref="LogWarnings"/>
-    ///  after <see cref="Parse(LoggingContext)"/> when those warnings are required.
-    /// </remarks>
-    public static ParsedCondition Parse(string text, ParserOptions options, IElementLocation location, LoggingContext? loggingContext = null)
-        => new Parser(text, options, location).Parse(loggingContext);
+    public static ParseResult Parse(string text, ParserOptions options)
+        => new Parser(text, options).Parse();
 
     /// <summary>
-    ///  Parses <c>condition = expression, EOF</c> and records compatibility warnings.
+    ///  Parses <c>condition = expression, EOF</c> and collects diagnostics without reporting them.
     /// </summary>
-    /// <param name="loggingContext">Reports recorded warnings on parse failure, or <see langword="null"/> to omit them.</param>
     /// <returns>
-    ///  The parsed expression tree and its evaluation-state layout.
+    ///  The completed condition and any warnings, or diagnostics describing why parsing failed.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">The condition contains invalid syntax or a disallowed reference.</exception>
     /// <remarks>
-    ///  Call once per parser instance. The <paramref name="loggingContext"/> is used only to report
-    ///  recorded warnings before a parse failure. After successful parsing, call
-    ///  <see cref="LogWarnings"/> separately to report them.
+    ///  Call once per parser instance. Warnings discovered before the first error are retained.
+    ///  Successful parses with no diagnostics do not allocate a diagnostic collection.
     /// </remarks>
-    public ParsedCondition Parse(LoggingContext? loggingContext = null)
+    private ParseResult Parse()
     {
-        try
+        if (!TryAdvance())
         {
-            if (!_lexer.Advance())
-            {
-                _errorPosition = _lexer.ErrorPosition;
-                ProjectErrorUtilities.ThrowInvalidProject(_location, _lexer.ErrorResource, _text, _errorPosition, _lexer.ErrorFormatArg);
-            }
-
-            if (!TryParseExpression(out GenericExpressionNode? node))
-            {
-                ThrowUnexpectedToken();
-            }
-
-            if (!_lexer.IsKind(TokenKind.EndOfInput))
-            {
-                ThrowUnexpectedToken();
-            }
-
-            return new ParsedCondition(node, new NodeStateLayout(_stringNodeStateCount));
+            return CreateResult(null);
         }
-        catch (InvalidProjectFileException)
+
+        if (!TryParseExpression(out GenericExpressionNode? node))
         {
-            // Failed parses cannot be published, so their diagnostics belong to this caller.
-            LogWarnings(_text, loggingContext);
-            throw;
+            AddUnexpectedTokenDiagnostic();
+            return CreateResult(null);
         }
+
+        if (!_lexer.IsKind(TokenKind.EndOfInput))
+        {
+            AddUnexpectedTokenDiagnostic();
+            return CreateResult(null);
+        }
+
+        return CreateResult(new ParsedCondition(node, new NodeStateLayout(_stringNodeStateCount)));
+
+        ParseResult CreateResult(ParsedCondition? condition)
+            => new(condition, _diagnostics?.ToImmutableArray() ?? []);
     }
 
     /// <summary>
-    ///  Reports compatibility warnings recorded by this parser.
+    ///  Reports collected warnings and throws the existing project-file exception for the first error.
     /// </summary>
-    /// <param name="expression">The condition text to include in a warning.</param>
+    /// <param name="diagnostics">The diagnostics collected in discovery order.</param>
+    /// <param name="location">The project-file location associated with the condition.</param>
     /// <param name="loggingContext">The warning destination, or <see langword="null"/> to omit warnings.</param>
+    /// <exception cref="InvalidProjectFileException">An error diagnostic was encountered.</exception>
     /// <remarks>
-    ///  For a successful cached parse, call only after winning publication. Failed parses report
-    ///  their recorded warnings from <see cref="Parse(LoggingContext)"/> before rethrowing.
+    ///  Successful cached parses call this only after winning publication. Failed parses are reported
+    ///  before publication is attempted. Diagnostic positions are already included in the formatting arguments.
     /// </remarks>
-    public void LogWarnings(string expression, LoggingContext? loggingContext)
+    public static void ReportDiagnostics(ImmutableArray<ParseDiagnostic> diagnostics, ElementLocation location, LoggingContext? loggingContext)
     {
-        if (!_hasMixedAndOr || loggingContext is null)
+        foreach (ParseDiagnostic diagnostic in diagnostics)
         {
-            return;
-        }
+            switch (diagnostic.Severity)
+            {
+                case ParseDiagnosticSeverity.Error:
+                    ProjectErrorUtilities.ThrowInvalidProject(location, diagnostic.ResourceName, diagnostic.Arguments);
+                    break;
 
-        loggingContext.LoggingService.LogWarning(
-            loggingContext.BuildEventContext,
-            DiagnosticSubcategory.None,
-            _location,
-            "ConditionMaybeEvaluatedIncorrectly",
-            expression);
+                case ParseDiagnosticSeverity.Warning:
+                    loggingContext?.LoggingService.LogWarning(
+                        loggingContext.BuildEventContext,
+                        DiagnosticSubcategory.None,
+                        location,
+                        diagnostic.ResourceName,
+                        diagnostic.Arguments);
+                    break;
+
+                default:
+                    Assumed.Unreachable($"Unexpected diagnostic severity: {diagnostic.Severity}");
+                    break;
+            }
+        }
     }
 
     /// <summary>
     ///  Parses an expression, combining <c>OR</c> operands from left to right.
     /// </summary>
-    /// <param name="node">The parsed node, or <see langword="null"/> if no expression starts at the current token.</param>
+    /// <param name="node">The parsed node, or <see langword="null"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if an expression was parsed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if an expression was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">An expression starts but contains invalid syntax or a scanning error.</exception>
     /// <remarks>
     ///  <code>expression = booleanTerm, { OR, booleanTerm } ;</code>
     ///  Tracks mixed <c>AND</c> and <c>OR</c> operators only within this expression's grouping.
@@ -222,6 +212,7 @@ internal sealed class Parser
         // to make the grouping explicit with parentheses.
         bool hasAnd = false;
         bool hasOr = false;
+
         if (!TryParseBooleanTerm(ref hasAnd, out node))
         {
             return false;
@@ -231,14 +222,28 @@ internal sealed class Parser
         {
             if (!TryParseBooleanTerm(ref hasAnd, out GenericExpressionNode? rhs))
             {
-                ThrowUnexpectedToken();
+                AddUnexpectedTokenDiagnostic();
+                node = null;
+                return false;
             }
 
             hasOr = true;
             node = new OrExpressionNode(node, rhs);
         }
 
-        _hasMixedAndOr |= hasAnd && hasOr;
+        if (_hasError)
+        {
+            node = null;
+            return false;
+        }
+
+        if (hasAnd && hasOr && !_hasMixedAndOr)
+        {
+            _hasMixedAndOr = true;
+            AddDiagnostic(new ParseDiagnostic(
+                ParseDiagnosticSeverity.Warning, "ConditionMaybeEvaluatedIncorrectly", 0, [_text]));
+        }
+
         return true;
     }
 
@@ -246,11 +251,10 @@ internal sealed class Parser
     ///  Parses a boolean term, combining <c>AND</c> operands from left to right.
     /// </summary>
     /// <param name="hasAnd">Set to <see langword="true"/> if this term consumes an <c>AND</c> operator.</param>
-    /// <param name="node">The parsed node, or <see langword="null"/> if no term starts at the current token.</param>
+    /// <param name="node">The parsed node, or <see langword="null"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if a term was parsed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if a term was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">A term starts but contains invalid syntax or a scanning error.</exception>
     /// <remarks>
     ///  <code>booleanTerm = comparison, { AND, comparison } ;</code>
     /// </remarks>
@@ -265,11 +269,19 @@ internal sealed class Parser
         {
             if (!TryParseComparison(out GenericExpressionNode? rhs))
             {
-                ThrowUnexpectedToken();
+                AddUnexpectedTokenDiagnostic();
+                node = null;
+                return false;
             }
 
             hasAnd = true;
             node = new AndExpressionNode(node, rhs);
+        }
+
+        if (_hasError)
+        {
+            node = null;
+            return false;
         }
 
         return true;
@@ -278,11 +290,10 @@ internal sealed class Parser
     /// <summary>
     ///  Parses a factor with an optional comparison.
     /// </summary>
-    /// <param name="node">The parsed node, or <see langword="null"/> if no factor starts at the current token.</param>
+    /// <param name="node">The parsed node, or <see langword="null"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if a factor or comparison was parsed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if a factor or comparison was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">A comparison starts but contains invalid syntax or a scanning error.</exception>
     /// <remarks>
     ///  <code>comparison = factor, [ comparisonOperator, factor ] ;</code>
     ///  All comparison operators have the same precedence. Chained comparisons require grouping.
@@ -296,12 +307,20 @@ internal sealed class Parser
 
         if (!TryParseComparisonOperator(out TokenKind kind))
         {
+            if (_hasError)
+            {
+                node = null;
+                return false;
+            }
+
             return true;
         }
 
         if (!TryParseFactor(out GenericExpressionNode? rhs))
         {
-            ThrowUnexpectedToken();
+            AddUnexpectedTokenDiagnostic();
+            node = null;
+            return false;
         }
 
         node = kind switch
@@ -322,95 +341,110 @@ internal sealed class Parser
     /// <summary>
     ///  Parses a comparison operator and returns its token kind without creating an expression node.
     /// </summary>
-    /// <param name="kind">The consumed operator kind, or <see cref="TokenKind.None"/> if no operator matched.</param>
+    /// <param name="kind">The consumed operator kind, or <see cref="TokenKind.None"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if an operator was consumed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if an operator was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">Scanning fails while advancing past the operator.</exception>
     /// <remarks>
     ///  <code>comparisonOperator = "==" | "!=" | "&lt;" | "&gt;" | "&lt;=" | "&gt;=" ;</code>
     /// </remarks>
     private bool TryParseComparisonOperator(out TokenKind kind)
     {
-        kind =
-            TryConsume(TokenKind.LessThan)
-                ? TokenKind.LessThan
-          : TryConsume(TokenKind.GreaterThan)
-                ? TokenKind.GreaterThan
-          : TryConsume(TokenKind.LessThanOrEqualTo)
-                ? TokenKind.LessThanOrEqualTo
-          : TryConsume(TokenKind.GreaterThanOrEqualTo)
-                ? TokenKind.GreaterThanOrEqualTo
-          : TryConsume(TokenKind.EqualTo)
-                ? TokenKind.EqualTo
-          : TryConsume(TokenKind.NotEqualTo)
-                ? TokenKind.NotEqualTo
-                : TokenKind.None;
+        kind = _lexer.CurrentTokenKind;
 
-        return kind != TokenKind.None;
+        if (kind is TokenKind.LessThan or
+                    TokenKind.GreaterThan or
+                    TokenKind.LessThanOrEqualTo or
+                    TokenKind.GreaterThanOrEqualTo or
+                    TokenKind.EqualTo or
+                    TokenKind.NotEqualTo &&
+                    TryAdvance())
+        {
+            return true;
+        }
+
+        kind = TokenKind.None;
+        return false;
     }
 
     /// <summary>
     ///  Parses an argument, function call, grouped expression, or negated factor.
     /// </summary>
-    /// <param name="node">The parsed node, or <see langword="null"/> if no factor starts at the current token.</param>
+    /// <param name="node">The parsed node, or <see langword="null"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if a factor was parsed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if a factor was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">A factor starts but contains invalid syntax or a scanning error.</exception>
     /// <remarks>
     ///  <code>factor = argument | functionCall | "(", expression, ")" | "!", factor ;</code>
     /// </remarks>
     private bool TryParseFactor([NotNullWhen(true)] out GenericExpressionNode? node)
     {
-        if (TryParseArgument(out node))
-        {
-            return true;
-        }
-
-        if (TryParseFunctionCall(out node))
-        {
-            return true;
-        }
-
-        if (TryConsume(TokenKind.LeftParenthesis))
-        {
-            if (!TryParseExpression(out node))
-            {
-                ThrowUnexpectedToken();
-            }
-
-            if (!TryConsume(TokenKind.RightParenthesis))
-            {
-                ThrowUnexpectedToken();
-            }
-
-            return true;
-        }
-
-        if (TryConsume(TokenKind.Not))
-        {
-            if (!TryParseFactor(out GenericExpressionNode? operand))
-            {
-                ThrowUnexpectedToken();
-            }
-
-            node = new NotExpressionNode(operand);
-            return true;
-        }
-
         node = null;
-        return false;
+        if (_hasError)
+        {
+            return false;
+        }
+
+        switch (_lexer.CurrentToken?.Kind)
+        {
+            case TokenKind.String:
+            case TokenKind.Number:
+            case TokenKind.Property:
+            case TokenKind.ItemMetadata:
+            case TokenKind.ItemList:
+                return TryParseArgument(out node);
+
+            case TokenKind.FunctionName:
+                return TryParseFunctionCall(out node);
+
+            case TokenKind.LeftParenthesis:
+                if (!TryConsume(TokenKind.LeftParenthesis))
+                {
+                    return false;
+                }
+
+                if (!TryParseExpression(out node))
+                {
+                    AddUnexpectedTokenDiagnostic();
+                    node = null;
+                    return false;
+                }
+
+                if (!TryExpect(TokenKind.RightParenthesis))
+                {
+                    node = null;
+                    return false;
+                }
+
+                return true;
+
+            case TokenKind.Not:
+                if (!TryConsume(TokenKind.Not))
+                {
+                    return false;
+                }
+
+                if (!TryParseFactor(out GenericExpressionNode? operand))
+                {
+                    AddUnexpectedTokenDiagnostic();
+                    return false;
+                }
+
+                node = new NotExpressionNode(operand);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     /// <summary>
     ///  Parses a condition-function call and its argument tokens.
     /// </summary>
-    /// <param name="node">The function-call node, or <see langword="null"/> if the current token is not a function name.</param>
+    /// <param name="node">The function-call node, or <see langword="null"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if a call was parsed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if a call was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">A function call starts but contains invalid syntax or a scanning error.</exception>
     /// <remarks>
     ///  <code>
     ///   functionCall = FUNCTION_NAME, "(", [ argumentList ], ")" ;
@@ -422,16 +456,16 @@ internal sealed class Parser
     /// </remarks>
     private bool TryParseFunctionCall([NotNullWhen(true)] out GenericExpressionNode? node)
     {
+        node = null;
         Token current = _lexer.CurrentToken!;
         if (!TryConsume(TokenKind.FunctionName))
         {
-            node = null;
             return false;
         }
 
-        if (!TryConsume(TokenKind.LeftParenthesis))
+        if (!TryExpect(TokenKind.LeftParenthesis))
         {
-            ThrowUnexpectedToken();
+            return false;
         }
 
         List<GenericExpressionNode?> arguments = [];
@@ -439,15 +473,19 @@ internal sealed class Parser
         {
             do
             {
-                _ = TryParseArgument(out GenericExpressionNode? argument);
+                if (!TryParseArgument(out GenericExpressionNode? argument) && _hasError)
+                {
+                    return false;
+                }
+
                 arguments.Add(argument);
             }
             while (TryConsume(TokenKind.Comma));
         }
 
-        if (!TryConsume(TokenKind.RightParenthesis))
+        if (!TryExpect(TokenKind.RightParenthesis))
         {
-            ThrowUnexpectedToken();
+            return false;
         }
 
         node = new FunctionCallExpressionNode(current.Text, arguments);
@@ -457,43 +495,61 @@ internal sealed class Parser
     /// <summary>
     ///  Parses one string, number, property, metadata, or item-list argument token.
     /// </summary>
-    /// <param name="node">The argument node, or <see langword="null"/> if the current token is not an argument.</param>
+    /// <param name="node">The argument node, or <see langword="null"/> on a non-match or error.</param>
     /// <returns>
-    ///  <see langword="true"/> if an argument was consumed; otherwise, <see langword="false"/> without consuming input.
+    ///  <see langword="true"/> if an argument was parsed; otherwise, <see langword="false"/>.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">Scanning fails while advancing past the argument.</exception>
     /// <remarks>
     ///  <code>argument = STRING | NUMBER | PROPERTY | ITEM_METADATA | ITEM_LIST ;</code>
     /// </remarks>
     private bool TryParseArgument([NotNullWhen(true)] out GenericExpressionNode? node)
     {
-        Token current = _lexer.CurrentToken!;
+        node = null;
 
-        node = TryConsume(TokenKind.String)
-                ? CreateStringNode(current.Text, current.Expandable)
-             : TryConsume(TokenKind.Number)
-                ? new NumericExpressionNode(current.Text)
-             : TryConsume(TokenKind.Property)
-                ? CreateStringNode(current.Text, expandable: true)
-             : TryConsume(TokenKind.ItemMetadata)
-                ? CreateStringNode(current.Text, expandable: true)
-             : TryConsume(TokenKind.ItemList)
-                ? CreateStringNode(current.Text, expandable: true)
-                : null;
+        if (_hasError || _lexer.CurrentToken is not Token current)
+        {
+            return false;
+        }
 
-        return node is not null;
+        switch (current.Kind)
+        {
+            case TokenKind.String:
+                if (!TryAdvance())
+                {
+                    return false;
+                }
+
+                node = CreateStringNode(current.Text, current.Expandable);
+                return true;
+
+            case TokenKind.Number:
+                if (!TryAdvance())
+                {
+                    return false;
+                }
+
+                node = new NumericExpressionNode(current.Text);
+                return true;
+
+            case TokenKind.Property:
+            case TokenKind.ItemMetadata:
+            case TokenKind.ItemList:
+                if (!TryAdvance())
+                {
+                    return false;
+                }
+
+                node = CreateStringNode(current.Text, expandable: true);
+                return true;
+
+            default:
+                return false;
+        }
+
+        // Only expandable strings require per-evaluation state slots; literals use -1.
+        StringExpressionNode CreateStringNode(string value, bool expandable)
+            => new(value, expandable, expandable ? _stringNodeStateCount++ : -1);
     }
-
-    /// <summary>
-    ///  Creates a string node, assigning an evaluation-state slot only when expansion is required.
-    /// </summary>
-    /// <param name="value">The unexpanded token text.</param>
-    /// <param name="expandable">Whether the text may require expansion during evaluation.</param>
-    /// <returns>
-    ///  A string node whose state-slot index is <c>-1</c> for a non-expandable literal.
-    /// </returns>
-    private StringExpressionNode CreateStringNode(string value, bool expandable)
-        => new(value, expandable, expandable ? _stringNodeStateCount++ : -1);
 
     /// <summary>
     ///  Consumes the current token if it has the specified kind.
@@ -501,42 +557,78 @@ internal sealed class Parser
     /// <param name="kind">The expected token kind.</param>
     /// <returns>
     ///  <see langword="true"/> if the token matched and scanning advanced; otherwise,
-    ///  <see langword="false"/> without consuming input.
+    ///  <see langword="false"/>. A non-match does not consume input; a scanning failure records an error.
     /// </returns>
-    /// <exception cref="InvalidProjectFileException">Scanning fails while advancing past a matching token.</exception>
     private bool TryConsume(TokenKind kind)
-    {
-        if (_lexer.IsKind(kind))
-        {
-            if (!_lexer.Advance())
-            {
-                _errorPosition = _lexer.ErrorPosition;
-                if (_lexer.ErrorFormatArg != null)
-                {
-                    ProjectErrorUtilities.ThrowInvalidProject(_location, _lexer.ErrorResource, _text, _errorPosition, _lexer.ErrorFormatArg);
-                }
-                else
-                {
-                    ProjectErrorUtilities.ThrowInvalidProject(_location, _lexer.ErrorResource, _text, _errorPosition);
-                }
-            }
+        => !_hasError && _lexer.IsKind(kind) && TryAdvance();
 
+    /// <summary>
+    ///  Consumes a required token, recording an unexpected-token error if it does not match.
+    /// </summary>
+    /// <param name="kind">The required token kind.</param>
+    /// <returns>
+    ///  <see langword="true"/> if the token was consumed; otherwise, <see langword="false"/>.
+    /// </returns>
+    private bool TryExpect(TokenKind kind)
+    {
+        if (TryConsume(kind))
+        {
             return true;
         }
-        else
-        {
-            return false;
-        }
+
+        AddUnexpectedTokenDiagnostic();
+        return false;
     }
 
     /// <summary>
-    ///  Throws a project-file error identifying the current token and its position.
+    ///  Advances the scanner, recording its diagnostic if scanning fails.
     /// </summary>
-    /// <exception cref="InvalidProjectFileException">Always thrown.</exception>
-    [DoesNotReturn]
-    private void ThrowUnexpectedToken()
+    /// <returns>
+    ///  <see langword="true"/> if scanning succeeded; otherwise, <see langword="false"/>.
+    /// </returns>
+    private bool TryAdvance()
     {
-        _errorPosition = _lexer.TokenPosition;
-        ProjectErrorUtilities.ThrowInvalidProject(_location, "UnexpectedTokenInCondition", _text, _lexer.CurrentTokenText, _errorPosition);
+        if (_hasError)
+        {
+            return false;
+        }
+
+        if (_lexer.Advance())
+        {
+            return true;
+        }
+
+        int position = _lexer.ErrorPosition;
+        string? formatArg = _lexer.ErrorFormatArg;
+        object?[] arguments = formatArg is null ? [_text, position] : [_text, position, formatArg];
+        AddDiagnostic(new ParseDiagnostic(ParseDiagnosticSeverity.Error, _lexer.ErrorResource, position, arguments));
+        return false;
+    }
+
+    /// <summary>
+    ///  Records the current token and its position unless an earlier error already e`xplains the failure.
+    /// </summary>
+    private void AddUnexpectedTokenDiagnostic()
+    {
+        if (_hasError)
+        {
+            return;
+        }
+
+        int position = _lexer.TokenPosition;
+        AddDiagnostic(new ParseDiagnostic(
+            ParseDiagnosticSeverity.Error, "UnexpectedTokenInCondition", position, [_text, _lexer.CurrentTokenText, position]));
+    }
+
+    /// <summary>
+    ///  Appends a diagnostic and remembers when parsing must stop.
+    /// </summary>
+    /// <param name="diagnostic">The diagnostic to collect.</param>
+    private void AddDiagnostic(ParseDiagnostic diagnostic)
+    {
+        Assumed.False(_hasError, "Parsing must stop after the first error diagnostic.");
+        _diagnostics ??= [];
+        _diagnostics.Add(diagnostic);
+        _hasError = diagnostic.Severity == ParseDiagnosticSeverity.Error;
     }
 }

@@ -21,31 +21,37 @@ internal sealed class CachedCondition
     /// Concurrent cache misses may parse independently; only the caller that wins publication reports successful-parse warnings.
     /// Parse failures are not cached.
     /// </remarks>
-    internal ParsedCondition GetOrParse(
+    public ParsedCondition GetOrParse(
         string condition,
         ParserOptions options,
-        ElementLocation elementLocation,
-        LoggingContext? loggingContext)
+        ElementLocation location,
+        LoggingContext? loggingContext = null)
     {
         ParsedCondition? parsed = Volatile.Read(ref _condition);
-        return parsed ?? Initialize(condition, options, elementLocation, loggingContext);
+        return parsed ?? Initialize(condition, options, location, loggingContext);
     }
 
     private ParsedCondition Initialize(
         string condition,
         ParserOptions options,
-        ElementLocation elementLocation,
+        ElementLocation location,
         LoggingContext? loggingContext)
     {
-        Parser conditionParser = new(condition, options, elementLocation);
-        ParsedCondition parsed = conditionParser.Parse(loggingContext);
+        ParseResult result = Parser.Parse(condition, options);
+        if (!result.Succeeded)
+        {
+            Parser.ReportDiagnostics(result.Diagnostics, location, loggingContext);
+            return Assumed.Unreachable<ParsedCondition>("A failed parse must have an error diagnostic.");
+        }
+
+        ParsedCondition parsed = result.Condition;
         ParsedCondition? existing = Interlocked.CompareExchange(ref _condition, parsed, null);
         if (existing is not null)
         {
             return existing;
         }
 
-        conditionParser.LogWarnings(condition, loggingContext);
+        Parser.ReportDiagnostics(result.Diagnostics, location, loggingContext);
         return parsed;
     }
 }

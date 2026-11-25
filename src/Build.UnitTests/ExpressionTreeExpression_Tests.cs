@@ -18,7 +18,7 @@ namespace Microsoft.Build.UnitTests;
 
 public class ExpressionTest : IDisposable
 {
-    private readonly ITestOutputHelper output;
+    private readonly ITestOutputHelper _output;
 
     private static readonly string[] FilesWithExistenceChecks = { "a", "c", "a;b", "a'b", ";", "'" };
 
@@ -360,7 +360,7 @@ public class ExpressionTest : IDisposable
     /// </summary>
     public ExpressionTest(ITestOutputHelper output)
     {
-        this.output = output;
+        this._output = output;
 
         ItemDictionary<ProjectItemInstance> itemBag = new ItemDictionary<ProjectItemInstance>();
 
@@ -429,7 +429,11 @@ public class ExpressionTest : IDisposable
     [MemberData(nameof(TrueTests))]
     public void EvaluateAVarietyOfTrueExpressions(string expression)
     {
-        ParsedCondition tree = Parser.Parse(expression, ParserOptions.AllowAll, ElementLocation.Empty);
+        ParseResult parseResult = Parser.Parse(expression, ParserOptions.AllowAll);
+
+        parseResult.Succeeded.ShouldBeTrue();
+        parseResult.Diagnostics.ShouldBeEmpty();
+
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             expression,
             _expander,
@@ -439,7 +443,7 @@ public class ExpressionTest : IDisposable
             ElementLocation.Empty,
             FileSystems.Default);
 
-        state.Evaluate(tree).ShouldBeTrue("expected true from '" + expression + "'");
+        state.Evaluate(parseResult.Condition).ShouldBeTrue();
     }
 
     /// <summary>
@@ -451,7 +455,11 @@ public class ExpressionTest : IDisposable
     [MemberData(nameof(FalseTests))]
     public void EvaluateAVarietyOfFalseExpressions(string expression)
     {
-        ParsedCondition tree = Parser.Parse(expression, ParserOptions.AllowAll, ElementLocation.Empty);
+        ParseResult parseResult = Parser.Parse(expression, ParserOptions.AllowAll);
+
+        parseResult.Succeeded.ShouldBeTrue();
+        parseResult.Diagnostics.ShouldBeEmpty();
+
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             expression,
             _expander,
@@ -461,7 +469,7 @@ public class ExpressionTest : IDisposable
             ElementLocation.Empty,
             FileSystems.Default);
 
-        state.Evaluate(tree).ShouldBeFalse("expected false from '" + expression + "' and got true");
+        state.Evaluate(parseResult.Condition).ShouldBeFalse();
     }
 
     /// <summary>
@@ -473,32 +481,29 @@ public class ExpressionTest : IDisposable
     [MemberData(nameof(ErrorTests))]
     public void EvaluateAVarietyOfErrorExpressions(string expression)
     {
-        // If an expression is invalid,
-        //      - Parse may throw, or
-        //      - Evaluate may throw, or
-        //      - Evaluate may return false causing its caller EvaluateCondition to throw
-        bool caughtException = false;
-        try
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(() =>
         {
-            ParsedCondition tree = Parser.Parse(expression, ParserOptions.AllowAll, ElementLocation.Empty);
+            ParseResult parseResult = Parser.Parse(expression, ParserOptions.AllowAll);
 
-            ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
-                expression,
-                _expander,
-                ExpanderOptions.ExpandAll,
-                null,
-                Directory.GetCurrentDirectory(),
-                ElementLocation.Empty,
-                FileSystems.Default);
+            if (!parseResult.Succeeded)
+            {
+                Parser.ReportDiagnostics(parseResult.Diagnostics, ElementLocation.Empty, loggingContext: null);
+            }
+            else
+            {
+                ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
+                    expression,
+                    _expander,
+                    ExpanderOptions.ExpandAll,
+                    null,
+                    Directory.GetCurrentDirectory(),
+                    ElementLocation.Empty,
+                    FileSystems.Default);
 
-            state.Evaluate(tree);
-        }
-        catch (InvalidProjectFileException ex)
-        {
-            output.WriteLine(expression + " caused '" + ex.Message + "'");
-            caughtException = true;
-        }
-        Assert.True(caughtException,
-            "expected '" + expression + "' to not parse or not be evaluated");
+                _ = state.Evaluate(parseResult.Condition);
+            }
+        });
+
+        _output.WriteLine($"{expression} caused '{exception.Message}'");
     }
 }

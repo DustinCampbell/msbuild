@@ -160,6 +160,11 @@ internal sealed class Scanner
         => _current?.IsKind(kind) is true;
 
     /// <summary>
+    ///  Gets the current token's kind, or <see cref="TokenKind.None"/> if no token has been assigned.
+    /// </summary>
+    public TokenKind CurrentTokenKind => _current?.Kind ?? TokenKind.None;
+
+    /// <summary>
     ///  Gets the current token's text without advancing.
     /// </summary>
     /// <value>

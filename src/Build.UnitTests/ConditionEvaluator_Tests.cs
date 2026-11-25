@@ -83,6 +83,85 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void UncachedParseReportsWarningsOnSuccess()
+    {
+        const string condition = "true or false and true";
+        int warnings = 0;
+        MockLoggingService loggingService = new(message =>
+        {
+            if (message == "ConditionMaybeEvaluatedIncorrectly")
+            {
+                warnings++;
+            }
+
+            _output.WriteLine(message);
+        });
+
+        EvaluationLoggingContext loggingContext = new(
+            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
+
+        _ = ParsedCondition.Parse(condition, ParserOptions.AllowAll, MockElementLocation.Instance, loggingContext);
+
+        warnings.ShouldBe(1);
+    }
+
+    [Fact]
+    public void UncachedParseReportsRecordedWarningsBeforeError()
+    {
+        const string condition = "true or false and true false";
+        int warnings = 0;
+        MockLoggingService loggingService = new(message =>
+        {
+            if (message == "ConditionMaybeEvaluatedIncorrectly")
+            {
+                warnings++;
+            }
+
+            _output.WriteLine(message);
+        });
+
+        EvaluationLoggingContext loggingContext = new(
+            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
+
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(() =>
+            ParsedCondition.Parse(condition, ParserOptions.AllowAll, MockElementLocation.Instance, loggingContext));
+
+        warnings.ShouldBe(1);
+        exception.ErrorCode.ShouldBe("MSB4092");
+        exception.BaseMessage.ShouldBe(ResourceUtilities.FormatResourceStringStripCodeAndKeyword(
+            out _, out _, "UnexpectedTokenInCondition", condition, "false", 24));
+    }
+
+    [Fact]
+    public void FailedConditionParsesAreNotCached()
+    {
+        const string condition = "true or false and true false";
+        CachedCondition cached = new();
+        int warnings = 0;
+        MockLoggingService loggingService = new(message =>
+        {
+            if (message == "ConditionMaybeEvaluatedIncorrectly")
+            {
+                warnings++;
+            }
+
+            _output.WriteLine(message);
+        });
+
+        EvaluationLoggingContext loggingContext = new(
+            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
+
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(() =>
+                cached.GetOrParse(condition, ParserOptions.AllowAll, MockElementLocation.Instance, loggingContext));
+            exception.ErrorCode.ShouldBe("MSB4092");
+        }
+
+        warnings.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task SameConditionEvaluatesConcurrentlyWithoutRepeatingParserWarnings()
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
@@ -317,7 +396,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
         const string condition = "'$(Value)' > '1'";
-        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = ParsedCondition.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty, loggingContext: null);
         PropertyDictionary<ProjectPropertyInstance> properties = new();
         properties.Set(ProjectPropertyInstance.Create("Value", "not-a-number"));
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander = new(properties, FileSystems.Default);
@@ -381,7 +460,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
         string outerPath = Path.Combine(env.DefaultTestDirectory.Path, "outer.file");
         string innerPath = Path.Combine(env.DefaultTestDirectory.Path, "inner.file");
         string condition = "'$(Value)' != 'none' And Exists('$(File)')";
-        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = ParsedCondition.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty, loggingContext: null);
         MSBuildFileSystemBase fileSystem = A.Fake<MSBuildFileSystemBase>();
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> outerState = new(
             condition, CreateExpander(fileSystem, ("Value", "outer"), ("File", outerPath)),
@@ -442,7 +521,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     public void ToolsVersionCompatibilityUsesEachEvaluationsExpandedValue(string condition)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
-        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = ParsedCondition.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty, loggingContext: null);
         (string Value, bool Expected)[] cases =
         [
             (MSBuildConstants.CurrentToolsVersion, true),
@@ -518,7 +597,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     public void StringStateSlotsOnlyIncludeExpandableNodes(string condition, int expectedSlots)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
-        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = ParsedCondition.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty, loggingContext: null);
         parsed.StateLayout.StringSlotCount.ShouldBe(expectedSlots);
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             condition, CreateExpander(FileSystems.Default, ("Value", "value"), ("Other", "other")),
@@ -539,7 +618,7 @@ public class ConditionEvaluator_Tests(ITestOutputHelper output)
     {
         using TestEnvironment env = TestEnvironment.Create(_output);
         string condition = $"'{value}'";
-        ParsedCondition parsed = Parser.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty);
+        ParsedCondition parsed = ParsedCondition.Parse(condition, ParserOptions.AllowProperties, ElementLocation.Empty, loggingContext: null);
         StringExpressionNode node = parsed.Root.ShouldBeOfType<StringExpressionNode>();
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             condition, CreateExpander(FileSystems.Default), ExpanderOptions.ExpandProperties,

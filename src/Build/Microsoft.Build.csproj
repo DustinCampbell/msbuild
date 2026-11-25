@@ -145,6 +145,9 @@
     <Compile Include="Collections\IKeyed.cs" />
     <Compile Include="Collections\IValueDictionaryConverter.cs" />
     <Compile Include="Collections\RetrievableEntryHashSet\IRetrievableUnescapedValuedEntryHashSet.cs" />
+    <Compile Include="Evaluation\Conditionals\ParseDiagnostic.cs" />
+    <Compile Include="Evaluation\Conditionals\ParseDiagnosticSeverity.cs" />
+    <Compile Include="Evaluation\Conditionals\ParseResult.cs" />
     <Compile Include="Evaluation\Conditionals\ParserOptions.cs" />
     <Compile Include="Evaluation\Conditionals\TokenKind.cs" />
     <Compile Include="Evaluation\Expander.Function.cs" />

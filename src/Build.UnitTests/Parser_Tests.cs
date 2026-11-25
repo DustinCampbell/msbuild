@@ -1,11 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Build.BackEnd.Components.Logging;
 using Microsoft.Build.Evaluation;
-using Microsoft.Build.Exceptions;
-using Microsoft.Build.Framework;
-using Microsoft.Build.UnitTests.BackEnd;
 using Shouldly;
 using Xunit;
 
@@ -93,8 +89,8 @@ public class ParserTest
     [InlineData("'@(foo)otherstuff' == 'a.cs;b.cs'")]
     [InlineData("somefunction(@(foo), 'otherstuff')")]
     public void RejectsItemListsWhenDisallowed(string condition)
-        => Should.Throw<InvalidProjectFileException>(()
-                => Parse(condition, ParserOptions.AllowProperties));
+        => ParseError(condition, ParserOptions.AllowProperties)
+            .ResourceName.ShouldBe("ItemListNotAllowedInThisConditional");
 
     [Fact]
     public void ParsesItemFunctionAsString()
@@ -132,8 +128,8 @@ public class ParserTest
     [InlineData("'%(foo)otherstuff' == 'a.cs;b.cs'")]
     [InlineData("somefunction(%(foo), 'otherstuff')")]
     public void RejectsMetadataWhenDisallowed(string condition)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            Parse(condition, ParserOptions.AllowProperties | ParserOptions.AllowItemLists));
+        => ParseError(condition, ParserOptions.AllowProperties | ParserOptions.AllowItemLists)
+            .ResourceName.ShouldBe("CustomMetadataNotAllowedInThisConditional");
 
     [Theory]
     [InlineData("'a more complex' == 'asdf")]
@@ -149,8 +145,7 @@ public class ParserTest
     [InlineData("f((a))")]
     [InlineData("f(g(a))")]
     public void RejectsMalformedConditions(string condition)
-        => Should.Throw<InvalidProjectFileException>(() =>
-            Parse(condition));
+        => ParseError(condition);
 
     [Theory]
     [InlineData(" @(foo", 2)]
@@ -165,11 +160,69 @@ public class ParserTest
     [InlineData("true == )", 9)]
     [InlineData("f(a", 4)]
     public void ReportsErrorPosition(string expression, int expectedPosition)
+        => ParseError(expression).Position.ShouldBe(expectedPosition);
+
+    [Theory]
+    [InlineData("true false", "false", 6)]
+    [InlineData("true == )", ")", 9)]
+    [InlineData("f(a", "", 4)]
+    public void CollectsUnexpectedTokenDiagnostics(string condition, string unexpectedToken, int expectedPosition)
     {
-        Parser parser = new(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
-        _ = Should.Throw<InvalidProjectFileException>(() =>
-            parser.Parse());
-        parser.ErrorPosition.ShouldBe(expectedPosition);
+        ParseDiagnostic diagnostic = ParseError(condition);
+
+        diagnostic.ResourceName.ShouldBe("UnexpectedTokenInCondition");
+        diagnostic.Position.ShouldBe(expectedPosition);
+        diagnostic.Arguments.ShouldBe([condition, unexpectedToken, expectedPosition]);
+    }
+
+    [Theory]
+    [InlineData("?", 1)]
+    [InlineData("true ? or false and true", 6)]
+    [InlineData("true == ?", 9)]
+    public void CollectsScannerDiagnosticsWithoutAddingParserErrors(string condition, int expectedPosition)
+    {
+        ParseDiagnostic diagnostic = ParseError(condition);
+
+        diagnostic.ResourceName.ShouldBe("UnexpectedCharacterInCondition");
+        diagnostic.Position.ShouldBe(expectedPosition);
+        diagnostic.Arguments.ShouldBe([condition, expectedPosition, "?"]);
+    }
+
+    [Fact]
+    public void OmitsUnusedScannerFormatArgument()
+    {
+        const string condition = "true == '@(foo";
+        ParseDiagnostic diagnostic = ParseError(condition);
+
+        diagnostic.ResourceName.ShouldBe("IllFormedQuotedStringInCondition");
+        diagnostic.Position.ShouldBe(9);
+        diagnostic.Arguments.ShouldBe([condition, 9]);
+    }
+
+    [Theory]
+    [InlineData("%(Filename)", "BuiltInMetadataNotAllowedInThisConditional", 11, "Filename")]
+    [InlineData("'%(Filename)'", "BuiltInMetadataNotAllowedInThisConditional", 1, "Filename")]
+    [InlineData("%(Custom)", "CustomMetadataNotAllowedInThisConditional", 9, "Custom")]
+    [InlineData("'%(Custom)'", "CustomMetadataNotAllowedInThisConditional", 1, "Custom")]
+    public void PreservesMetadataDiagnosticPositions(
+        string condition, string expectedResource, int expectedPosition, string metadataName)
+    {
+        ParseDiagnostic diagnostic = ParseError(condition, ParserOptions.AllowProperties);
+
+        diagnostic.ResourceName.ShouldBe(expectedResource);
+        diagnostic.Position.ShouldBe(expectedPosition);
+        diagnostic.Arguments.ShouldBe([condition, expectedPosition, metadataName]);
+    }
+
+    [Fact]
+    public void PreservesWhitespaceDiagnosticPosition()
+    {
+        const string condition = "$( x )";
+        ParseDiagnostic diagnostic = ParseError(condition);
+
+        diagnostic.ResourceName.ShouldBe("IllFormedPropertySpaceInCondition");
+        diagnostic.Position.ShouldBe(4);
+        diagnostic.Arguments.ShouldBe([condition, 4, " "]);
     }
 
     [Theory]
@@ -182,24 +235,21 @@ public class ParserTest
     [InlineData("($(a) == 1 or $(b) == 2) and $(c) == 3", false)]
     public void ReportsCompatibilityWarningForMixedAndOr(string condition, bool expectedWarning)
     {
-        bool warningLogged = false;
-        MockLoggingService loggingService = new(message =>
+        ParseResult result = Parser.Parse(condition, ParserOptions.AllowAll);
+        result.Succeeded.ShouldBeTrue();
+
+        if (expectedWarning)
         {
-            if (message == "ConditionMaybeEvaluatedIncorrectly")
-            {
-                warningLogged = true;
-            }
-        });
-
-        EvaluationLoggingContext loggingContext = new(
-            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
-
-        Parser parser = new(condition, ParserOptions.AllowAll, MockElementLocation.Instance);
-
-        _ = parser.Parse();
-        parser.LogWarnings(condition, loggingContext);
-
-        warningLogged.ShouldBe(expectedWarning);
+            ParseDiagnostic diagnostic = result.Diagnostics.ShouldHaveSingleItem();
+            diagnostic.Severity.ShouldBe(ParseDiagnosticSeverity.Warning);
+            diagnostic.ResourceName.ShouldBe("ConditionMaybeEvaluatedIncorrectly");
+            diagnostic.Position.ShouldBe(0);
+            diagnostic.Arguments.ShouldBe([condition]);
+        }
+        else
+        {
+            result.Diagnostics.ShouldBeEmpty();
+        }
     }
 
     [Theory]
@@ -211,56 +261,50 @@ public class ParserTest
     [InlineData("((true Or false And true))", 1)]
     public void OperatorWarningsRespectParentheses(string expression, int expectedWarningCount)
     {
-        int warningCount = 0;
-        MockLoggingService loggingService = new(message =>
-        {
-            if (message == "ConditionMaybeEvaluatedIncorrectly")
-            {
-                warningCount++;
-            }
-        });
+        ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll);
+        result.Succeeded.ShouldBeTrue();
+        result.Diagnostics.Length.ShouldBe(expectedWarningCount);
 
-        EvaluationLoggingContext loggingContext = new(
-            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
-
-        Parser parser = new(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
-
-        _ = parser.Parse(loggingContext);
-
-        warningCount.ShouldBe(0);
-        parser.LogWarnings(expression, loggingContext);
-        warningCount.ShouldBe(expectedWarningCount);
-
-        parser = new("true", ParserOptions.AllowAll, MockElementLocation.Instance);
-
-        _ = parser.Parse(loggingContext);
-        parser.LogWarnings("true", loggingContext);
-        warningCount.ShouldBe(expectedWarningCount);
+        Parser.Parse("true", ParserOptions.AllowAll).Diagnostics.ShouldBeEmpty();
     }
 
     [Theory]
-    [InlineData("true or false and true false", 1)]
-    [InlineData("true or false and", 0)]
-    public void ReportsRecordedWarningsWhenParsingFails(string expression, int expectedWarningCount)
+    [InlineData("true or false and true false", 1, "UnexpectedTokenInCondition")]
+    [InlineData("true or false and", 0, "UnexpectedTokenInCondition")]
+    [InlineData("true and false or true and false or ?", 0, "UnexpectedCharacterInCondition")]
+    [InlineData("true or false and true and ?", 0, "UnexpectedCharacterInCondition")]
+    [InlineData("(true or false and true) ?", 1, "UnexpectedCharacterInCondition")]
+    public void RetainsRecordedWarningsWhenParsingFails(
+        string expression, int expectedWarningCount, string expectedErrorResource)
     {
-        int warningCount = 0;
-        MockLoggingService loggingService = new(message =>
+        ParseResult result = Parser.Parse(expression, ParserOptions.AllowAll);
+        result.Succeeded.ShouldBeFalse();
+        result.Diagnostics.Length.ShouldBe(expectedWarningCount + 1);
+        result.Diagnostics[^1].Severity.ShouldBe(ParseDiagnosticSeverity.Error);
+        result.Diagnostics[^1].ResourceName.ShouldBe(expectedErrorResource);
+
+        if (expectedWarningCount != 0)
         {
-            if (message == "ConditionMaybeEvaluatedIncorrectly")
-            {
-                warningCount++;
-            }
-        });
-
-        EvaluationLoggingContext loggingContext = new(
-            loggingService, BuildEventContext.Invalid, MockElementLocation.Instance.File);
-
-        Parser parser = new(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
-        _ = Should.Throw<InvalidProjectFileException>(() => parser.Parse(loggingContext));
-
-        warningCount.ShouldBe(expectedWarningCount);
+            result.Diagnostics[0].Severity.ShouldBe(ParseDiagnosticSeverity.Warning);
+            result.Diagnostics[0].ResourceName.ShouldBe("ConditionMaybeEvaluatedIncorrectly");
+            result.Diagnostics[0].Position.ShouldBe(0);
+            result.Diagnostics[0].Arguments.ShouldBe([expression]);
+        }
     }
 
-    private static ParsedCondition Parse(string condition, ParserOptions options = ParserOptions.AllowAll) =>
-        Parser.Parse(condition, options, MockElementLocation.Instance);
+    private static ParsedCondition Parse(string condition, ParserOptions options = ParserOptions.AllowAll)
+    {
+        ParseResult result = Parser.Parse(condition, options);
+        result.Succeeded.ShouldBeTrue();
+        return result.Condition.ShouldNotBeNull();
+    }
+
+    private static ParseDiagnostic ParseError(string condition, ParserOptions options = ParserOptions.AllowAll)
+    {
+        ParseResult result = Parser.Parse(condition, options);
+        result.Succeeded.ShouldBeFalse();
+        ParseDiagnostic diagnostic = result.Diagnostics.ShouldHaveSingleItem();
+        diagnostic.Severity.ShouldBe(ParseDiagnosticSeverity.Error);
+        return diagnostic;
+    }
 }

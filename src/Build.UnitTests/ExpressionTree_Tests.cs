@@ -10,6 +10,7 @@ using Microsoft.Build.Exceptions;
 using Microsoft.Build.Execution;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Shared.FileSystem;
+using Shouldly;
 using Xunit;
 
 namespace Microsoft.Build.UnitTests;
@@ -85,12 +86,13 @@ public class ExpressionTreeTest(ITestOutputHelper output)
             Metadata = new StringMetadataTable(null),
         };
 
-        bool value;
-
         string fileThatMustAlwaysExist = FileUtilities.GetTemporaryFileName();
         File.WriteAllText(fileThatMustAlwaysExist, "foo");
-        string command = "Exists('" + fileThatMustAlwaysExist + "')";
-        ParsedCondition tree = Parser.Parse(command, ParserOptions.AllowAll, ElementLocation.Empty);
+        string command = $"Exists('{fileThatMustAlwaysExist}')";
+        ParseResult parseResult = Parser.Parse(command, ParserOptions.AllowAll);
+
+        parseResult.Succeeded.ShouldBeTrue();
+        parseResult.Diagnostics.ShouldBeEmpty();
 
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance> state = new(
             command,
@@ -101,8 +103,7 @@ public class ExpressionTreeTest(ITestOutputHelper output)
             ElementLocation.Empty,
             FileSystems.Default);
 
-        value = state.Evaluate(tree);
-        Assert.True(value);
+        state.Evaluate(parseResult.Condition).ShouldBeTrue();
 
         if (File.Exists(fileThatMustAlwaysExist))
         {
@@ -428,7 +429,10 @@ public class ExpressionTreeTest(ITestOutputHelper output)
     {
         expander.Metadata ??= new StringMetadataTable(null);
 
-        ParsedCondition tree = Parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
+        ParseResult parseResult = Parser.Parse(expression, ParserOptions.AllowAll);
+
+        parseResult.Succeeded.ShouldBeTrue();
+        parseResult.Diagnostics.ShouldBeEmpty();
 
         state ??= new(
             string.Empty,
@@ -439,8 +443,7 @@ public class ExpressionTreeTest(ITestOutputHelper output)
             ElementLocation.Empty,
             FileSystems.Default);
 
-        bool result = state.Evaluate(tree);
-        Assert.Equal(expected, result);
+        state.Evaluate(parseResult.Condition).ShouldBe(expected);
     }
 
     private void AssertParseEvaluateThrow(string expression, Expander<ProjectPropertyInstance, ProjectItemInstance> expander)
@@ -451,32 +454,31 @@ public class ExpressionTreeTest(ITestOutputHelper output)
         Expander<ProjectPropertyInstance, ProjectItemInstance> expander,
         ConditionEvaluator.ConditionEvaluationState<ProjectPropertyInstance, ProjectItemInstance>? state)
     {
-        bool fExceptionCaught;
-
         expander.Metadata ??= new StringMetadataTable(null);
 
-        try
+        InvalidProjectFileException exception = Should.Throw<InvalidProjectFileException>(() =>
         {
-            fExceptionCaught = false;
-            ParsedCondition tree = Parser.Parse(expression, ParserOptions.AllowAll, MockElementLocation.Instance);
+            ParseResult parseResult = Parser.Parse(expression, ParserOptions.AllowAll);
 
-            state ??= new(
-                string.Empty,
-                expander,
-                ExpanderOptions.ExpandAll,
-                null,
-                Directory.GetCurrentDirectory(),
-                ElementLocation.Empty,
-                FileSystems.Default);
+            if (!parseResult.Succeeded)
+            {
+                Parser.ReportDiagnostics(parseResult.Diagnostics, ElementLocation.Empty, loggingContext: null);
+            }
+            else
+            {
+                state ??= new(
+                    string.Empty,
+                    expander,
+                    ExpanderOptions.ExpandAll,
+                    null,
+                    Directory.GetCurrentDirectory(),
+                    ElementLocation.Empty,
+                    FileSystems.Default);
 
-            state.Evaluate(tree);
-        }
-        catch (InvalidProjectFileException e)
-        {
-            _output.WriteLine(e.BaseMessage);
-            fExceptionCaught = true;
-        }
+                _ = state.Evaluate(parseResult.Condition);
+            }
+        });
 
-        Assert.True(fExceptionCaught);
+        _output.WriteLine(exception.BaseMessage);
     }
 }

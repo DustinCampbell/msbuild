@@ -1,15 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System;
 using BenchmarkDotNet.Attributes;
-using Microsoft.Build.Construction;
 using Microsoft.Build.Evaluation;
 using static MSBuild.Benchmarks.ConditionStrings;
 
 namespace MSBuild.Benchmarks;
 
 /// <summary>
-///  Benchmarks condition scanning, parsing, and expression-tree construction without evaluation.
+///  Benchmarks condition scanning, parsing, diagnostic collection, and expression-tree construction without evaluation.
 /// </summary>
 /// <remarks>
 ///  Each invocation creates a parser directly, bypassing the production expression-tree cache, so
@@ -19,12 +19,6 @@ namespace MSBuild.Benchmarks;
 [MemoryDiagnoser]
 public class ConditionParsingBenchmark
 {
-    private ElementLocation _location = null!;
-
-    [GlobalSetup]
-    public void GlobalSetup()
-        => _location = ElementLocation.Empty;
-
     [Benchmark(Baseline = true)]
     public object SimpleEquality_Parse()
         => Parse(SimpleEquality);
@@ -126,5 +120,10 @@ public class ConditionParsingBenchmark
         => Parse(RealisticMultiTargeting);
 
     private object Parse(string condition)
-        => Parser.Parse(condition, ParserOptions.AllowAll, _location);
+    {
+        ParseResult result = Parser.Parse(condition, ParserOptions.AllowAll);
+        return result.Succeeded
+            ? result.Condition
+            : throw new InvalidOperationException("A benchmark condition failed to parse.");
+    }
 }

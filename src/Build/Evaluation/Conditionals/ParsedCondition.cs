@@ -3,6 +3,7 @@
 
 using Microsoft.Build.BackEnd.Logging;
 using Microsoft.Build.Construction;
+using Microsoft.Build.Exceptions;
 
 namespace Microsoft.Build.Evaluation;
 
@@ -23,17 +24,37 @@ internal readonly record struct NodeStateLayout(int StringSlotCount);
 internal sealed record ParsedCondition(GenericExpressionNode Root, NodeStateLayout StateLayout)
 {
     /// <summary>
-    /// Parses an uncached condition and reports compatibility warnings.
+    ///  Parses an uncached condition and reports its diagnostics.
     /// </summary>
+    /// <param name="condition">The condition text to parse.</param>
+    /// <param name="options">The permitted reference forms. Must include <see cref="ParserOptions.AllowProperties"/>.</param>
+    /// <param name="location">The project-file location associated with reported diagnostics.</param>
+    /// <param name="loggingContext">
+    ///  The destination for collected warnings, or <see langword="null"/> to omit them.
+    /// </param>
+    /// <returns>
+    ///  The completed condition and its evaluation-state layout.
+    /// </returns>
+    /// <exception cref="InvalidProjectFileException">The condition produced an error diagnostic.</exception>
+    /// <remarks>
+    ///  Warnings are reported for both successful and failed parses. Use
+    ///  <see cref="Parser.Parse(string, ParserOptions)"/> to inspect diagnostics without reporting them.
+    ///  Error diagnostics are reported regardless of whether <paramref name="loggingContext"/> is supplied.
+    /// </remarks>
     internal static ParsedCondition Parse(
         string condition,
         ParserOptions options,
-        ElementLocation elementLocation,
-        LoggingContext? loggingContext)
+        ElementLocation location,
+        LoggingContext? loggingContext = null)
     {
-        Parser conditionParser = new(condition, options, elementLocation);
-        ParsedCondition parsed = conditionParser.Parse(loggingContext);
-        conditionParser.LogWarnings(condition, loggingContext);
-        return parsed;
+        ParseResult result = Parser.Parse(condition, options);
+        Parser.ReportDiagnostics(result.Diagnostics, location, loggingContext);
+
+        if (result.Succeeded)
+        {
+            return result.Condition;
+        }
+
+        return Assumed.Unreachable<ParsedCondition>("A failed parse must have an error diagnostic.");
     }
 }
